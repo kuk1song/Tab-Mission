@@ -1,6 +1,7 @@
 const gridEl = document.getElementById('grid');
 const searchInput = document.getElementById('search');
 const toggleShots = document.getElementById('toggle-shots');
+const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
 const ric = window.requestIdleCallback || (cb => setTimeout(() => cb({ timeRemaining: () => 0, didTimeout: false }), 0));
 
 let tabs = [];
@@ -17,12 +18,14 @@ async function fetchAllTabs() {
     chrome.tabs.query({}),
     awaitCurrentWindowId()
   ]);
+  const hideDiscarded = toggleHideDiscarded.checked;
+  const usable = hideDiscarded ? all.filter(t => !t.discarded && !t.autoDiscardable) : all;
   // Sort: current window first, then most recently active
-  all.sort((a, b) => {
+  usable.sort((a, b) => {
     if (a.windowId !== b.windowId) return a.windowId === currentId ? -1 : (b.windowId === currentId ? 1 : 0);
     return (b.lastAccessed || 0) - (a.lastAccessed || 0);
   });
-  return all;
+  return usable;
 }
 
 let currentWindowIdCache = null;
@@ -228,6 +231,13 @@ async function init() {
 
   toggleShots.addEventListener('change', () => {
     // rerender to stop or start capture observers
+    render();
+  });
+
+  toggleHideDiscarded.addEventListener('change', async () => {
+    tabs = await fetchAllTabs();
+    filtered = filterTabs(searchInput.value);
+    selectedIndex = 0;
     render();
   });
 }
