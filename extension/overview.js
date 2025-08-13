@@ -25,14 +25,7 @@ async function fetchAllTabs() {
   let usable = all;
   if (hideDiscarded) {
     const discardedIds = new Set(discardedList.map(t => t.id));
-    const now = Date.now();
-    const HIDE_AGE_MS = 1000 * 60 * 60 * 24; // 24h threshold for long-unused
-    usable = all.filter(t => {
-      const isDiscarded = discardedIds.has(t.id);
-      const last = typeof t.lastAccessed === 'number' ? t.lastAccessed : 0;
-      const tooOld = last > 0 ? (now - last) > HIDE_AGE_MS : false;
-      return !isDiscarded && !tooOld;
-    });
+    usable = all.filter(t => !discardedIds.has(t.id));
   }
   // Sort: current window first, then most recently active
   usable.sort((a, b) => {
