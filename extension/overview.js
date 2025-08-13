@@ -2,6 +2,7 @@ const gridEl = document.getElementById('grid');
 const searchInput = document.getElementById('search');
 const toggleShots = document.getElementById('toggle-shots');
 const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
+const toggleCurrentWindow = document.getElementById('toggle-current-window');
 const ric = window.requestIdleCallback || (cb => setTimeout(() => cb({ timeRemaining: () => 0, didTimeout: false }), 0));
 
 let tabs = [];
@@ -17,10 +18,11 @@ const MAX_CONCURRENT = Math.max(2, Math.min(4, CPU_HALF));
 const captureQueue = [];
 
 async function fetchAllTabs() {
-  const [all, currentId, discardedList] = await Promise.all([
-    chrome.tabs.query({}),
-    awaitCurrentWindowId(),
-    chrome.tabs.query({ discarded: true })
+  const currentId = await awaitCurrentWindowId();
+  const scopeQuery = toggleCurrentWindow.checked ? { windowId: currentId } : {};
+  const [all, discardedList] = await Promise.all([
+    chrome.tabs.query(scopeQuery),
+    chrome.tabs.query({ discarded: true, ...scopeQuery })
   ]);
   const hideDiscarded = toggleHideDiscarded.checked;
   let usable = all;
@@ -29,10 +31,7 @@ async function fetchAllTabs() {
     usable = all.filter(t => !discardedIds.has(t.id));
   }
   // Sort: current window first, then most recently active
-  usable.sort((a, b) => {
-    if (a.windowId !== b.windowId) return a.windowId === currentId ? -1 : (b.windowId === currentId ? 1 : 0);
-    return (b.lastAccessed || 0) - (a.lastAccessed || 0);
-  });
+  usable.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
   return usable;
 }
 
@@ -246,6 +245,13 @@ async function init() {
   });
 
   toggleHideDiscarded.addEventListener('change', async () => {
+    tabs = await fetchAllTabs();
+    filtered = filterTabs(searchInput.value);
+    selectedIndex = 0;
+    render();
+  });
+
+  toggleCurrentWindow.addEventListener('change', async () => {
     tabs = await fetchAllTabs();
     filtered = filterTabs(searchInput.value);
     selectedIndex = 0;
