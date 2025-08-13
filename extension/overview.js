@@ -9,6 +9,8 @@ let filtered = [];
 let selectedIndex = 0;
 let io = null;
 const capturedTabIds = new Set();
+const uncapturableTabIds = new Set();
+let rerenderPending = false;
 let concurrent = 0;
 const MAX_CONCURRENT = 4;
 const captureQueue = [];
@@ -127,8 +129,14 @@ async function activateTab(t) {
 
 function filterTabs(q) {
   const s = q.trim().toLowerCase();
-  if (!s) return tabs;
-  return tabs.filter(t => (t.title || '').toLowerCase().includes(s) || (t.url || '').toLowerCase().includes(s));
+  let base = tabs;
+  if (s) {
+    base = base.filter(t => (t.title || '').toLowerCase().includes(s) || (t.url || '').toLowerCase().includes(s));
+  }
+  if (toggleHideDiscarded.checked && uncapturableTabIds.size) {
+    base = base.filter(t => !uncapturableTabIds.has(t.id));
+  }
+  return base;
 }
 
 function startLazyCapture() {
@@ -169,6 +177,16 @@ async function processCaptureQueue() {
       img.src = `data:image/jpeg;base64,${dataUrl}`;
       img.classList.add('ready');
       capturedTabIds.add(tabId);
+    } else {
+      uncapturableTabIds.add(tabId);
+      if (toggleHideDiscarded.checked && !rerenderPending) {
+        rerenderPending = true;
+        ric(() => { 
+          filtered = filterTabs(searchInput.value);
+          render();
+          rerenderPending = false;
+        });
+      }
     }
   } catch {}
   finally {
