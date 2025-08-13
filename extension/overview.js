@@ -14,14 +14,17 @@ const MAX_CONCURRENT = 4;
 const captureQueue = [];
 
 async function fetchAllTabs() {
-  const [all, currentId] = await Promise.all([
+  const [all, currentId, discardedList] = await Promise.all([
     chrome.tabs.query({}),
-    awaitCurrentWindowId()
+    awaitCurrentWindowId(),
+    chrome.tabs.query({ discarded: true })
   ]);
   const hideDiscarded = toggleHideDiscarded.checked;
-  // Only hide tabs that are actually sleeping (discarded).
-  // Do NOT hide tabs that are merely autoDiscardable (most tabs are).
-  const usable = hideDiscarded ? all.filter(t => !t.discarded) : all;
+  let usable = all;
+  if (hideDiscarded) {
+    const discardedIds = new Set(discardedList.map(t => t.id));
+    usable = all.filter(t => !discardedIds.has(t.id));
+  }
   // Sort: current window first, then most recently active
   usable.sort((a, b) => {
     if (a.windowId !== b.windowId) return a.windowId === currentId ? -1 : (b.windowId === currentId ? 1 : 0);
