@@ -3,6 +3,7 @@ const searchInput = document.getElementById('search');
 const toggleShots = document.getElementById('toggle-shots');
 const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
 const toggleCurrentWindow = document.getElementById('toggle-current-window');
+const toggleDebug = document.getElementById('toggle-debug');
 const ric = window.requestIdleCallback || (cb => setTimeout(() => cb({ timeRemaining: () => 0, didTimeout: false }), 0));
 
 let tabs = [];
@@ -37,10 +38,16 @@ async function fetchAllTabs() {
 
 let currentWindowIdCache = null;
 async function awaitCurrentWindowId() {
-  if (currentWindowIdCache !== null) return currentWindowIdCache;
-  const win = await chrome.windows.getCurrent();
-  currentWindowIdCache = win.id;
-  return currentWindowIdCache;
+  // Prefer last focused normal window to avoid picking devtools/popup
+  try {
+    const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+    currentWindowIdCache = win.id;
+    return currentWindowIdCache;
+  } catch {
+    const win = await chrome.windows.getCurrent();
+    currentWindowIdCache = win.id;
+    return currentWindowIdCache;
+  }
 }
 
 function render() {
@@ -78,6 +85,13 @@ function render() {
     const url = document.createElement('div');
     url.className = 'url';
     url.textContent = safeHostname(t.url);
+    if (toggleDebug.checked) {
+      const dbg = document.createElement('div');
+      dbg.className = 'url';
+      const last = typeof t.lastAccessed === 'number' ? ((Date.now() - t.lastAccessed) / 60000) : null;
+      dbg.textContent = `[id:${t.id}] discarded=${!!t.discarded} autoDiscardable=${!!t.autoDiscardable} last=${last!==null?last.toFixed(1)+'m ago':'n/a'}`;
+      meta.appendChild(dbg);
+    }
     meta.appendChild(titleRow);
     meta.appendChild(url);
     tile.appendChild(meta);
@@ -255,6 +269,10 @@ async function init() {
     tabs = await fetchAllTabs();
     filtered = filterTabs(searchInput.value);
     selectedIndex = 0;
+    render();
+  });
+
+  toggleDebug.addEventListener('change', async () => {
     render();
   });
 }
