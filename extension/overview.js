@@ -36,17 +36,14 @@ async function fetchAllTabs() {
   return usable;
 }
 
-let currentWindowIdCache = null;
 async function awaitCurrentWindowId() {
-  // Prefer last focused normal window to avoid picking devtools/popup
+  // Always fetch fresh; do not cache to avoid stale selection while popup is focused
   try {
     const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
-    currentWindowIdCache = win.id;
-    return currentWindowIdCache;
+    return win.id;
   } catch {
     const win = await chrome.windows.getCurrent();
-    currentWindowIdCache = win.id;
-    return currentWindowIdCache;
+    return win.id;
   }
 }
 
