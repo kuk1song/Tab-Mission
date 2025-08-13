@@ -35,6 +35,8 @@ html, body, #root {
   color: var(--fg);
 }
 
+.spacer { flex: 1; }
+.ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
 .hint { color: var(--muted); font-size: 12px; }
 
 .grid {

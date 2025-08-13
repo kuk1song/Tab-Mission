@@ -1,5 +1,6 @@
 const gridEl = document.getElementById('grid');
 const searchInput = document.getElementById('search');
+const toggleShots = document.getElementById('toggle-shots');
 const ric = window.requestIdleCallback || (cb => setTimeout(() => cb({ timeRemaining: () => 0, didTimeout: false }), 0));
 
 let tabs = [];
@@ -74,7 +75,7 @@ function render() {
     gridEl.appendChild(tile);
   });
 
-  ric(() => startLazyCapture());
+  if (toggleShots.checked) ric(() => startLazyCapture());
 }
 
 function safeHostname(u) {
@@ -224,6 +225,11 @@ async function init() {
   });
 
   document.addEventListener('keydown', onKey);
+
+  toggleShots.addEventListener('change', () => {
+    // rerender to stop or start capture observers
+    render();
+  });
 }
 
 init();
