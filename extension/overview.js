@@ -12,7 +12,8 @@ const capturedTabIds = new Set();
 const uncapturableTabIds = new Set();
 let rerenderPending = false;
 let concurrent = 0;
-const MAX_CONCURRENT = 4;
+const CPU_HALF = Math.max(1, Math.floor((navigator.hardwareConcurrency || 4) / 2));
+const MAX_CONCURRENT = Math.max(2, Math.min(4, CPU_HALF));
 const captureQueue = [];
 
 async function fetchAllTabs() {
@@ -122,14 +123,8 @@ async function activateTab(t) {
 
 function filterTabs(q) {
   const s = q.trim().toLowerCase();
-  let base = tabs;
-  if (s) {
-    base = base.filter(t => (t.title || '').toLowerCase().includes(s) || (t.url || '').toLowerCase().includes(s));
-  }
-  if (toggleHideDiscarded.checked && uncapturableTabIds.size) {
-    base = base.filter(t => !uncapturableTabIds.has(t.id));
-  }
-  return base;
+  if (!s) return tabs;
+  return tabs.filter(t => (t.title || '').toLowerCase().includes(s) || (t.url || '').toLowerCase().includes(s));
 }
 
 function startLazyCapture() {
@@ -143,7 +138,7 @@ function startLazyCapture() {
         io.unobserve(tile);
       }
     }
-  }, { root: gridEl, threshold: 0.2 });
+  }, { root: gridEl, threshold: 0.1, rootMargin: '400px 0px' });
 
   const tiles = Array.from(gridEl.querySelectorAll('.tile'));
   tiles.forEach(tile => io.observe(tile));
@@ -170,16 +165,6 @@ async function processCaptureQueue() {
       img.src = `data:image/jpeg;base64,${dataUrl}`;
       img.classList.add('ready');
       capturedTabIds.add(tabId);
-    } else {
-      uncapturableTabIds.add(tabId);
-      if (toggleHideDiscarded.checked && !rerenderPending) {
-        rerenderPending = true;
-        ric(() => { 
-          filtered = filterTabs(searchInput.value);
-          render();
-          rerenderPending = false;
-        });
-      }
     }
   } catch {}
   finally {
@@ -193,7 +178,10 @@ async function captureTabViaDebugger(tabId) {
   // Returns base64 content or '' on failure
   try {
     await chrome.debugger.attach({ tabId }, '1.3');
-    const { data } = await chrome.debugger.sendCommand({ tabId }, 'Page.captureScreenshot', { format: 'jpeg', quality: 60, fromSurface: true });
+    // ensure Page domain enabled to reduce overhead
+    try { await chrome.debugger.sendCommand({ tabId }, 'Page.enable'); } catch {}
+    const { data } = await chrome.debugger.sendCommand({ tabId }, 'Page.captureScreenshot', { format: 'jpeg', quality: 55, fromSurface: true, captureBeyondViewport: false });
+    try { await chrome.debugger.sendCommand({ tabId }, 'Page.disable'); } catch {}
     await chrome.debugger.detach({ tabId });
     return data || '';
   } catch (e) {

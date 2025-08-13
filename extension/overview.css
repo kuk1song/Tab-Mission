@@ -43,7 +43,7 @@ html, body, #root {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
-  padding: 12px;
+  padding: 8px 12px 12px;
   overflow: auto;
 }
 
