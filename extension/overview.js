@@ -19,7 +19,9 @@ async function fetchAllTabs() {
     awaitCurrentWindowId()
   ]);
   const hideDiscarded = toggleHideDiscarded.checked;
-  const usable = hideDiscarded ? all.filter(t => !t.discarded && !t.autoDiscardable) : all;
+  // Only hide tabs that are actually sleeping (discarded).
+  // Do NOT hide tabs that are merely autoDiscardable (most tabs are).
+  const usable = hideDiscarded ? all.filter(t => !t.discarded) : all;
   // Sort: current window first, then most recently active
   usable.sort((a, b) => {
     if (a.windowId !== b.windowId) return a.windowId === currentId ? -1 : (b.windowId === currentId ? 1 : 0);
