@@ -4,6 +4,7 @@ const toggleShots = document.getElementById('toggle-shots');
 const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
 const toggleCurrentWindow = document.getElementById('toggle-current-window');
 const toggleDebug = document.getElementById('toggle-debug');
+const toggleDomShots = document.getElementById('toggle-dom-shots');
 const ric = window.requestIdleCallback || (cb => setTimeout(() => cb({ timeRemaining: () => 0, didTimeout: false }), 0));
 
 let tabs = [];
@@ -97,6 +98,7 @@ function render() {
   });
 
   if (toggleShots.checked) ric(() => startLazyCapture());
+  if (toggleDomShots.checked) ric(() => startLazyDomCapture());
 }
 
 function safeHostname(u) {
@@ -198,6 +200,46 @@ async function captureTabViaDebugger(tabId) {
     try { await chrome.debugger.detach({ tabId }); } catch {}
     return '';
   }
+}
+
+function startLazyDomCapture() {
+  // Uses content script injection to render DOM to canvas via html2canvas-like technique (simplified placeholder)
+  const tiles = Array.from(gridEl.querySelectorAll('.tile'));
+  tiles.forEach(async (tile) => {
+    const tabId = Number(tile.getAttribute('data-tab-id'));
+    const url = tile.getAttribute('data-url') || '';
+    const img = tile.querySelector('.shot');
+    if (!isCapturableUrl(url) || !img) return;
+    try {
+      const [{ result } = {}] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => {
+          try {
+            const el = document.documentElement;
+            const rect = el.getBoundingClientRect();
+            const scale = 0.16; // downscale
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(10, Math.floor(rect.width * scale));
+            canvas.height = Math.max(10, Math.floor(rect.height * scale * 0.625));
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            // Best-effort: draw title and origin as placeholder (no full DOM render here)
+            ctx.fillStyle = '#ddd';
+            ctx.font = '14px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial';
+            ctx.fillText(document.title || location.hostname, 10, 22);
+            ctx.fillStyle = '#9aa0a6';
+            ctx.fillText(location.hostname, 10, 42);
+            return canvas.toDataURL('image/jpeg', 0.6);
+          } catch { return ''; }
+        }
+      });
+      if (result && typeof result === 'string') {
+        img.src = result;
+        img.classList.add('ready');
+      }
+    } catch {}
+  });
 }
 
 async function getActiveTabInWindow(windowId) {
