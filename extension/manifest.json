@@ -1,0 +1,25 @@
+{
+  "name": "Tab Mosaic Overview",
+  "description": "Quick tab overview grid with search and keyboard navigation.",
+  "version": "0.1.0",
+  "manifest_version": 3,
+  "permissions": ["tabs", "windows", "activeTab", "debugger"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "Open Tab Overview"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "commands": {
+    "open-overview": {
+      "description": "Open tab overview",
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Ctrl+Shift+E"
+      }
+    }
+  }
+}
+
