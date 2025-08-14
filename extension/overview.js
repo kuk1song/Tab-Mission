@@ -25,6 +25,7 @@ let domConcurrent = 0;
 const DOM_MAX_CONCURRENT = Math.max(2, Math.min(4, CPU_HALF));
 const DOM_CACHE_TTL_MS = 60 * 1000;
 const domThumbCache = new Map(); // key = `${tabId}|${url}` -> { dataUrl, t }
+const objectUrlCache = new Map(); // remoteUrl -> { objectUrl, t }
 
 async function fetchAllTabs() {
   const currentId = await awaitCurrentWindowId();
@@ -233,14 +234,11 @@ async function captureTabViaDebugger(tabId) {
 function startLazyDomCapture() {
   if (ioDom) { ioDom.disconnect(); ioDom = null; }
   ioDom = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) {
-        const tile = entry.target;
-        scheduleDomCapture(tile);
-        ioDom.unobserve(tile);
-      }
-    }
-  }, { root: gridEl, threshold: 0.1, rootMargin: '400px 0px' });
+    const vis = entries.filter(e => e.isIntersecting).map(e => e.target);
+    // sort by DOM order to load稳定
+    vis.sort((a, b) => Array.prototype.indexOf.call(gridEl.children, a) - Array.prototype.indexOf.call(gridEl.children, b));
+    vis.forEach(tile => { scheduleDomCapture(tile); ioDom.unobserve(tile); });
+  }, { root: gridEl, threshold: 0.01, rootMargin: '800px 0px' });
 
   const tiles = Array.from(gridEl.querySelectorAll('.tile'));
   // observe only within viewport + rootMargin
@@ -274,7 +272,7 @@ async function processDomCaptureQueue() {
     const url = tile.getAttribute('data-url') || '';
     const img = tile.querySelector('.shot');
     const key = `${tabId}|${url}`;
-    const timeoutMs = 900;
+    const timeoutMs = 1800;
     const exec = chrome.scripting.executeScript({
       target: { tabId },
       world: 'MAIN',
@@ -406,9 +404,12 @@ async function processDomCaptureQueue() {
     const [{ result } = {}] = Array.isArray(resultArr) ? resultArr : [];
     if (result && typeof result === 'object') {
       if (result.previewUrl) {
-        img.src = result.previewUrl;
-        img.classList.add('ready');
-        domThumbCache.set(key, { dataUrl: result.previewUrl, t: Date.now() });
+        const src = await resolvePreviewSrc(result.previewUrl);
+        if (src) {
+          img.src = src;
+          img.classList.add('ready');
+          domThumbCache.set(key, { dataUrl: src, t: Date.now() });
+        }
       } else if (result.dataUrl) {
         img.src = result.dataUrl;
         img.classList.add('ready');
@@ -418,7 +419,27 @@ async function processDomCaptureQueue() {
   } catch {}
   finally {
     domConcurrent--;
-    if (domCaptureQueue.length) processDomCaptureQueue();
+    // drain more than one batch per frame to avoid early rows bias
+    if (domCaptureQueue.length) {
+      ric(() => { for (let k = 0; k < 3 && domCaptureQueue.length; k++) processDomCaptureQueue(); });
+    }
+  }
+}
+
+async function resolvePreviewSrc(remoteUrl) {
+  try {
+    // Cache object URLs to avoid repeated network cost
+    const cached = objectUrlCache.get(remoteUrl);
+    const now = Date.now();
+    if (cached && (now - cached.t) < DOM_CACHE_TTL_MS) return cached.objectUrl;
+    const res = await fetch(remoteUrl, { mode: 'no-cors', cache: 'force-cache' }).catch(() => null);
+    if (!res || !(res.ok || res.type === 'opaque')) return remoteUrl; // fallback to remote directly
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    objectUrlCache.set(remoteUrl, { objectUrl, t: Date.now() });
+    return objectUrl;
+  } catch {
+    return remoteUrl;
   }
 }
 
