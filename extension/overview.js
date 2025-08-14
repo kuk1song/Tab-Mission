@@ -97,8 +97,8 @@ function render() {
     gridEl.appendChild(tile);
   });
 
-  if (toggleShots.checked) ric(() => startLazyCapture());
-  if (toggleDomShots.checked) ric(() => startLazyDomCapture());
+  if (toggleShots.checked && !toggleDomShots.checked) ric(() => startLazyCapture());
+  if (toggleDomShots.checked && !toggleShots.checked) ric(() => startLazyDomCapture());
 }
 
 function safeHostname(u) {
@@ -203,7 +203,6 @@ async function captureTabViaDebugger(tabId) {
 }
 
 function startLazyDomCapture() {
-  // Uses content script injection to render DOM to canvas via html2canvas-like technique (simplified placeholder)
   const tiles = Array.from(gridEl.querySelectorAll('.tile'));
   tiles.forEach(async (tile) => {
     const tabId = Number(tile.getAttribute('data-tab-id'));
@@ -213,25 +212,99 @@ function startLazyDomCapture() {
     try {
       const [{ result } = {}] = await chrome.scripting.executeScript({
         target: { tabId },
-        func: () => {
-          try {
-            const el = document.documentElement;
-            const rect = el.getBoundingClientRect();
-            const scale = 0.16; // downscale
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.max(10, Math.floor(rect.width * scale));
-            canvas.height = Math.max(10, Math.floor(rect.height * scale * 0.625));
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0,0,canvas.width,canvas.height);
-            // Best-effort: draw title and origin as placeholder (no full DOM render here)
-            ctx.fillStyle = '#ddd';
-            ctx.font = '14px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial';
-            ctx.fillText(document.title || location.hostname, 10, 22);
+        world: 'MAIN',
+        func: async () => {
+          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          const W = Math.floor(640 * dpr);
+          const H = Math.floor(400 * dpr);
+          const canvas = document.createElement('canvas');
+          canvas.width = W; canvas.height = H;
+          const ctx = canvas.getContext('2d');
+
+          // Background gradient
+          const grad = ctx.createLinearGradient(0, 0, 0, H);
+          grad.addColorStop(0, '#0e1116');
+          grad.addColorStop(1, '#1a1f2b');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, W, H);
+
+          const title = (document.title || '').slice(0, 140);
+          const host = location.hostname;
+
+          // Try to find a preview image (og:image or prominent img)
+          const findPreview = () => {
+            const og = document.querySelector('meta[property="og:image"], meta[name="og:image"]');
+            if (og && og.content) return og.content;
+            const sel = 'main img, article img, img[src*="hero"], img[src*="cover"], img[src*="banner"]';
+            const img = document.querySelector(sel);
+            if (img) return img.currentSrc || img.src;
+            return '';
+          };
+
+          const drawCover = (image) => {
+            const iw = image.naturalWidth, ih = image.naturalHeight;
+            if (iw && ih) {
+              const scale = Math.max(W / iw, H / ih);
+              const sw = Math.floor(iw * scale), sh = Math.floor(ih * scale);
+              const dx = Math.floor((W - sw) / 2), dy = Math.floor((H - sh) / 2);
+              ctx.drawImage(image, dx, dy, sw, sh);
+              // Dark scrim for text legibility
+              ctx.fillStyle = 'rgba(0,0,0,0.35)';
+              ctx.fillRect(0, 0, W, H);
+            }
+          };
+
+          const drawText = () => {
+            ctx.fillStyle = '#fff';
+            ctx.font = `${Math.floor(16 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
+            ctx.textBaseline = 'top';
+            const pad = Math.floor(12 * dpr);
+            const maxWidth = W - pad * 2;
+            const drawWrap = (text, y, maxLines) => {
+              const words = text.split(/\s+/);
+              let line = '', lines = 0;
+              for (let i = 0; i < words.length; i++) {
+                const test = line ? line + ' ' + words[i] : words[i];
+                if (ctx.measureText(test).width > maxWidth) {
+                  ctx.fillText(line, pad, y);
+                  y += Math.floor(20 * dpr);
+                  lines++; line = words[i];
+                  if (lines >= maxLines) return;
+                } else {
+                  line = test;
+                }
+              }
+              if (lines < maxLines && line) ctx.fillText(line, pad, y);
+            };
+            drawWrap(title || host, Math.floor(14 * dpr), 3);
             ctx.fillStyle = '#9aa0a6';
-            ctx.fillText(location.hostname, 10, 42);
-            return canvas.toDataURL('image/jpeg', 0.6);
-          } catch { return ''; }
+            ctx.font = `${Math.floor(12 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
+            ctx.fillText(host, pad, H - Math.floor(20 * dpr));
+          };
+
+          let usedImage = false;
+          try {
+            const url = findPreview();
+            if (url) {
+              const image = new Image();
+              image.crossOrigin = 'anonymous';
+              const ok = await new Promise((res) => {
+                image.onload = () => res(true);
+                image.onerror = () => res(false);
+                image.src = url;
+              });
+              if (ok) { drawCover(image); usedImage = true; }
+            }
+          } catch {}
+
+          drawText();
+
+          try {
+            return canvas.toDataURL('image/jpeg', usedImage ? 0.72 : 0.6);
+          } catch {
+            // Cross-origin taint fallback: return empty to let caller ignore
+            return '';
+          }
         }
       });
       if (result && typeof result === 'string') {
@@ -312,6 +385,10 @@ async function init() {
   });
 
   toggleDebug.addEventListener('change', async () => {
+    render();
+  });
+
+  toggleDomShots.addEventListener('change', () => {
     render();
   });
 }

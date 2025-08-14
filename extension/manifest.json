@@ -3,7 +3,7 @@
   "description": "Quick tab overview grid with search and keyboard navigation.",
   "version": "0.1.0",
   "manifest_version": 3,
-  "permissions": ["tabs", "windows", "activeTab", "scripting"],
+  "permissions": ["tabs", "windows", "activeTab", "scripting", "debugger"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_title": "Open Tab Overview"
