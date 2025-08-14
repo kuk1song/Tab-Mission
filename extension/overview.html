@@ -31,9 +31,16 @@
           <input id="toggle-debug" type="checkbox" />
           <span>Debug</span>
         </label>
+        <label class="ctrl">
+          <input id="toggle-art" type="checkbox" />
+          <span>Art mode</span>
+        </label>
         <div class="hint">Esc to close • Enter to open • ↑↓←→ to navigate</div>
       </header>
       <main id="grid" class="grid" aria-label="All tabs"></main>
+      <template id="tile-template">
+        <button class="tile" data-span="20"></button>
+      </template>
     </div>
     <script src="overview.js" type="module"></script>
   </body>

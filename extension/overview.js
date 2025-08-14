@@ -5,12 +5,14 @@ const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
 const toggleCurrentWindow = document.getElementById('toggle-current-window');
 const toggleDebug = document.getElementById('toggle-debug');
 const toggleDomShots = document.getElementById('toggle-dom-shots');
+const toggleArt = document.getElementById('toggle-art');
 const ric = window.requestIdleCallback || (cb => setTimeout(() => cb({ timeRemaining: () => 0, didTimeout: false }), 0));
 
 let tabs = [];
 let filtered = [];
 let selectedIndex = 0;
 let io = null;
+let ioDom = null;
 const capturedTabIds = new Set();
 const uncapturableTabIds = new Set();
 let rerenderPending = false;
@@ -18,6 +20,11 @@ let concurrent = 0;
 const CPU_HALF = Math.max(1, Math.floor((navigator.hardwareConcurrency || 4) / 2));
 const MAX_CONCURRENT = Math.max(2, Math.min(4, CPU_HALF));
 const captureQueue = [];
+const domCaptureQueue = [];
+let domConcurrent = 0;
+const DOM_MAX_CONCURRENT = Math.max(2, Math.min(4, CPU_HALF));
+const DOM_CACHE_TTL_MS = 60 * 1000;
+const domThumbCache = new Map(); // key = `${tabId}|${url}` -> { dataUrl, t }
 
 async function fetchAllTabs() {
   const currentId = await awaitCurrentWindowId();
@@ -50,6 +57,7 @@ async function awaitCurrentWindowId() {
 
 function render() {
   gridEl.innerHTML = '';
+  gridEl.classList.toggle('art', !!toggleArt.checked);
   filtered.forEach((t, idx) => {
     const tile = document.createElement('button');
     tile.className = 'tile' + (idx === selectedIndex ? ' selected' : '');
@@ -61,8 +69,8 @@ function render() {
     const img = document.createElement('img');
     img.className = 'shot';
     img.alt = '';
-    // use neutral placeholder for big shot; don't stretch favicon
-    img.src = '';
+    // lightweight local placeholder to avoid black tiles before capture
+    img.src = makePlaceholderDataUrl(t.title || safeHostname(t.url), safeHostname(t.url));
     tile.appendChild(img);
 
     const meta = document.createElement('div');
@@ -94,6 +102,7 @@ function render() {
     meta.appendChild(url);
     tile.appendChild(meta);
 
+    // Optional art mode span handled later
     gridEl.appendChild(tile);
   });
 
@@ -125,6 +134,25 @@ function isCapturableUrl(u) {
     const url = new URL(u);
     return url.protocol === 'http:' || url.protocol === 'https:';
   } catch { return false; }
+}
+
+function makePlaceholderDataUrl(title, host) {
+  try {
+    const canvas = document.createElement('canvas');
+    const W = 640, H = 400;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0e1116'); g.addColorStop(1, '#1a1f2b');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial';
+    ctx.fillText((title || '').slice(0, 60), 12, 18);
+    ctx.fillStyle = '#9aa0a6';
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial';
+    ctx.fillText(host || '', 12, H - 20);
+    return canvas.toDataURL('image/jpeg', 0.6);
+  } catch { return ''; }
 }
 
 async function activateTab(t) {
@@ -203,116 +231,259 @@ async function captureTabViaDebugger(tabId) {
 }
 
 function startLazyDomCapture() {
+  if (ioDom) { ioDom.disconnect(); ioDom = null; }
+  ioDom = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        const tile = entry.target;
+        scheduleDomCapture(tile);
+        ioDom.unobserve(tile);
+      }
+    }
+  }, { root: gridEl, threshold: 0.1, rootMargin: '400px 0px' });
+
   const tiles = Array.from(gridEl.querySelectorAll('.tile'));
-  tiles.forEach(async (tile) => {
+  // observe only within viewport + rootMargin
+  tiles.forEach(tile => ioDom.observe(tile));
+}
+
+function scheduleDomCapture(tile) {
+  const tabId = Number(tile.getAttribute('data-tab-id'));
+  const url = tile.getAttribute('data-url') || '';
+  const img = tile.querySelector('.shot');
+  if (!isCapturableUrl(url) || !img) return;
+  const key = `${tabId}|${url}`;
+  const cached = domThumbCache.get(key);
+  const now = Date.now();
+  if (cached && (now - cached.t) < DOM_CACHE_TTL_MS) {
+    img.src = cached.dataUrl;
+    img.classList.add('ready');
+    return;
+  }
+  domCaptureQueue.push(tile);
+  processDomCaptureQueue();
+}
+
+async function processDomCaptureQueue() {
+  if (domConcurrent >= DOM_MAX_CONCURRENT) return;
+  const tile = domCaptureQueue.shift();
+  if (!tile) return;
+  domConcurrent++;
+  try {
     const tabId = Number(tile.getAttribute('data-tab-id'));
     const url = tile.getAttribute('data-url') || '';
     const img = tile.querySelector('.shot');
-    if (!isCapturableUrl(url) || !img) return;
-    try {
-      const [{ result } = {}] = await chrome.scripting.executeScript({
-        target: { tabId },
-        world: 'MAIN',
-        func: async () => {
-          const dpr = Math.min(2, window.devicePixelRatio || 1);
-          const W = Math.floor(640 * dpr);
-          const H = Math.floor(400 * dpr);
-          const canvas = document.createElement('canvas');
-          canvas.width = W; canvas.height = H;
-          const ctx = canvas.getContext('2d');
+    const key = `${tabId}|${url}`;
+    const timeoutMs = 900;
+    const exec = chrome.scripting.executeScript({
+      target: { tabId },
+      world: 'MAIN',
+      func: async () => {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const W = Math.floor(640 * dpr);
+        const H = Math.floor(400 * dpr);
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
 
-          // Background gradient
-          const grad = ctx.createLinearGradient(0, 0, 0, H);
-          grad.addColorStop(0, '#0e1116');
-          grad.addColorStop(1, '#1a1f2b');
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, 0, W, H);
+        // Background
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, '#0e1116');
+        grad.addColorStop(1, '#1a1f2b');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
 
-          const title = (document.title || '').slice(0, 140);
-          const host = location.hostname;
+        const title = (document.title || '').slice(0, 140);
+        const host = location.hostname;
 
-          // Try to find a preview image (og:image or prominent img)
-          const findPreview = () => {
-            const og = document.querySelector('meta[property="og:image"], meta[name="og:image"]');
-            if (og && og.content) return og.content;
-            const sel = 'main img, article img, img[src*="hero"], img[src*="cover"], img[src*="banner"]';
-            const img = document.querySelector(sel);
-            if (img) return img.currentSrc || img.src;
-            return '';
-          };
+        // Helpers: pick best preview from many semantic sources
+        const pickOg = () => {
+          const metas = [
+            'meta[property="og:image"]',
+            'meta[name="og:image"]',
+            'meta[property="og:image:url"]',
+            'meta[property="og:image:secure_url"]',
+            'meta[name="twitter:image"]',
+            'meta[name="twitter:image:src"]',
+            'meta[itemprop="image"]'
+          ];
+          for (const sel of metas) {
+            const m = document.querySelector(sel);
+            if (m && m.content) return m.content;
+          }
+          return '';
+        };
 
-          const drawCover = (image) => {
-            const iw = image.naturalWidth, ih = image.naturalHeight;
-            if (iw && ih) {
-              const scale = Math.max(W / iw, H / ih);
-              const sw = Math.floor(iw * scale), sh = Math.floor(ih * scale);
-              const dx = Math.floor((W - sw) / 2), dy = Math.floor((H - sh) / 2);
-              ctx.drawImage(image, dx, dy, sw, sh);
-              // Dark scrim for text legibility
-              ctx.fillStyle = 'rgba(0,0,0,0.35)';
-              ctx.fillRect(0, 0, W, H);
+        const pickLinkImage = () => {
+          const links = [
+            'link[rel="image_src"]',
+            'link[rel="thumbnail"]',
+            'link[rel="preload"][as="image"]'
+          ];
+          for (const sel of links) {
+            const l = document.querySelector(sel);
+            if (l && (l.href || l.getAttribute('href'))) return l.href || l.getAttribute('href');
+          }
+          return '';
+        };
+
+        const pickVideoPoster = () => {
+          const v = document.querySelector('video[poster]');
+          return v ? (v.getAttribute('poster') || '') : '';
+        };
+
+        const getBgUrl = (el) => {
+          const bg = getComputedStyle(el).backgroundImage || '';
+          const m = bg.match(/url\(["']?(.*?)["']?\)/);
+          return m ? m[1] : '';
+        };
+
+        const pickBackgroundImage = () => {
+          const candidates = [
+            '.hero', '.Hero', '.banner', '.Banner', '.cover', '.Cover', '.masthead', '.post-cover', '.featured', '.featured-image', 'header'
+          ];
+          for (const sel of candidates) {
+            const el = document.querySelector(sel);
+            if (el) {
+              const u = getBgUrl(el);
+              if (u) return u;
+              const im = el.querySelector('img');
+              if (im) return im.currentSrc || im.src || '';
             }
-          };
+          }
+          return '';
+        };
 
-          const drawText = () => {
-            ctx.fillStyle = '#fff';
-            ctx.font = `${Math.floor(16 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
-            ctx.textBaseline = 'top';
-            const pad = Math.floor(12 * dpr);
-            const maxWidth = W - pad * 2;
-            const drawWrap = (text, y, maxLines) => {
-              const words = text.split(/\s+/);
-              let line = '', lines = 0;
-              for (let i = 0; i < words.length; i++) {
-                const test = line ? line + ' ' + words[i] : words[i];
-                if (ctx.measureText(test).width > maxWidth) {
-                  ctx.fillText(line, pad, y);
-                  y += Math.floor(20 * dpr);
-                  lines++; line = words[i];
-                  if (lines >= maxLines) return;
-                } else {
-                  line = test;
-                }
+        const parseSrc = (img) => {
+          if (!img) return '';
+          if (img.currentSrc) return img.currentSrc;
+          const ss = img.getAttribute('srcset') || '';
+          if (ss) {
+            const parts = ss.split(',').map(s => s.trim());
+            // pick largest descriptor
+            const last = parts[parts.length - 1] || '';
+            const url = (last.split(' ') || [])[0];
+            if (url) return url;
+          }
+          return img.src || '';
+        };
+
+        const pickLargestImg = () => {
+          let best = null; let bestArea = 0;
+          const imgs = Array.from(document.images || []);
+          for (const im of imgs) {
+            const r = im.getBoundingClientRect();
+            const area = Math.max(0, r.width) * Math.max(0, r.height);
+            if (area > bestArea && r.width >= 160 && r.height >= 100) {
+              best = im; bestArea = area;
+            }
+          }
+          return best ? parseSrc(best) : '';
+        };
+
+        const drawCover = (image) => {
+          const iw = image.naturalWidth, ih = image.naturalHeight;
+          if (iw && ih) {
+            const scale = Math.max(W / iw, H / ih);
+            const sw = Math.floor(iw * scale), sh = Math.floor(ih * scale);
+            const dx = Math.floor((W - sw) / 2), dy = Math.floor((H - sh) / 2);
+            ctx.drawImage(image, dx, dy, sw, sh);
+            // Stronger scrim to ensure legibility across bright covers
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.fillRect(0, 0, W, H);
+          }
+        };
+
+        const drawText = () => {
+          ctx.fillStyle = '#fff';
+          ctx.font = `${Math.floor(16 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
+          ctx.textBaseline = 'top';
+          const pad = Math.floor(12 * dpr);
+          const maxWidth = W - pad * 2;
+          const drawWrap = (text, y, maxLines) => {
+            const words = text.split(/\s+/);
+            let line = '', lines = 0;
+            for (let i = 0; i < words.length; i++) {
+              const test = line ? line + ' ' + words[i] : words[i];
+              if (ctx.measureText(test).width > maxWidth) {
+                ctx.fillText(line, pad, y);
+                y += Math.floor(20 * dpr);
+                lines++; line = words[i];
+                if (lines >= maxLines) return;
+              } else {
+                line = test;
               }
-              if (lines < maxLines && line) ctx.fillText(line, pad, y);
-            };
-            drawWrap(title || host, Math.floor(14 * dpr), 3);
-            ctx.fillStyle = '#9aa0a6';
-            ctx.font = `${Math.floor(12 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
-            ctx.fillText(host, pad, H - Math.floor(20 * dpr));
-          };
-
-          let usedImage = false;
-          try {
-            const url = findPreview();
-            if (url) {
-              const image = new Image();
-              image.crossOrigin = 'anonymous';
-              const ok = await new Promise((res) => {
-                image.onload = () => res(true);
-                image.onerror = () => res(false);
-                image.src = url;
-              });
-              if (ok) { drawCover(image); usedImage = true; }
             }
-          } catch {}
+            if (lines < maxLines && line) ctx.fillText(line, pad, y);
+          };
+          drawWrap(title || host, Math.floor(14 * dpr), 3);
+          ctx.fillStyle = '#9aa0a6';
+          ctx.font = `${Math.floor(12 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
+          ctx.fillText(host, pad, H - Math.floor(20 * dpr));
+        };
 
-          drawText();
+        let usedImage = false;
+        try {
+          let url = pickOg();
+          if (!url) url = pickLinkImage();
+          if (!url) url = pickVideoPoster();
+          if (!url) url = pickBackgroundImage();
+          if (!url) url = pickLargestImg();
+          if (url) {
+            const image = new Image();
+            image.crossOrigin = 'anonymous';
+            image.referrerPolicy = 'no-referrer';
+            const ok = await new Promise((res) => {
+              image.onload = () => res(true);
+              image.onerror = () => res(false);
+              image.src = url;
+            });
+            if (ok) { drawCover(image); usedImage = true; }
+          }
+        } catch {}
 
+        drawText();
+
+        try {
+          return canvas.toDataURL('image/jpeg', usedImage ? 0.72 : 0.62);
+        } catch {
+          // Likely tainted by cross-origin draw; fall back to text-only thumbnail
           try {
-            return canvas.toDataURL('image/jpeg', usedImage ? 0.72 : 0.6);
+            const c2 = document.createElement('canvas');
+            c2.width = W; c2.height = H;
+            const x2 = c2.getContext('2d');
+            const g2 = x2.createLinearGradient(0, 0, 0, H);
+            g2.addColorStop(0, '#0e1116'); g2.addColorStop(1, '#1a1f2b');
+            x2.fillStyle = g2; x2.fillRect(0, 0, W, H);
+            // minimal text-only
+            x2.fillStyle = '#fff';
+            x2.font = `${Math.floor(16 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
+            x2.fillText(title || host, Math.floor(12 * dpr), Math.floor(18 * dpr));
+            x2.fillStyle = '#9aa0a6';
+            x2.font = `${Math.floor(12 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
+            x2.fillText(host, Math.floor(12 * dpr), H - Math.floor(20 * dpr));
+            return c2.toDataURL('image/jpeg', 0.62);
           } catch {
-            // Cross-origin taint fallback: return empty to let caller ignore
             return '';
           }
         }
-      });
-      if (result && typeof result === 'string') {
-        img.src = result;
-        img.classList.add('ready');
       }
-    } catch {}
-  });
+    });
+    const resultArr = await Promise.race([
+      exec,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('dom-capture-timeout')), timeoutMs))
+    ]);
+    const [{ result } = {}] = Array.isArray(resultArr) ? resultArr : [];
+    if (result && typeof result === 'string') {
+      img.src = result;
+      img.classList.add('ready');
+      domThumbCache.set(key, { dataUrl: result, t: Date.now() });
+    }
+  } catch {}
+  finally {
+    domConcurrent--;
+    if (domCaptureQueue.length) processDomCaptureQueue();
+  }
 }
 
 async function getActiveTabInWindow(windowId) {
@@ -391,6 +562,10 @@ async function init() {
   toggleDomShots.addEventListener('change', () => {
     render();
   });
+
+  toggleArt.addEventListener('change', () => {
+    applyArtLayout();
+  });
 }
 
 init();
@@ -400,6 +575,22 @@ function getGridColumnCount() {
   const tpl = style.gridTemplateColumns || '';
   const count = tpl.split(' ').filter(Boolean).length;
   return Math.max(1, count || 1);
+}
+
+function applyArtLayout() {
+  const enable = toggleArt.checked;
+  const tiles = Array.from(gridEl.querySelectorAll('.tile'));
+  if (!enable) {
+    tiles.forEach(tile => tile.style.gridRowEnd = '');
+    return;
+  }
+  // Simple heuristic: recent tabs larger; map index to span rows
+  // Base row unit is 8px (see CSS). Span to approximate 16:10 cards of various sizes.
+  const sizes = [24, 20, 20, 16, 16, 16, 12, 12, 12, 12];
+  tiles.forEach((tile, i) => {
+    const span = sizes[i % sizes.length];
+    tile.style.gridRowEnd = `span ${span}`;
+  });
 }
 
 
