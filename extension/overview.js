@@ -282,17 +282,6 @@ async function processDomCaptureQueue() {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
         const W = Math.floor(640 * dpr);
         const H = Math.floor(400 * dpr);
-        const canvas = document.createElement('canvas');
-        canvas.width = W; canvas.height = H;
-        const ctx = canvas.getContext('2d');
-
-        // Background
-        const grad = ctx.createLinearGradient(0, 0, 0, H);
-        grad.addColorStop(0, '#0e1116');
-        grad.addColorStop(1, '#1a1f2b');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
-
         const title = (document.title || '').slice(0, 140);
         const host = location.hostname;
 
@@ -381,92 +370,33 @@ async function processDomCaptureQueue() {
           return best ? parseSrc(best) : '';
         };
 
-        const drawCover = (image) => {
-          const iw = image.naturalWidth, ih = image.naturalHeight;
-          if (iw && ih) {
-            const scale = Math.max(W / iw, H / ih);
-            const sw = Math.floor(iw * scale), sh = Math.floor(ih * scale);
-            const dx = Math.floor((W - sw) / 2), dy = Math.floor((H - sh) / 2);
-            ctx.drawImage(image, dx, dy, sw, sh);
-            // Stronger scrim to ensure legibility across bright covers
-            ctx.fillStyle = 'rgba(0,0,0,0.45)';
-            ctx.fillRect(0, 0, W, H);
-          }
-        };
-
-        const drawText = () => {
-          ctx.fillStyle = '#fff';
-          ctx.font = `${Math.floor(16 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
-          ctx.textBaseline = 'top';
-          const pad = Math.floor(12 * dpr);
-          const maxWidth = W - pad * 2;
-          const drawWrap = (text, y, maxLines) => {
-            const words = text.split(/\s+/);
-            let line = '', lines = 0;
-            for (let i = 0; i < words.length; i++) {
-              const test = line ? line + ' ' + words[i] : words[i];
-              if (ctx.measureText(test).width > maxWidth) {
-                ctx.fillText(line, pad, y);
-                y += Math.floor(20 * dpr);
-                lines++; line = words[i];
-                if (lines >= maxLines) return;
-              } else {
-                line = test;
-              }
-            }
-            if (lines < maxLines && line) ctx.fillText(line, pad, y);
-          };
-          drawWrap(title || host, Math.floor(14 * dpr), 3);
-          ctx.fillStyle = '#9aa0a6';
-          ctx.font = `${Math.floor(12 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
-          ctx.fillText(host, pad, H - Math.floor(20 * dpr));
-        };
-
-        let usedImage = false;
+        // First preference: return a direct preview URL to avoid canvas taint
+        let previewUrl = '';
         try {
           let url = pickOg();
           if (!url) url = pickLinkImage();
           if (!url) url = pickVideoPoster();
           if (!url) url = pickBackgroundImage();
           if (!url) url = pickLargestImg();
-          if (url) {
-            const image = new Image();
-            image.crossOrigin = 'anonymous';
-            image.referrerPolicy = 'no-referrer';
-            const ok = await new Promise((res) => {
-              image.onload = () => res(true);
-              image.onerror = () => res(false);
-              image.src = url;
-            });
-            if (ok) { drawCover(image); usedImage = true; }
-          }
+          if (url) previewUrl = url;
         } catch {}
-
-        drawText();
-
+        if (previewUrl) return { previewUrl };
+        // Fallback: return a lightweight text-only dataURL
         try {
-          return canvas.toDataURL('image/jpeg', usedImage ? 0.72 : 0.62);
-        } catch {
-          // Likely tainted by cross-origin draw; fall back to text-only thumbnail
-          try {
-            const c2 = document.createElement('canvas');
-            c2.width = W; c2.height = H;
-            const x2 = c2.getContext('2d');
-            const g2 = x2.createLinearGradient(0, 0, 0, H);
-            g2.addColorStop(0, '#0e1116'); g2.addColorStop(1, '#1a1f2b');
-            x2.fillStyle = g2; x2.fillRect(0, 0, W, H);
-            // minimal text-only
-            x2.fillStyle = '#fff';
-            x2.font = `${Math.floor(16 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
-            x2.fillText(title || host, Math.floor(12 * dpr), Math.floor(18 * dpr));
-            x2.fillStyle = '#9aa0a6';
-            x2.font = `${Math.floor(12 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
-            x2.fillText(host, Math.floor(12 * dpr), H - Math.floor(20 * dpr));
-            return c2.toDataURL('image/jpeg', 0.62);
-          } catch {
-            return '';
-          }
-        }
+          const canvas = document.createElement('canvas');
+          canvas.width = W; canvas.height = H;
+          const ctx = canvas.getContext('2d');
+          const grad = ctx.createLinearGradient(0, 0, 0, H);
+          grad.addColorStop(0, '#0e1116'); grad.addColorStop(1, '#1a1f2b');
+          ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = '#fff';
+          ctx.font = `${Math.floor(16 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
+          ctx.fillText(title || host, Math.floor(12 * dpr), Math.floor(18 * dpr));
+          ctx.fillStyle = '#9aa0a6';
+          ctx.font = `${Math.floor(12 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
+          ctx.fillText(host, Math.floor(12 * dpr), H - Math.floor(20 * dpr));
+          return { dataUrl: canvas.toDataURL('image/jpeg', 0.62) };
+        } catch { return { dataUrl: '' }; }
       }
     });
     const resultArr = await Promise.race([
@@ -474,10 +404,16 @@ async function processDomCaptureQueue() {
       new Promise((_, rej) => setTimeout(() => rej(new Error('dom-capture-timeout')), timeoutMs))
     ]);
     const [{ result } = {}] = Array.isArray(resultArr) ? resultArr : [];
-    if (result && typeof result === 'string') {
-      img.src = result;
-      img.classList.add('ready');
-      domThumbCache.set(key, { dataUrl: result, t: Date.now() });
+    if (result && typeof result === 'object') {
+      if (result.previewUrl) {
+        img.src = result.previewUrl;
+        img.classList.add('ready');
+        domThumbCache.set(key, { dataUrl: result.previewUrl, t: Date.now() });
+      } else if (result.dataUrl) {
+        img.src = result.dataUrl;
+        img.classList.add('ready');
+        domThumbCache.set(key, { dataUrl: result.dataUrl, t: Date.now() });
+      }
     }
   } catch {}
   finally {
