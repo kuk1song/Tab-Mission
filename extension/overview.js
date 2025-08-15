@@ -585,12 +585,42 @@ async function init() {
   btnGrantAccess.addEventListener('click', async () => {
     // Request broad host access once to reduce friction
     try {
-      const granted = await chrome.permissions.request({ origins: ['<all_urls>'] });
+      // Try to request permission from a normal browser window context instead of popup
+      const granted = await chrome.runtime.sendMessage({ 
+        type: 'request-permissions',
+        origins: ['<all_urls>']
+      });
       if (granted) {
         btnGrantAccess.style.display = 'none';
-        render();
+        // Clear error status and restart DOM captures for all tiles
+        domCaptureStatus.clear();
+        objectUrlCache.clear();
+        domThumbCache.clear();
+        render(); // Re-render to reinitialize all tiles with fresh placeholders
+        // Restart lazy DOM capture for all visible tiles
+        if (toggleDomShots.checked) {
+          setTimeout(() => startLazyDomCapture(), 100);
+        }
       }
-    } catch {}
+    } catch (err) {
+      console.warn('Permission request failed:', err);
+      // Fallback to direct request if background fails
+      try {
+        const granted = await chrome.permissions.request({ origins: ['<all_urls>'] });
+        if (granted) {
+          btnGrantAccess.style.display = 'none';
+          domCaptureStatus.clear();
+          objectUrlCache.clear();
+          domThumbCache.clear();
+          render();
+          if (toggleDomShots.checked) {
+            setTimeout(() => startLazyDomCapture(), 100);
+          }
+        }
+      } catch (fallbackErr) {
+        console.warn('Fallback permission request also failed:', fallbackErr);
+      }
+    }
   });
 }
 
