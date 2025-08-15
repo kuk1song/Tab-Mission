@@ -27,7 +27,7 @@ async function openOverviewWindow() {
     const left = display.workArea.left + (display.workArea.width - w) / 2;
 
     const win = await chrome.windows.create({
-      url: chrome.runtime.getURL('extension/overview.html'),
+      url: chrome.runtime.getURL('overview.html'),
       type: 'popup',
       width: Math.round(w),
       height: Math.round(h),
@@ -39,7 +39,7 @@ async function openOverviewWindow() {
     console.error("Tab Mosaic: Could not create window with display info. Opening with default size.", error);
     // Fallback for when system.display is not available or fails
     const win = await chrome.windows.create({
-      url: chrome.runtime.getURL('extension/overview.html'),
+      url: chrome.runtime.getURL('overview.html'),
       type: 'popup',
       width: 1024,
       height: 768,
