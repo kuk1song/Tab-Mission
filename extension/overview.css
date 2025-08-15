@@ -26,10 +26,12 @@ body.closing #root {
 #root {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100vh; /* Use viewport height */
+  max-height: 100vh; /* Prevent growing beyond viewport */
 }
 
 .toolbar {
+  flex-shrink: 0; /* Prevent the toolbar from shrinking */
   display: flex;
   align-items: center;
   gap: 12px;
@@ -57,9 +59,11 @@ body.closing #root {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
   padding: 8px 12px 12px;
-  overflow: auto;
+  overflow-y: auto; /* Allow vertical scrolling ONLY on the grid */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
   grid-auto-flow: dense;
-  height: 100%; /* Ensure grid takes available space */
+  flex-grow: 1; /* Allow grid to fill available space */
+  min-height: 0; /* Important for flexbox scrolling bug in some browsers */
 }
 
 .grid.art { grid-auto-rows: 8px; }
@@ -101,6 +105,7 @@ body.closing #root {
   background-color: #0c0e12;
   overflow: hidden;
   position: relative;
+  border-radius: 4px; /* Slightly rounded corners for the image container */
 }
 
 .thumbnail {
