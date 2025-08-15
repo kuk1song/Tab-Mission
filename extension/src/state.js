@@ -29,7 +29,7 @@ export function applyFilters(uiState) {
   }
   
   if (uiState.hideDiscarded) {
-    tabs = tabs.filter(tab => !tab.discarded);
+    tabs = tabs.filter(tab => !tab.discarded && tab.status !== 'unloaded');
   }
   
   const query = uiState.searchTerm.toLowerCase().trim();

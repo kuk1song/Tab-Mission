@@ -68,7 +68,7 @@ html, body, #root {
 }
 
 .grid.art { 
-  grid-auto-rows: 8px; 
+  position: relative; /* Create a positioning context for absolute tiles */
 }
 
 /* Ensure normal grid has proper auto-sizing */
@@ -84,11 +84,18 @@ html, body, #root {
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
+  /* Use 'all' for simplicity when animating between grid and absolute layouts */
+  transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
   animation: fadeInUp 320ms ease both;
   animation-delay: var(--stagger, 0ms);
   min-height: 200px; /* Ensure minimum height to prevent squashing */
 }
+
+.grid.art .tile {
+  position: absolute;
+  min-height: 0; /* Reset min-height for treemap */
+}
+
 .tile:hover { 
   transform: translateY(-2px) scale(1.02); 
   box-shadow: 0 8px 24px rgba(0,0,0,0.45); 
