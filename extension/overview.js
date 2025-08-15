@@ -16,8 +16,11 @@ const captureCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 async function init() {
+  console.log('Initializing Tab Mosaic Overview...');
   await fetchAllTabs();
+  console.log(`Fetched ${allTabs.length} tabs`);
   applyFilters();
+  console.log(`After filtering: ${filtered.length} tabs`);
   render();
   
   // Setup event listeners
@@ -31,7 +34,8 @@ async function init() {
     render();
   });
   
-  toggleCurrentWindow.addEventListener('change', () => {
+  toggleCurrentWindow.addEventListener('change', async () => {
+    await fetchAllTabs(); // Re-fetch tabs when window scope changes
     applyFilters();
     render();
   });
@@ -49,16 +53,15 @@ async function init() {
 
 async function fetchAllTabs() {
   try {
-    const scopeQuery = toggleCurrentWindow.checked 
-      ? { currentWindow: true }
-      : {};
+    // Always fetch all tabs first, then filter in applyFilters()
+    allTabs = await chrome.tabs.query({});
     
-    allTabs = await chrome.tabs.query(scopeQuery);
-    
-    // Get current window ID for filtering
-    if (toggleCurrentWindow.checked) {
+    // Get current window ID for potential filtering
+    try {
       const current = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
       currentWindowId = current?.id || null;
+    } catch {
+      currentWindowId = null;
     }
   } catch (err) {
     console.warn('Failed to fetch tabs:', err);
@@ -93,7 +96,18 @@ function applyFilters() {
 }
 
 function render() {
+  console.log(`Rendering ${filtered.length} tabs out of ${allTabs.length} total tabs`);
   gridEl.innerHTML = '';
+  
+  if (filtered.length === 0) {
+    const emptyMessage = document.createElement('div');
+    emptyMessage.style.cssText = 'padding: 40px; text-align: center; color: #9aa0a6; font-size: 14px;';
+    emptyMessage.textContent = allTabs.length === 0 
+      ? 'No tabs found. Please check permissions.'
+      : 'No tabs match current filters.';
+    gridEl.appendChild(emptyMessage);
+    return;
+  }
   
   filtered.forEach((tab, index) => {
     const tile = document.createElement('button');
