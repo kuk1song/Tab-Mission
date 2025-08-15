@@ -13,22 +13,39 @@ async function openOverviewWindow() {
     }
   }
 
-  const { screen } = await chrome.system.display.getInfo();
-  const [display] = screen; // Use the primary display
-  const w = Math.min(1024, display.workArea.width - 40);
-  const h = Math.min(800, display.workArea.height - 40);
-  const top = display.workArea.top + (display.workArea.height - h) / 2;
-  const left = display.workArea.left + (display.workArea.width - w) / 2;
+  try {
+    const displays = await chrome.system.display.getInfo();
+    
+    if (!displays || displays.length === 0) {
+      throw new Error("No display information found.");
+    }
 
-  const win = await chrome.windows.create({
-    url: chrome.runtime.getURL('extension/overview.html'),
-    type: 'popup',
-    width: Math.round(w),
-    height: Math.round(h),
-    top: Math.round(top),
-    left: Math.round(left),
-  });
-  overviewWindowId = win.id;
+    const display = displays.find(d => d.isPrimary) || displays[0];
+    const w = Math.min(1024, display.workArea.width - 40);
+    const h = Math.min(800, display.workArea.height - 40);
+    const top = display.workArea.top + (display.workArea.height - h) / 2;
+    const left = display.workArea.left + (display.workArea.width - w) / 2;
+
+    const win = await chrome.windows.create({
+      url: chrome.runtime.getURL('extension/overview.html'),
+      type: 'popup',
+      width: Math.round(w),
+      height: Math.round(h),
+      top: Math.round(top),
+      left: Math.round(left),
+    });
+    overviewWindowId = win.id;
+  } catch (error) {
+    console.error("Tab Mosaic: Could not create window with display info. Opening with default size.", error);
+    // Fallback for when system.display is not available or fails
+    const win = await chrome.windows.create({
+      url: chrome.runtime.getURL('extension/overview.html'),
+      type: 'popup',
+      width: 1024,
+      height: 768,
+    });
+    overviewWindowId = win.id;
+  }
 }
 
 // Listen for the command to open the overview.
