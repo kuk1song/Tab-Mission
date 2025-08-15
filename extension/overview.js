@@ -129,8 +129,18 @@ function render() {
     tile.className = 'tile' + (index === selectedIndex ? ' selected' : '');
     tile.style.setProperty('--stagger', `${(index % 10) * 20}ms`);
     tile.setAttribute('data-tab-id', String(tab.id));
+    tile.setAttribute('data-index', String(index)); // Add index for easy lookup
     tile.addEventListener('click', () => activateTab(tab));
-    
+
+    // Make mouse hover update the selection
+    tile.addEventListener('mouseover', (e) => {
+      const newIndex = parseInt(e.currentTarget.getAttribute('data-index'));
+      if (!isNaN(newIndex) && selectedIndex !== newIndex) {
+        selectedIndex = newIndex;
+        updateSelection();
+      }
+    });
+
     // Create preview area
     const preview = document.createElement('div');
     preview.className = 'preview';
@@ -258,18 +268,37 @@ async function loadThumbnail(tab, imgElement) {
 
 // Injected function to extract preview image from page
 function extractPreviewImage() {
-  // Look for Open Graph image
-  const ogImage = document.querySelector('meta[property="og:image"]');
-  if (ogImage && ogImage.content) {
-    return { imageUrl: ogImage.content };
+  // Site-specific rule for YouTube
+  if (location.hostname.includes('youtube.com') && location.pathname.includes('/watch')) {
+    const videoId = new URLSearchParams(location.search).get('v');
+    if (videoId) {
+      return { imageUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` };
+    }
   }
-  
-  // Look for Twitter image
-  const twitterImage = document.querySelector('meta[name="twitter:image"]');
-  if (twitterImage && twitterImage.content) {
-    return { imageUrl: twitterImage.content };
+
+  // Look for Open Graph & Twitter images (more variants)
+  const metaSelectors = [
+    'meta[property="og:image"]', 'meta[property="og:image:secure_url"]', 'meta[property="og:image:url"]',
+    'meta[name="twitter:image"]', 'meta[name="twitter:image:src"]', 'meta[itemprop="image"]'
+  ];
+  for (const selector of metaSelectors) {
+    const meta = document.querySelector(selector);
+    if (meta && meta.content) return { imageUrl: meta.content };
   }
-  
+
+  // Look for other semantic link tags
+  const linkSelectors = ['link[rel="image_src"]', 'link[rel="apple-touch-icon"]'];
+  for (const selector of linkSelectors) {
+    const link = document.querySelector(selector);
+    if (link && link.href) return { imageUrl: link.href };
+  }
+
+  // Look for video posters
+  const video = document.querySelector('video[poster]');
+  if (video && video.poster) {
+    return { imageUrl: video.poster };
+  }
+
   // Look for largest image on page
   const images = Array.from(document.images);
   let bestImage = null;
