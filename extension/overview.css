@@ -66,7 +66,14 @@ body.closing #root {
   min-height: 0; /* Important for flexbox scrolling bug in some browsers */
 }
 
-.grid.art { grid-auto-rows: 8px; }
+.grid.art { 
+  grid-auto-rows: 8px; 
+}
+
+/* Ensure normal grid has proper auto-sizing */
+.grid:not(.art) {
+  grid-auto-rows: auto;
+}
 
 .tile {
   display: flex;
@@ -79,6 +86,7 @@ body.closing #root {
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
   animation: fadeInUp 320ms ease both;
   animation-delay: var(--stagger, 0ms);
+  min-height: 200px; /* Ensure minimum height to prevent squashing */
 }
 .tile:hover { 
   transform: translateY(-2px) scale(1.02); 

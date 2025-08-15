@@ -210,8 +210,15 @@ function render() {
     gridEl.appendChild(tile);
   });
 
-  // Apply art layout if enabled
-  applyArtLayout();
+  // Apply art layout if enabled (only set class, don't force enable)
+  gridEl.classList.toggle('art', !!toggleArt?.checked);
+  if (toggleArt?.checked) {
+    applyArtLayout();
+  } else {
+    // Ensure tiles don't have art mode spans when not in art mode
+    const tiles = Array.from(gridEl.querySelectorAll('.tile'));
+    tiles.forEach(tile => tile.style.gridRowEnd = '');
+  }
 }
 
 async function loadThumbnail(tab, imgElement) {
