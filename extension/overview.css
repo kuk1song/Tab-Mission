@@ -23,6 +23,12 @@ body.closing #root {
   animation: rootFadeOut 180ms ease-in both;
 }
 
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -53,6 +59,7 @@ body.closing #root {
   padding: 8px 12px 12px;
   overflow: auto;
   grid-auto-flow: dense;
+  height: 100%; /* Ensure grid takes available space */
 }
 
 .grid.art { grid-auto-rows: 8px; }
@@ -72,14 +79,20 @@ body.closing #root {
 .tile:hover { 
   transform: translateY(-2px) scale(1.02); 
   box-shadow: 0 8px 24px rgba(0,0,0,0.45); 
+  z-index: 10;
 }
 .tile.selected { 
   transform: scale(1.03);
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent), 0 10px 30px rgba(0,0,0,0.5);
   background-color: #202433; 
+  z-index: 20; /* Ensure selected is on top */
 }
-.tile.activating { transform: scale(0.98); box-shadow: 0 0 0 3px rgba(76,139,245,0.25) inset; }
+.tile.activating { 
+  transition: transform 100ms ease, box-shadow 100ms ease;
+  transform: scale(0.98); 
+  box-shadow: 0 0 0 3px rgba(76,139,245,0.25) inset; 
+}
 
 /* Preview area styles */
 .preview {
