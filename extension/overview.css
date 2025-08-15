@@ -108,6 +108,10 @@ body.closing #root {
   height: 100%;
   object-fit: cover;
   transition: opacity 0.3s ease-out;
+  /* Hide the img content itself, we use it for loading but display the background */
+  opacity: 0; 
+  background-size: cover;
+  background-position: center;
 }
 
 .thumbnail.loaded {

@@ -241,22 +241,25 @@ async function loadThumbnail(tab, imgElement) {
       const { imageUrl, dataUrl } = result[0].result;
       
       if (imageUrl) {
-        // Try to load external image
-        try {
-          const response = await fetch(imageUrl, { mode: 'no-cors' });
-          const blob = await response.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          imgElement.src = objectUrl;
-          imgElement.classList.add('loaded');
-          captureCache.set(cacheKey, { dataUrl: objectUrl, timestamp: Date.now() });
-        } catch {
-          // Fallback to direct URL
-          imgElement.src = imageUrl;
-          imgElement.classList.add('loaded');
-        }
+        // Use a background image as a fallback and for better control
+        imgElement.style.backgroundImage = `url('${imageUrl}')`;
+        imgElement.src = imageUrl; // Still use src for semantics and caching
+        imgElement.onload = () => {
+          requestAnimationFrame(() => {
+            imgElement.classList.add('loaded');
+          });
+          captureCache.set(cacheKey, { dataUrl: imageUrl, timestamp: Date.now() });
+        };
+        imgElement.onerror = () => {
+          imgElement.style.backgroundImage = ''; // Clear if fails
+        };
+
       } else if (dataUrl) {
         imgElement.src = dataUrl;
-        imgElement.classList.add('loaded');
+        imgElement.style.backgroundImage = `url('${dataUrl}')`;
+        requestAnimationFrame(() => {
+          imgElement.classList.add('loaded');
+        });
         captureCache.set(cacheKey, { dataUrl, timestamp: Date.now() });
       }
     }
