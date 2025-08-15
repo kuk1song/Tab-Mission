@@ -37,6 +37,7 @@ html, body, #root {
 
 .spacer { flex: 1; }
 .ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.ctrl#grant-access { cursor: pointer; border: 1px solid rgba(255,255,255,0.12); padding: 6px 10px; border-radius: 6px; color: var(--fg); }
 .hint { color: var(--muted); font-size: 12px; }
 
 .grid {
@@ -94,5 +95,6 @@ html, body, #root {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .url { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.debug { font-size: 11px; color: var(--muted); white-space: normal; word-break: break-all; }
 
 

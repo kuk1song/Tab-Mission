@@ -6,6 +6,7 @@ const toggleCurrentWindow = document.getElementById('toggle-current-window');
 const toggleDebug = document.getElementById('toggle-debug');
 const toggleDomShots = document.getElementById('toggle-dom-shots');
 const toggleArt = document.getElementById('toggle-art');
+const btnGrantAccess = document.getElementById('grant-access');
 const ric = window.requestIdleCallback || (cb => setTimeout(() => cb({ timeRemaining: () => 0, didTimeout: false }), 0));
 
 let tabs = [];
@@ -26,6 +27,7 @@ const DOM_MAX_CONCURRENT = Math.max(2, Math.min(4, CPU_HALF));
 const DOM_CACHE_TTL_MS = 60 * 1000;
 const domThumbCache = new Map(); // key = `${tabId}|${url}` -> { dataUrl, t }
 const objectUrlCache = new Map(); // remoteUrl -> { objectUrl, t }
+const domCaptureStatus = new Map(); // key = `${tabId}|${url}` -> status string
 
 async function fetchAllTabs() {
   const currentId = await awaitCurrentWindowId();
@@ -94,10 +96,13 @@ function render() {
     url.textContent = safeHostname(t.url);
     if (toggleDebug.checked) {
       const dbg = document.createElement('div');
-      dbg.className = 'url';
+      dbg.className = 'debug';
       const last = typeof t.lastAccessed === 'number' ? ((Date.now() - t.lastAccessed) / 60000) : null;
-      dbg.textContent = `[id:${t.id}] discarded=${!!t.discarded} autoDiscardable=${!!t.autoDiscardable} last=${last!==null?last.toFixed(1)+'m ago':'n/a'}`;
+      const domStatus = getDomCaptureStatus(t.id, t.url);
+      const info = `[id:${t.id}] discarded=${!!t.discarded} autoDiscardable=${!!t.autoDiscardable} last=${last!==null?last.toFixed(1)+'m ago':'n/a'} dom=${domStatus} url=${t.url}`;
+      dbg.textContent = info;
       meta.appendChild(dbg);
+      try { console.log('[DOM][tile]', info); } catch {}
     }
     meta.appendChild(titleRow);
     meta.appendChild(url);
@@ -109,6 +114,18 @@ function render() {
 
   if (toggleShots.checked && !toggleDomShots.checked) ric(() => startLazyCapture());
   if (toggleDomShots.checked && !toggleShots.checked) ric(() => startLazyDomCapture());
+  // show grant button if we see many errors due to lack of host access or not yet granted all_urls
+  updateGrantButtonVisibility();
+}
+
+async function updateGrantButtonVisibility() {
+  if (!toggleDomShots.checked) { btnGrantAccess.style.display = 'none'; return; }
+  try {
+    const hasAll = await chrome.permissions.contains({ origins: ['<all_urls>'] });
+    if (hasAll) { btnGrantAccess.style.display = 'none'; return; }
+  } catch {}
+  const errLike = Array.from(domCaptureStatus.values()).filter(v => typeof v === 'string' && (v.includes('Cannot access contents') || v.includes('permission') || v.includes('dom-capture-timeout')));
+  btnGrantAccess.style.display = errLike.length >= 3 ? 'inline-flex' : 'none';
 }
 
 function safeHostname(u) {
@@ -234,7 +251,9 @@ async function captureTabViaDebugger(tabId) {
 function startLazyDomCapture() {
   if (ioDom) { ioDom.disconnect(); ioDom = null; }
   ioDom = new IntersectionObserver((entries) => {
+    console.log('[DOM] IntersectionObserver triggered for', entries.length, 'entries');
     const vis = entries.filter(e => e.isIntersecting).map(e => e.target);
+    console.log('[DOM] Intersecting tiles:', vis.length);
     // sort by DOM order to load稳定
     vis.sort((a, b) => Array.prototype.indexOf.call(gridEl.children, a) - Array.prototype.indexOf.call(gridEl.children, b));
     vis.forEach(tile => { scheduleDomCapture(tile); ioDom.unobserve(tile); });
@@ -249,17 +268,31 @@ function scheduleDomCapture(tile) {
   const tabId = Number(tile.getAttribute('data-tab-id'));
   const url = tile.getAttribute('data-url') || '';
   const img = tile.querySelector('.shot');
-  if (!isCapturableUrl(url) || !img) return;
   const key = `${tabId}|${url}`;
+  
+  console.log('[DOM] Scheduling capture for', tabId, url);
+  domCaptureStatus.set(key, 'scheduled');
+  
+  if (!isCapturableUrl(url) || !img) {
+    console.log('[DOM] Skipping', tabId, 'not capturable or no img');
+    domCaptureStatus.set(key, 'skipped');
+    return;
+  }
+  
   const cached = domThumbCache.get(key);
   const now = Date.now();
   if (cached && (now - cached.t) < DOM_CACHE_TTL_MS) {
+    console.log('[DOM] Using cached for', tabId);
     img.src = cached.dataUrl;
     img.classList.add('ready');
+    domCaptureStatus.set(key, 'cached');
     return;
   }
+  
+  console.log('[DOM] Queueing', tabId, 'current queue length:', domCaptureQueue.length);
+  domCaptureStatus.set(key, 'queued');
   domCaptureQueue.push(tile);
-  processDomCaptureQueue();
+  kickDomQueue();
 }
 
 async function processDomCaptureQueue() {
@@ -267,11 +300,15 @@ async function processDomCaptureQueue() {
   const tile = domCaptureQueue.shift();
   if (!tile) return;
   domConcurrent++;
+  
+  const tabId = Number(tile.getAttribute('data-tab-id'));
+  const url = tile.getAttribute('data-url') || '';
+  const img = tile.querySelector('.shot');
+  const key = `${tabId}|${url}`;
+  
+  domCaptureStatus.set(key, 'processing');
+  
   try {
-    const tabId = Number(tile.getAttribute('data-tab-id'));
-    const url = tile.getAttribute('data-url') || '';
-    const img = tile.querySelector('.shot');
-    const key = `${tabId}|${url}`;
     const timeoutMs = 1800;
     const exec = chrome.scripting.executeScript({
       target: { tabId },
@@ -376,7 +413,7 @@ async function processDomCaptureQueue() {
           if (!url) url = pickVideoPoster();
           if (!url) url = pickBackgroundImage();
           if (!url) url = pickLargestImg();
-          if (url) previewUrl = url;
+          if (url && url.startsWith('http')) previewUrl = url; // filter invalid URLs
         } catch {}
         if (previewUrl) return { previewUrl };
         // Fallback: return a lightweight text-only dataURL
@@ -409,20 +446,37 @@ async function processDomCaptureQueue() {
           img.src = src;
           img.classList.add('ready');
           domThumbCache.set(key, { dataUrl: src, t: Date.now() });
+          domCaptureStatus.set(key, 'success');
+        } else {
+          domCaptureStatus.set(key, 'failed-resolve');
         }
       } else if (result.dataUrl) {
         img.src = result.dataUrl;
         img.classList.add('ready');
         domThumbCache.set(key, { dataUrl: result.dataUrl, t: Date.now() });
+        domCaptureStatus.set(key, 'success');
+      } else {
+        domCaptureStatus.set(key, 'failed-no-result');
       }
+    } else {
+      domCaptureStatus.set(key, 'failed-bad-result');
     }
-  } catch {}
+  } catch (err) {
+    domCaptureStatus.set(key, `error: ${err.message || 'unknown'}`);
+  }
   finally {
     domConcurrent--;
-    // drain more than one batch per frame to avoid early rows bias
-    if (domCaptureQueue.length) {
-      ric(() => { for (let k = 0; k < 3 && domCaptureQueue.length; k++) processDomCaptureQueue(); });
-    }
+    kickDomQueue();
+  }
+}
+
+function kickDomQueue() {
+  // Fill available concurrency immediately by starting as many tasks as allowed
+  for (let i = 0; i < DOM_MAX_CONCURRENT; i++) {
+    if (domConcurrent >= DOM_MAX_CONCURRENT) break;
+    if (domCaptureQueue.length === 0) break;
+    // fire and forget
+    processDomCaptureQueue();
   }
 }
 
@@ -523,6 +577,17 @@ async function init() {
   toggleArt.addEventListener('change', () => {
     applyArtLayout();
   });
+
+  btnGrantAccess.addEventListener('click', async () => {
+    // Request broad host access once to reduce friction
+    try {
+      const granted = await chrome.permissions.request({ origins: ['<all_urls>'] });
+      if (granted) {
+        btnGrantAccess.style.display = 'none';
+        render();
+      }
+    } catch {}
+  });
 }
 
 init();
@@ -532,6 +597,11 @@ function getGridColumnCount() {
   const tpl = style.gridTemplateColumns || '';
   const count = tpl.split(' ').filter(Boolean).length;
   return Math.max(1, count || 1);
+}
+
+function getDomCaptureStatus(tabId, url) {
+  const key = `${tabId}|${url || ''}`;
+  return domCaptureStatus.get(key) || 'not-started';
 }
 
 function applyArtLayout() {
