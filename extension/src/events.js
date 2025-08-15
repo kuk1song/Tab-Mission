@@ -30,7 +30,7 @@ export function initializeEventListeners() {
 function handleFilterChange() {
   const uiState = {
     searchTerm: searchEl.value,
-    hideDiscarded: toggleHideDiscarded.checked,
+    showSleeping: toggleHideDiscarded.checked, // Renamed for clarity
     showAllWindows: toggleCurrentWindow.checked, // Renamed for clarity
   };
   applyFilters(uiState);

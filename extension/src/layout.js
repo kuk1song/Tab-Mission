@@ -37,98 +37,67 @@ export function applyArtLayout() {
     };
   });
 
-  const layout = treemap(tabs, containerWidth, containerHeight);
+  const layout = generateCollageLayout(tabs, containerWidth, containerHeight);
 
-  // Apply the calculated layout with a staggered animation
-  const PADDING = 4; // Add padding around tiles
-  layout.forEach((rect, i) => {
-    const tile = tiles.find(t => parseInt(t.getAttribute('data-tab-id')) === rect.node.id);
+  layout.forEach((item, i) => {
+    const tile = tiles.find(t => parseInt(t.getAttribute('data-tab-id')) === item.node.id);
     if (tile) {
-      tile.style.left = `${rect.x + PADDING}px`;
-      tile.style.top = `${rect.y + PADDING}px`;
-      tile.style.width = `${rect.width - PADDING * 2}px`;
-      tile.style.height = `${rect.height - PADDING * 2}px`;
-      tile.style.transitionDelay = `${(i % 20) * 15}ms`;
+      Object.assign(tile.style, {
+        left: `${item.x}px`,
+        top: `${item.y}px`,
+        width: `${item.width}px`,
+        height: `${item.height}px`,
+        transform: `rotate(${item.rotation}deg) scale(1)`,
+        zIndex: item.zIndex,
+        transitionDelay: `${(i % 20) * 20}ms`,
+      });
     }
   });
 }
 
-/**
- * Implements the Squarified Treemap algorithm.
- * @param {Array<Object>} nodes - Array of items to layout, each with a 'weight'.
- * @param {number} width - The width of the container.
- * @param {number} height - The height of the container.
- * @returns {Array<Object>} Array of rectangles with x, y, width, height.
- */
-function treemap(nodes, width, height) {
-  const rectangles = [];
-  
-  function recurse(nodes, x, y, w, h) {
-    if (nodes.length === 0) return;
+function generateCollageLayout(nodes, width, height) {
+  const sortedNodes = [...nodes].sort((a, b) => b.weight - a.weight);
+  const layout = [];
+  const occupied = [];
 
-    const totalWeight = nodes.reduce((sum, node) => sum + node.weight, 0);
+  const baseWidth = width / 5;
+  const baseHeight = height / 3;
+
+  sortedNodes.forEach((node, i) => {
+    const scale = 1 + (node.weight / 100);
+    const itemWidth = baseWidth * scale;
+    const itemHeight = baseHeight * scale;
     
-    let row = [];
-    let i = 0;
+    let x, y, attempts = 0;
     
-    while (i < nodes.length) {
-      const newRow = [...row, nodes[i]];
-      if (worstAspectRatio(row, w, h, totalWeight) >= worstAspectRatio(newRow, w, h, totalWeight) || row.length === 0) {
-        row.push(nodes[i]);
-        i++;
+    // Find a non-overlapping position
+    do {
+      if (i < 3) { // Place the most important items near the center
+        x = width * 0.5 + (Math.random() - 0.5) * (width * 0.4) - itemWidth / 2;
+        y = height * 0.5 + (Math.random() - 0.5) * (height * 0.4) - itemHeight / 2;
       } else {
-        break;
+        x = Math.random() * (width - itemWidth);
+        y = Math.random() * (height - itemHeight);
       }
-    }
-    
-    const { newX, newY, newW, newH } = layoutRow(row, x, y, w, h, totalWeight);
-    const remainingNodes = nodes.slice(row.length);
-    
-    recurse(remainingNodes, newX, newY, newW, newH);
-  }
+      attempts++;
+    } while (isOverlapping({ x, y, width: itemWidth, height: itemHeight }, occupied) && attempts < 100);
 
-  function layoutRow(row, x, y, w, h, totalWeight) {
-    const rowWeight = row.reduce((sum, node) => sum + node.weight, 0);
-    const rowArea = (rowWeight / totalWeight) * (w * h);
+    const rotation = (Math.random() - 0.5) * 8;
+    const zIndex = 10 + sortedNodes.length - i;
     
-    if (w > h) {
-      const rowWidth = rowArea / h;
-      let currentY = y;
-      for (const node of row) {
-        const nodeHeight = (node.weight / rowWeight) * h;
-        rectangles.push({ x, y: currentY, width: rowWidth, height: nodeHeight, node });
-        currentY += nodeHeight;
-      }
-      return { newX: x + rowWidth, newY: y, newW: w - rowWidth, newH: h };
-    } else {
-      const rowHeight = rowArea / w;
-      let currentX = x;
-      for (const node of row) {
-        const nodeWidth = (node.weight / rowWeight) * w;
-        rectangles.push({ x: currentX, y, width: nodeWidth, height: rowHeight, node });
-        currentX += nodeWidth;
-      }
-      return { newX: x, newY: y + rowHeight, newW: w, newH: h - rowHeight };
+    layout.push({ x, y, width: itemWidth, height: itemHeight, rotation, zIndex, node });
+    occupied.push({ x, y, width: itemWidth, height: itemHeight });
+  });
+
+  return layout;
+}
+
+function isOverlapping(rect1, others) {
+  for (const rect2 of others) {
+    if (!(rect1.x + rect1.width < rect2.x || rect2.x + rect2.width < rect1.x ||
+          rect1.y + rect1.height < rect2.y || rect2.y + rect2.height < rect1.y)) {
+      return true; // Found overlap
     }
   }
-  
-  function worstAspectRatio(row, w, h, totalWeight) {
-    if (row.length === 0) return Infinity;
-    
-    const rowWeight = row.reduce((sum, node) => sum + node.weight, 0);
-    const rowArea = (rowWeight / totalWeight) * (w * h);
-    const minWeight = Math.min(...row.map(n => n.weight));
-    const maxWeight = Math.max(...row.map(n => n.weight));
-    const length = w < h ? w : h;
-    
-    if (length === 0 || rowArea === 0) return Infinity;
-    
-    const val1 = (length * length * maxWeight) / (rowArea * rowArea);
-    const val2 = (rowArea * rowArea) / (length * length * minWeight);
-    
-    return Math.max(val1, val2);
-  }
-  
-  recurse(nodes, 0, 0, width, height);
-  return rectangles;
+  return false;
 }

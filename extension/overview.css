@@ -69,6 +69,8 @@ html, body, #root {
 
 .grid.art { 
   position: relative; /* Create a positioning context for absolute tiles */
+  transform-style: preserve-3d;
+  perspective: 1200px;
 }
 
 /* Ensure normal grid has proper auto-sizing */
@@ -94,12 +96,18 @@ html, body, #root {
 .grid.art .tile {
   position: absolute;
   min-height: 0; /* Reset min-height for treemap */
+  transform-origin: center center; /* Ensure scaling and rotation is centered */
 }
 
 .tile:hover { 
   transform: translateY(-2px) scale(1.02); 
   box-shadow: 0 8px 24px rgba(0,0,0,0.45); 
   z-index: 10;
+}
+.grid.art .tile:hover {
+  transform: translateZ(50px) scale(1.1);
+  z-index: 100;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.6);
 }
 .tile.selected {
   transform: scale(1.03);

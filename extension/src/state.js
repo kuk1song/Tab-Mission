@@ -28,7 +28,9 @@ export function applyFilters(uiState) {
     tabs = tabs.filter(tab => tab.windowId === state.currentWindowId);
   }
   
-  if (uiState.hideDiscarded) {
+  // Logic is inverted: by default, we hide sleeping tabs.
+  // If the checkbox is checked, we show them.
+  if (!uiState.showSleeping) {
     tabs = tabs.filter(tab => !tab.discarded && tab.status !== 'unloaded');
   }
   
