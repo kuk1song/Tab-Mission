@@ -17,7 +17,7 @@ html, body, #root {
   background: var(--bg);
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  overflow: hidden; /* Prevent scrollbars during animation */
+  /* DO NOT set overflow: hidden here, it breaks hover transforms and scrolling */
 }
 
 #root {
