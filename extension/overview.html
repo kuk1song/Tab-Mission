@@ -12,15 +12,6 @@
         <input id="search" type="text" placeholder="Search tabs (title or URL)…" autocomplete="off" />
         <div class="spacer"></div>
         <label class="ctrl">
-          <input id="toggle-shots" type="radio" name="shot-mode" />
-          <span>Thumbnails (CDP)</span>
-        </label>
-        <label class="ctrl">
-          <input id="toggle-dom-shots" type="radio" name="shot-mode" checked />
-          <span>Thumbnails (DOM)</span>
-        </label>
-        <button id="grant-access" class="ctrl" style="display:none">Grant site access</button>
-        <label class="ctrl">
           <input id="toggle-hide-discarded" type="checkbox" checked />
           <span>Hide sleeping</span>
         </label>
@@ -29,12 +20,8 @@
           <span>Current window only</span>
         </label>
         <label class="ctrl">
-          <input id="toggle-debug" type="checkbox" />
-          <span>Debug</span>
-        </label>
-        <label class="ctrl">
-          <input id="toggle-art" type="checkbox" />
-          <span>Art mode</span>
+          <input id="toggle-thumbnails" type="checkbox" />
+          <span>Thumbnails</span>
         </label>
         <div class="hint">Esc to close • Enter to open • ↑↓←→ to navigate</div>
       </header>
@@ -45,6 +32,4 @@
     </div>
     <script src="overview.js" type="module"></script>
   </body>
-  </html>
-
-
+</html>

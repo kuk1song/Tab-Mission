@@ -67,16 +67,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
   
-  if (message && message.type === 'request-permissions') {
-    // Handle permission request from background context
-    chrome.permissions.request({ origins: message.origins }).then(granted => {
-      sendResponse(granted);
-    }).catch(err => {
-      console.warn('Background permission request failed:', err);
-      sendResponse(false);
-    });
-    return true; // Indicates async response
-  }
+
 });
 
 

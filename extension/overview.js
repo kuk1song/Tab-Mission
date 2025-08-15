@@ -1,657 +1,422 @@
-const gridEl = document.getElementById('grid');
-const searchInput = document.getElementById('search');
-const toggleShots = document.getElementById('toggle-shots');
-const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
-const toggleCurrentWindow = document.getElementById('toggle-current-window');
-const toggleDebug = document.getElementById('toggle-debug');
-const toggleDomShots = document.getElementById('toggle-dom-shots');
-const toggleArt = document.getElementById('toggle-art');
-const btnGrantAccess = document.getElementById('grant-access');
-const ric = window.requestIdleCallback || (cb => setTimeout(() => cb({ timeRemaining: () => 0, didTimeout: false }), 0));
-
-let tabs = [];
+// Tab Mosaic Overview - Simplified design with progressive enhancement
+let allTabs = [];
 let filtered = [];
 let selectedIndex = 0;
-let io = null;
-let ioDom = null;
-const capturedTabIds = new Set();
-const uncapturableTabIds = new Set();
-let rerenderPending = false;
-let concurrent = 0;
-const CPU_HALF = Math.max(1, Math.floor((navigator.hardwareConcurrency || 4) / 2));
-const MAX_CONCURRENT = Math.max(2, Math.min(4, CPU_HALF));
-const captureQueue = [];
-const domCaptureQueue = [];
-let domConcurrent = 0;
-const DOM_MAX_CONCURRENT = Math.max(2, Math.min(4, CPU_HALF));
-const DOM_CACHE_TTL_MS = 60 * 1000;
-const domThumbCache = new Map(); // key = `${tabId}|${url}` -> { dataUrl, t }
-const objectUrlCache = new Map(); // remoteUrl -> { objectUrl, t }
-const domCaptureStatus = new Map(); // key = `${tabId}|${url}` -> status string
+let currentWindowId = null;
 
-async function fetchAllTabs() {
-  const currentId = await awaitCurrentWindowId();
-  const scopeQuery = toggleCurrentWindow.checked ? { windowId: currentId } : {};
-  const [all, discardedList] = await Promise.all([
-    chrome.tabs.query(scopeQuery),
-    chrome.tabs.query({ discarded: true, ...scopeQuery })
-  ]);
-  const hideDiscarded = toggleHideDiscarded.checked;
-  let usable = all;
-  if (hideDiscarded) {
-    const discardedIds = new Set(discardedList.map(t => t.id));
-    usable = all.filter(t => !discardedIds.has(t.id));
-  }
-  // Sort: current window first, then most recently active
-  usable.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
-  return usable;
+// UI Elements
+const searchEl = document.getElementById('search');
+const gridEl = document.getElementById('grid');
+const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
+const toggleCurrentWindow = document.getElementById('toggle-current-window');
+const toggleThumbnails = document.getElementById('toggle-thumbnails');
+
+// Thumbnail capture state
+const captureCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function init() {
+  await fetchAllTabs();
+  applyFilters();
+  render();
+  
+  // Setup event listeners
+  searchEl.addEventListener('input', () => {
+    applyFilters();
+    render();
+  });
+  
+  toggleHideDiscarded.addEventListener('change', () => {
+    applyFilters();
+    render();
+  });
+  
+  toggleCurrentWindow.addEventListener('change', () => {
+    applyFilters();
+    render();
+  });
+  
+  toggleThumbnails.addEventListener('change', () => {
+    render(); // Re-render to show/hide thumbnails
+    if (toggleThumbnails.checked) {
+      startThumbnailCapture();
+    }
+  });
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', handleKeydown);
 }
 
-async function awaitCurrentWindowId() {
-  // Always fetch fresh; do not cache to avoid stale selection while popup is focused
+async function fetchAllTabs() {
   try {
-    const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
-    return win.id;
-  } catch {
-    const win = await chrome.windows.getCurrent();
-    return win.id;
+    const scopeQuery = toggleCurrentWindow.checked 
+      ? { currentWindow: true }
+      : {};
+    
+    allTabs = await chrome.tabs.query(scopeQuery);
+    
+    // Get current window ID for filtering
+    if (toggleCurrentWindow.checked) {
+      const current = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+      currentWindowId = current?.id || null;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch tabs:', err);
+    allTabs = [];
   }
+}
+
+function applyFilters() {
+  let tabs = [...allTabs];
+  
+  // Filter current window
+  if (toggleCurrentWindow.checked && currentWindowId) {
+    tabs = tabs.filter(tab => tab.windowId === currentWindowId);
+  }
+  
+  // Filter sleeping tabs
+  if (toggleHideDiscarded.checked) {
+    tabs = tabs.filter(tab => !tab.discarded);
+  }
+  
+  // Search filter
+  const query = searchEl.value.toLowerCase().trim();
+  if (query) {
+    tabs = tabs.filter(tab => 
+      (tab.title || '').toLowerCase().includes(query) ||
+      (tab.url || '').toLowerCase().includes(query)
+    );
+  }
+  
+  filtered = tabs;
+  selectedIndex = Math.min(selectedIndex, Math.max(0, filtered.length - 1));
 }
 
 function render() {
   gridEl.innerHTML = '';
-  gridEl.classList.toggle('art', !!toggleArt.checked);
-  filtered.forEach((t, idx) => {
+  
+  filtered.forEach((tab, index) => {
     const tile = document.createElement('button');
-    tile.className = 'tile' + (idx === selectedIndex ? ' selected' : '');
-    tile.setAttribute('data-tab-id', String(t.id));
-    tile.setAttribute('data-window-id', String(t.windowId));
-    if (t.url) tile.setAttribute('data-url', t.url);
-    tile.addEventListener('click', () => activateTab(t));
-
-    const img = document.createElement('img');
-    img.className = 'shot';
-    img.alt = '';
-    // lightweight local placeholder to avoid black tiles before capture
-    img.src = makePlaceholderDataUrl(t.title || safeHostname(t.url), safeHostname(t.url));
-    tile.appendChild(img);
-
+    tile.className = 'tile' + (index === selectedIndex ? ' selected' : '');
+    tile.setAttribute('data-tab-id', String(tab.id));
+    tile.addEventListener('click', () => activateTab(tab));
+    
+    // Create preview area
+    const preview = document.createElement('div');
+    preview.className = 'preview';
+    
+    if (toggleThumbnails.checked) {
+      // Show thumbnail if enabled
+      const img = document.createElement('img');
+      img.className = 'thumbnail';
+      img.alt = 'Tab preview';
+      img.src = getPlaceholderDataUrl(tab.title || 'Untitled', getHostname(tab.url));
+      preview.appendChild(img);
+      
+      // Try to load actual thumbnail
+      loadThumbnail(tab, img);
+    } else {
+      // Show text-only preview
+      const textPreview = document.createElement('div');
+      textPreview.className = 'text-preview';
+      textPreview.style.background = generateGradient(tab.title || getHostname(tab.url));
+      
+      const title = document.createElement('div');
+      title.className = 'preview-title';
+      title.textContent = tab.title || 'Untitled';
+      textPreview.appendChild(title);
+      
+      const url = document.createElement('div');
+      url.className = 'preview-url';
+      url.textContent = getHostname(tab.url);
+      textPreview.appendChild(url);
+      
+      preview.appendChild(textPreview);
+    }
+    
+    tile.appendChild(preview);
+    
+    // Create metadata
     const meta = document.createElement('div');
     meta.className = 'meta';
+    
     const titleRow = document.createElement('div');
-    titleRow.className = 'row';
-
-    const fav = document.createElement('img');
-    fav.className = 'favicon';
-    const favUrl = safeFaviconUrl(t.favIconUrl);
-    if (favUrl) fav.src = favUrl; else fav.style.opacity = '0.2';
-
+    titleRow.className = 'title-row';
+    
+    // Favicon
+    if (tab.favIconUrl && isValidIconUrl(tab.favIconUrl)) {
+      const favicon = document.createElement('img');
+      favicon.className = 'favicon';
+      favicon.src = tab.favIconUrl;
+      favicon.alt = '';
+      titleRow.appendChild(favicon);
+    }
+    
+    // Title
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = t.title || '(untitled)';
-    titleRow.appendChild(fav);
+    title.textContent = tab.title || 'Untitled';
     titleRow.appendChild(title);
+    
+    meta.appendChild(titleRow);
+    
+    // URL
     const url = document.createElement('div');
     url.className = 'url';
-    url.textContent = safeHostname(t.url);
-    if (toggleDebug.checked) {
-      const dbg = document.createElement('div');
-      dbg.className = 'debug';
-      const last = typeof t.lastAccessed === 'number' ? ((Date.now() - t.lastAccessed) / 60000) : null;
-      const domStatus = getDomCaptureStatus(t.id, t.url);
-      const info = `[id:${t.id}] discarded=${!!t.discarded} autoDiscardable=${!!t.autoDiscardable} last=${last!==null?last.toFixed(1)+'m ago':'n/a'} dom=${domStatus} url=${t.url}`;
-      dbg.textContent = info;
-      meta.appendChild(dbg);
-      try { console.log('[DOM][tile]', info); } catch {}
-    }
-    meta.appendChild(titleRow);
+    url.textContent = getHostname(tab.url);
     meta.appendChild(url);
+    
     tile.appendChild(meta);
-
-    // Optional art mode span handled later
     gridEl.appendChild(tile);
   });
-
-  if (toggleShots.checked && !toggleDomShots.checked) ric(() => startLazyCapture());
-  if (toggleDomShots.checked && !toggleShots.checked) ric(() => startLazyDomCapture());
-  // proactively check after first render
-  updateGrantButtonVisibility(true);
 }
 
-async function updateGrantButtonVisibility(eager = false) {
-  if (!toggleDomShots.checked) { btnGrantAccess.style.display = 'none'; return; }
-  try {
-    const hasAll = await chrome.permissions.contains({ origins: ['<all_urls>'] });
-    if (hasAll) { btnGrantAccess.style.display = 'none'; return; }
-  } catch (e) {
-    // If permissions API not available, hide button
-    btnGrantAccess.style.display = 'none';
+async function loadThumbnail(tab, imgElement) {
+  const cacheKey = `${tab.id}|${tab.url}`;
+  
+  // Check cache first
+  const cached = captureCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+    imgElement.src = cached.dataUrl;
+    imgElement.classList.add('loaded');
     return;
   }
-  const errLike = Array.from(domCaptureStatus.values()).filter(v => typeof v === 'string' && (v.includes('Cannot access contents') || v.includes('permission') || v.includes('dom-capture-timeout')));
-  btnGrantAccess.style.display = (eager || errLike.length >= 1) ? 'inline-flex' : 'none';
-}
-
-function safeHostname(u) {
-  try { return new URL(u).hostname; } catch { return u || ''; }
-}
-
-function safeFaviconUrl(u) {
-  if (!u) return '';
+  
+  // Skip non-web URLs
+  if (!isCapturableUrl(tab.url)) {
+    return;
+  }
+  
   try {
-    const url = new URL(u);
-    // allow http(s) and data URLs; block chrome:// and extension URLs to avoid Not allowed to load local resource
-    if (url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'data:') {
-      return u;
+    // Use simple DOM-based thumbnail approach
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: extractPreviewImage
+    });
+    
+    if (result && result[0] && result[0].result) {
+      const { imageUrl, dataUrl } = result[0].result;
+      
+      if (imageUrl) {
+        // Try to load external image
+        try {
+          const response = await fetch(imageUrl, { mode: 'no-cors' });
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          imgElement.src = objectUrl;
+          imgElement.classList.add('loaded');
+          captureCache.set(cacheKey, { dataUrl: objectUrl, timestamp: Date.now() });
+        } catch {
+          // Fallback to direct URL
+          imgElement.src = imageUrl;
+          imgElement.classList.add('loaded');
+        }
+      } else if (dataUrl) {
+        imgElement.src = dataUrl;
+        imgElement.classList.add('loaded');
+        captureCache.set(cacheKey, { dataUrl, timestamp: Date.now() });
+      }
     }
-    return '';
-  } catch {
-    return '';
+  } catch (err) {
+    // Silently fail - keep placeholder
+    console.debug('Thumbnail capture failed for tab', tab.id, err.message);
   }
 }
 
-function isCapturableUrl(u) {
-  if (!u) return false;
-  try {
-    const url = new URL(u);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch { return false; }
+// Injected function to extract preview image from page
+function extractPreviewImage() {
+  // Look for Open Graph image
+  const ogImage = document.querySelector('meta[property="og:image"]');
+  if (ogImage && ogImage.content) {
+    return { imageUrl: ogImage.content };
+  }
+  
+  // Look for Twitter image
+  const twitterImage = document.querySelector('meta[name="twitter:image"]');
+  if (twitterImage && twitterImage.content) {
+    return { imageUrl: twitterImage.content };
+  }
+  
+  // Look for largest image on page
+  const images = Array.from(document.images);
+  let bestImage = null;
+  let bestArea = 0;
+  
+  for (const img of images) {
+    const rect = img.getBoundingClientRect();
+    const area = rect.width * rect.height;
+    if (area > bestArea && rect.width >= 200 && rect.height >= 150) {
+      bestImage = img;
+      bestArea = area;
+    }
+  }
+  
+  if (bestImage && bestImage.src) {
+    return { imageUrl: bestImage.src };
+  }
+  
+  // Fallback: create simple text preview
+  const canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 200;
+  const ctx = canvas.getContext('2d');
+  
+  // Simple gradient background
+  const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+  gradient.addColorStop(0, '#2d3748');
+  gradient.addColorStop(1, '#1a202c');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 320, 200);
+  
+  // Add title text
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillText(document.title || location.hostname, 16, 40);
+  
+  // Add URL
+  ctx.fillStyle = '#a0aec0';
+  ctx.font = '12px monospace';
+  ctx.fillText(location.hostname, 16, 180);
+  
+  return { dataUrl: canvas.toDataURL('image/jpeg', 0.8) };
 }
 
-function makePlaceholderDataUrl(title, host) {
-  try {
-    const canvas = document.createElement('canvas');
-    const W = 640, H = 400;
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#0e1116'); g.addColorStop(1, '#1a1f2b');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial';
-    ctx.fillText((title || '').slice(0, 60), 12, 18);
-    ctx.fillStyle = '#9aa0a6';
-    ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial';
-    ctx.fillText(host || '', 12, H - 20);
-    return canvas.toDataURL('image/jpeg', 0.6);
-  } catch { return ''; }
+function startThumbnailCapture() {
+  // Start capturing thumbnails for visible tiles
+  const tiles = Array.from(gridEl.querySelectorAll('.tile'));
+  tiles.forEach(tile => {
+    const tabId = parseInt(tile.getAttribute('data-tab-id'));
+    const tab = filtered.find(t => t.id === tabId);
+    const img = tile.querySelector('.thumbnail');
+    if (tab && img) {
+      loadThumbnail(tab, img);
+    }
+  });
 }
 
-async function activateTab(t) {
-  await chrome.tabs.update(t.id, { active: true });
-  await chrome.windows.update(t.windowId, { focused: true });
+function activateTab(tab) {
+  chrome.tabs.update(tab.id, { active: true });
   chrome.runtime.sendMessage({ type: 'close-overview-window' });
 }
 
-function filterTabs(q) {
-  const s = q.trim().toLowerCase();
-  if (!s) return tabs;
-  return tabs.filter(t => (t.title || '').toLowerCase().includes(s) || (t.url || '').toLowerCase().includes(s));
+function handleKeydown(e) {
+  switch (e.key) {
+    case 'Escape':
+      chrome.runtime.sendMessage({ type: 'close-overview-window' });
+      break;
+    case 'Enter':
+      if (filtered[selectedIndex]) {
+        activateTab(filtered[selectedIndex]);
+      }
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      selectedIndex = Math.max(0, selectedIndex - getColumnCount());
+      updateSelection();
+      break;
+    case 'ArrowDown':
+      e.preventDefault();
+      selectedIndex = Math.min(filtered.length - 1, selectedIndex + getColumnCount());
+      updateSelection();
+      break;
+    case 'ArrowLeft':
+      e.preventDefault();
+      selectedIndex = Math.max(0, selectedIndex - 1);
+      updateSelection();
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      selectedIndex = Math.min(filtered.length - 1, selectedIndex + 1);
+      updateSelection();
+      break;
+  }
 }
 
-function startLazyCapture() {
-  capturedTabIds.clear();
-  if (io) { io.disconnect(); io = null; }
-  io = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) {
-        const tile = entry.target;
-        scheduleCapture(tile);
-        io.unobserve(tile);
-      }
-    }
-  }, { root: gridEl, threshold: 0.1, rootMargin: '400px 0px' });
-
+function updateSelection() {
   const tiles = Array.from(gridEl.querySelectorAll('.tile'));
-  tiles.forEach(tile => io.observe(tile));
-}
-
-function scheduleCapture(tile) {
-  const tabId = Number(tile.getAttribute('data-tab-id'));
-  const url = tile.getAttribute('data-url') || '';
-  if (!isCapturableUrl(url) || capturedTabIds.has(tabId)) return;
-  captureQueue.push(tile);
-  processCaptureQueue();
-}
-
-async function processCaptureQueue() {
-  if (concurrent >= MAX_CONCURRENT) return;
-  const tile = captureQueue.shift();
-  if (!tile) return;
-  concurrent++;
-  try {
-    const tabId = Number(tile.getAttribute('data-tab-id'));
-    const img = tile.querySelector('.shot');
-    const dataUrl = await captureTabViaDebugger(tabId);
-    if (dataUrl && img) {
-      img.src = `data:image/jpeg;base64,${dataUrl}`;
-      img.classList.add('ready');
-      capturedTabIds.add(tabId);
-    }
-  } catch {}
-  finally {
-    concurrent--;
-    if (captureQueue.length) processCaptureQueue();
-  }
-}
-
-async function captureTabViaDebugger(tabId) {
-  // Use Chrome DevTools Protocol via debugger to capture a one-shot screenshot without focusing the tab
-  // Returns base64 content or '' on failure
-  try {
-    await chrome.debugger.attach({ tabId }, '1.3');
-    // ensure Page domain enabled to reduce overhead
-    try { await chrome.debugger.sendCommand({ tabId }, 'Page.enable'); } catch {}
-    const { data } = await chrome.debugger.sendCommand({ tabId }, 'Page.captureScreenshot', { format: 'jpeg', quality: 55, fromSurface: true, captureBeyondViewport: false });
-    try { await chrome.debugger.sendCommand({ tabId }, 'Page.disable'); } catch {}
-    await chrome.debugger.detach({ tabId });
-    return data || '';
-  } catch (e) {
-    try { await chrome.debugger.detach({ tabId }); } catch {}
-    return '';
-  }
-}
-
-function startLazyDomCapture() {
-  if (ioDom) { ioDom.disconnect(); ioDom = null; }
-  ioDom = new IntersectionObserver((entries) => {
-    console.log('[DOM] IntersectionObserver triggered for', entries.length, 'entries');
-    const vis = entries.filter(e => e.isIntersecting).map(e => e.target);
-    console.log('[DOM] Intersecting tiles:', vis.length);
-    // sort by DOM order to load稳定
-    vis.sort((a, b) => Array.prototype.indexOf.call(gridEl.children, a) - Array.prototype.indexOf.call(gridEl.children, b));
-    vis.forEach(tile => { scheduleDomCapture(tile); ioDom.unobserve(tile); });
-  }, { root: gridEl, threshold: 0.01, rootMargin: '800px 0px' });
-
-  const tiles = Array.from(gridEl.querySelectorAll('.tile'));
-  // observe only within viewport + rootMargin
-  tiles.forEach(tile => ioDom.observe(tile));
-}
-
-function scheduleDomCapture(tile) {
-  const tabId = Number(tile.getAttribute('data-tab-id'));
-  const url = tile.getAttribute('data-url') || '';
-  const img = tile.querySelector('.shot');
-  const key = `${tabId}|${url}`;
+  tiles.forEach((tile, index) => {
+    tile.classList.toggle('selected', index === selectedIndex);
+  });
   
-  console.log('[DOM] Scheduling capture for', tabId, url);
-  domCaptureStatus.set(key, 'scheduled');
-  
-  if (!isCapturableUrl(url) || !img) {
-    console.log('[DOM] Skipping', tabId, 'not capturable or no img');
-    domCaptureStatus.set(key, 'skipped');
-    return;
-  }
-  
-  const cached = domThumbCache.get(key);
-  const now = Date.now();
-  if (cached && (now - cached.t) < DOM_CACHE_TTL_MS) {
-    console.log('[DOM] Using cached for', tabId);
-    img.src = cached.dataUrl;
-    img.classList.add('ready');
-    domCaptureStatus.set(key, 'cached');
-    return;
-  }
-  
-  console.log('[DOM] Queueing', tabId, 'current queue length:', domCaptureQueue.length);
-  domCaptureStatus.set(key, 'queued');
-  domCaptureQueue.push(tile);
-  kickDomQueue();
-}
-
-async function processDomCaptureQueue() {
-  if (domConcurrent >= DOM_MAX_CONCURRENT) return;
-  const tile = domCaptureQueue.shift();
-  if (!tile) return;
-  domConcurrent++;
-  
-  const tabId = Number(tile.getAttribute('data-tab-id'));
-  const url = tile.getAttribute('data-url') || '';
-  const img = tile.querySelector('.shot');
-  const key = `${tabId}|${url}`;
-  
-  domCaptureStatus.set(key, 'processing');
-  
-  try {
-    const timeoutMs = 1800;
-    const exec = chrome.scripting.executeScript({
-      target: { tabId },
-      world: 'MAIN',
-      func: async () => {
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
-        const W = Math.floor(640 * dpr);
-        const H = Math.floor(400 * dpr);
-        const title = (document.title || '').slice(0, 140);
-        const host = location.hostname;
-
-        // Helpers: pick best preview from many semantic sources
-        const pickOg = () => {
-          const metas = [
-            'meta[property="og:image"]',
-            'meta[name="og:image"]',
-            'meta[property="og:image:url"]',
-            'meta[property="og:image:secure_url"]',
-            'meta[name="twitter:image"]',
-            'meta[name="twitter:image:src"]',
-            'meta[itemprop="image"]'
-          ];
-          for (const sel of metas) {
-            const m = document.querySelector(sel);
-            if (m && m.content) return m.content;
-          }
-          return '';
-        };
-
-        const pickLinkImage = () => {
-          const links = [
-            'link[rel="image_src"]',
-            'link[rel="thumbnail"]',
-            'link[rel="preload"][as="image"]'
-          ];
-          for (const sel of links) {
-            const l = document.querySelector(sel);
-            if (l && (l.href || l.getAttribute('href'))) return l.href || l.getAttribute('href');
-          }
-          return '';
-        };
-
-        const pickVideoPoster = () => {
-          const v = document.querySelector('video[poster]');
-          return v ? (v.getAttribute('poster') || '') : '';
-        };
-
-        const getBgUrl = (el) => {
-          const bg = getComputedStyle(el).backgroundImage || '';
-          const m = bg.match(/url\(["']?(.*?)["']?\)/);
-          return m ? m[1] : '';
-        };
-
-        const pickBackgroundImage = () => {
-          const candidates = [
-            '.hero', '.Hero', '.banner', '.Banner', '.cover', '.Cover', '.masthead', '.post-cover', '.featured', '.featured-image', 'header'
-          ];
-          for (const sel of candidates) {
-            const el = document.querySelector(sel);
-            if (el) {
-              const u = getBgUrl(el);
-              if (u) return u;
-              const im = el.querySelector('img');
-              if (im) return im.currentSrc || im.src || '';
-            }
-          }
-          return '';
-        };
-
-        const parseSrc = (img) => {
-          if (!img) return '';
-          if (img.currentSrc) return img.currentSrc;
-          const ss = img.getAttribute('srcset') || '';
-          if (ss) {
-            const parts = ss.split(',').map(s => s.trim());
-            // pick largest descriptor
-            const last = parts[parts.length - 1] || '';
-            const url = (last.split(' ') || [])[0];
-            if (url) return url;
-          }
-          return img.src || '';
-        };
-
-        const pickLargestImg = () => {
-          let best = null; let bestArea = 0;
-          const imgs = Array.from(document.images || []);
-          for (const im of imgs) {
-            const r = im.getBoundingClientRect();
-            const area = Math.max(0, r.width) * Math.max(0, r.height);
-            if (area > bestArea && r.width >= 160 && r.height >= 100) {
-              best = im; bestArea = area;
-            }
-          }
-          return best ? parseSrc(best) : '';
-        };
-
-        // First preference: return a direct preview URL to avoid canvas taint
-        let previewUrl = '';
-        try {
-          let url = pickOg();
-          if (!url) url = pickLinkImage();
-          if (!url) url = pickVideoPoster();
-          if (!url) url = pickBackgroundImage();
-          if (!url) url = pickLargestImg();
-          if (url && url.startsWith('http')) previewUrl = url; // filter invalid URLs
-        } catch {}
-        if (previewUrl) return { previewUrl };
-        // Fallback: return a lightweight text-only dataURL
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = W; canvas.height = H;
-          const ctx = canvas.getContext('2d');
-          const grad = ctx.createLinearGradient(0, 0, 0, H);
-          grad.addColorStop(0, '#0e1116'); grad.addColorStop(1, '#1a1f2b');
-          ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-          ctx.fillStyle = '#fff';
-          ctx.font = `${Math.floor(16 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
-          ctx.fillText(title || host, Math.floor(12 * dpr), Math.floor(18 * dpr));
-          ctx.fillStyle = '#9aa0a6';
-          ctx.font = `${Math.floor(12 * dpr)}px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial`;
-          ctx.fillText(host, Math.floor(12 * dpr), H - Math.floor(20 * dpr));
-          return { dataUrl: canvas.toDataURL('image/jpeg', 0.62) };
-        } catch { return { dataUrl: '' }; }
-      }
-    });
-    const resultArr = await Promise.race([
-      exec,
-      new Promise((_, rej) => setTimeout(() => rej(new Error('dom-capture-timeout')), timeoutMs))
-    ]);
-    const [{ result } = {}] = Array.isArray(resultArr) ? resultArr : [];
-    if (result && typeof result === 'object') {
-      if (result.previewUrl) {
-        const src = await resolvePreviewSrc(result.previewUrl);
-        if (src) {
-          img.src = src;
-          img.classList.add('ready');
-          domThumbCache.set(key, { dataUrl: src, t: Date.now() });
-          domCaptureStatus.set(key, 'success');
-        } else {
-          domCaptureStatus.set(key, 'failed-resolve');
-        }
-      } else if (result.dataUrl) {
-        img.src = result.dataUrl;
-        img.classList.add('ready');
-        domThumbCache.set(key, { dataUrl: result.dataUrl, t: Date.now() });
-        domCaptureStatus.set(key, 'success');
-      } else {
-        domCaptureStatus.set(key, 'failed-no-result');
-      }
-    } else {
-      domCaptureStatus.set(key, 'failed-bad-result');
-    }
-  } catch (err) {
-    domCaptureStatus.set(key, `error: ${err.message || 'unknown'}`);
-  }
-  finally {
-    domConcurrent--;
-    kickDomQueue();
+  // Scroll selected tile into view
+  const selectedTile = tiles[selectedIndex];
+  if (selectedTile) {
+    selectedTile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 }
 
-function kickDomQueue() {
-  // Fill available concurrency immediately by starting as many tasks as allowed
-  for (let i = 0; i < DOM_MAX_CONCURRENT; i++) {
-    if (domConcurrent >= DOM_MAX_CONCURRENT) break;
-    if (domCaptureQueue.length === 0) break;
-    // fire and forget
-    processDomCaptureQueue();
-  }
-}
-
-async function resolvePreviewSrc(remoteUrl) {
-  try {
-    // Cache object URLs to avoid repeated network cost
-    const cached = objectUrlCache.get(remoteUrl);
-    const now = Date.now();
-    if (cached && (now - cached.t) < DOM_CACHE_TTL_MS) return cached.objectUrl;
-    const res = await fetch(remoteUrl, { mode: 'no-cors', cache: 'force-cache' }).catch(() => null);
-    if (!res || !(res.ok || res.type === 'opaque')) return remoteUrl; // fallback to remote directly
-    const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    objectUrlCache.set(remoteUrl, { objectUrl, t: Date.now() });
-    return objectUrl;
-  } catch {
-    return remoteUrl;
-  }
-}
-
-async function getActiveTabInWindow(windowId) {
-  const tt = await chrome.tabs.query({ windowId, active: true });
-  return tt[0];
-}
-
-function updateSelection(delta) {
-  if (filtered.length === 0) return;
-  selectedIndex = (selectedIndex + delta + filtered.length) % filtered.length;
-  render();
-  scrollSelectedIntoView();
-}
-
-function scrollSelectedIntoView() {
-  const el = gridEl.children[selectedIndex];
-  if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-}
-
-function onKey(e) {
-  if (e.key === 'Escape') {
-    chrome.runtime.sendMessage({ type: 'close-overview-window' });
-    return;
-  }
-  if (e.key === 'Enter') {
-    const t = filtered[selectedIndex];
-    if (t) activateTab(t);
-    return;
-  }
-  // Arrow navigation with grid awareness
-  const cols = getGridColumnCount();
-  if (e.key === 'ArrowRight' || (e.key === 'Tab' && !e.shiftKey)) { e.preventDefault(); updateSelection(1); }
-  else if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) { e.preventDefault(); updateSelection(-1); }
-  else if (e.key === 'ArrowDown') { e.preventDefault(); updateSelection(cols); }
-  else if (e.key === 'ArrowUp') { e.preventDefault(); updateSelection(-cols); }
-}
-
-async function init() {
-  await awaitCurrentWindowId();
-  tabs = await fetchAllTabs();
-  filtered = tabs.slice();
-  render();
-  searchInput.focus();
-
-  searchInput.addEventListener('input', () => {
-    filtered = filterTabs(searchInput.value);
-    selectedIndex = 0;
-    render();
-  });
-
-  document.addEventListener('keydown', onKey);
-
-  toggleShots.addEventListener('change', () => {
-    // rerender to stop or start capture observers
-    render();
-  });
-
-  toggleHideDiscarded.addEventListener('change', async () => {
-    tabs = await fetchAllTabs();
-    filtered = filterTabs(searchInput.value);
-    selectedIndex = 0;
-    render();
-  });
-
-  toggleCurrentWindow.addEventListener('change', async () => {
-    tabs = await fetchAllTabs();
-    filtered = filterTabs(searchInput.value);
-    selectedIndex = 0;
-    render();
-  });
-
-  toggleDebug.addEventListener('change', async () => {
-    render();
-  });
-
-  toggleDomShots.addEventListener('change', () => {
-    render();
-  });
-
-  toggleArt.addEventListener('change', () => {
-    applyArtLayout();
-  });
-
-  btnGrantAccess.addEventListener('click', async () => {
-    // Request broad host access once to reduce friction
-    try {
-      // Try to request permission from a normal browser window context instead of popup
-      const granted = await chrome.runtime.sendMessage({ 
-        type: 'request-permissions',
-        origins: ['<all_urls>']
-      });
-      if (granted) {
-        btnGrantAccess.style.display = 'none';
-        // Clear error status and restart DOM captures for all tiles
-        domCaptureStatus.clear();
-        objectUrlCache.clear();
-        domThumbCache.clear();
-        render(); // Re-render to reinitialize all tiles with fresh placeholders
-        // Restart lazy DOM capture for all visible tiles
-        if (toggleDomShots.checked) {
-          setTimeout(() => startLazyDomCapture(), 100);
-        }
-      }
-    } catch (err) {
-      console.warn('Permission request failed:', err);
-      // Fallback to direct request if background fails
-      try {
-        const granted = await chrome.permissions.request({ origins: ['<all_urls>'] });
-        if (granted) {
-          btnGrantAccess.style.display = 'none';
-          domCaptureStatus.clear();
-          objectUrlCache.clear();
-          domThumbCache.clear();
-          render();
-          if (toggleDomShots.checked) {
-            setTimeout(() => startLazyDomCapture(), 100);
-          }
-        }
-      } catch (fallbackErr) {
-        console.warn('Fallback permission request also failed:', fallbackErr);
-      }
-    }
-  });
-}
-
-init();
-
-function getGridColumnCount() {
+function getColumnCount() {
+  // Estimate column count from CSS grid
   const style = getComputedStyle(gridEl);
-  const tpl = style.gridTemplateColumns || '';
-  const count = tpl.split(' ').filter(Boolean).length;
-  return Math.max(1, count || 1);
+  const columns = style.gridTemplateColumns.split(' ').length;
+  return Math.max(1, columns);
 }
 
-function getDomCaptureStatus(tabId, url) {
-  const key = `${tabId}|${url || ''}`;
-  return domCaptureStatus.get(key) || 'not-started';
-}
-
-function applyArtLayout() {
-  const enable = toggleArt.checked;
-  const tiles = Array.from(gridEl.querySelectorAll('.tile'));
-  if (!enable) {
-    tiles.forEach(tile => tile.style.gridRowEnd = '');
-    return;
+// Utility functions
+function getHostname(url) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url || '';
   }
-  // Simple heuristic: recent tabs larger; map index to span rows
-  // Base row unit is 8px (see CSS). Span to approximate 16:10 cards of various sizes.
-  const sizes = [24, 20, 20, 16, 16, 16, 12, 12, 12, 12];
-  tiles.forEach((tile, i) => {
-    const span = sizes[i % sizes.length];
-    tile.style.gridRowEnd = `span ${span}`;
-  });
 }
 
+function isValidIconUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'data:';
+  } catch {
+    return false;
+  }
+}
 
+function isCapturableUrl(url) {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function getPlaceholderDataUrl(title, hostname) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 200;
+  const ctx = canvas.getContext('2d');
+  
+  // Generate color based on hostname
+  const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+  const hue = Array.from(hostname).reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
+  gradient.addColorStop(0, `hsl(${hue}, 30%, 25%)`);
+  gradient.addColorStop(1, `hsl(${hue}, 30%, 15%)`);
+  
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 320, 200);
+  
+  // Add title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  const titleText = title.slice(0, 30) + (title.length > 30 ? '...' : '');
+  ctx.fillText(titleText, 16, 40);
+  
+  // Add hostname
+  ctx.fillStyle = '#a0aec0';
+  ctx.font = '12px monospace';
+  ctx.fillText(hostname, 16, 180);
+  
+  return canvas.toDataURL('image/jpeg', 0.8);
+}
+
+function generateGradient(seed) {
+  const hue = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
+  return `linear-gradient(135deg, hsl(${hue}, 40%, 25%), hsl(${hue}, 40%, 15%))`;
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
