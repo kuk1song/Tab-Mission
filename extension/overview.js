@@ -10,6 +10,7 @@ const gridEl = document.getElementById('grid');
 const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
 const toggleCurrentWindow = document.getElementById('toggle-current-window');
 const toggleThumbnails = document.getElementById('toggle-thumbnails');
+const toggleArt = document.getElementById('toggle-art');
 
 // Thumbnail capture state
 const captureCache = new Map();
@@ -21,7 +22,14 @@ async function init() {
   console.log(`Fetched ${allTabs.length} tabs`);
   applyFilters();
   console.log(`After filtering: ${filtered.length} tabs`);
+  // Ensure default Thumbnails ON
+  try {
+    if (toggleThumbnails && !toggleThumbnails.checked) {
+      toggleThumbnails.checked = true;
+    }
+  } catch {}
   render();
+  if (toggleThumbnails?.checked) startThumbnailCapture();
   
   // Setup event listeners
   searchEl.addEventListener('input', () => {
@@ -49,6 +57,13 @@ async function init() {
   
   // Keyboard navigation
   document.addEventListener('keydown', handleKeydown);
+
+  // Art mode toggle
+  if (toggleArt) {
+    toggleArt.addEventListener('change', () => {
+      applyArtLayout();
+    });
+  }
 }
 
 async function fetchAllTabs() {
@@ -112,6 +127,7 @@ function render() {
   filtered.forEach((tab, index) => {
     const tile = document.createElement('button');
     tile.className = 'tile' + (index === selectedIndex ? ' selected' : '');
+    tile.style.setProperty('--stagger', `${(index % 10) * 20}ms`);
     tile.setAttribute('data-tab-id', String(tab.id));
     tile.addEventListener('click', () => activateTab(tab));
     
@@ -183,6 +199,9 @@ function render() {
     tile.appendChild(meta);
     gridEl.appendChild(tile);
   });
+
+  // Apply art layout if enabled
+  applyArtLayout();
 }
 
 async function loadThumbnail(tab, imgElement) {
@@ -426,6 +445,23 @@ function getPlaceholderDataUrl(title, hostname) {
 function generateGradient(seed) {
   const hue = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
   return `linear-gradient(135deg, hsl(${hue}, 40%, 25%), hsl(${hue}, 40%, 15%))`;
+}
+
+// Simple weighted treemap-like layout: map index to varying row spans
+function applyArtLayout() {
+  const enable = !!toggleArt?.checked;
+  gridEl.classList.toggle('art', enable);
+  const tiles = Array.from(gridEl.querySelectorAll('.tile'));
+  if (!enable) {
+    tiles.forEach(tile => tile.style.gridRowEnd = '');
+    return;
+  }
+  // Size palette (row spans). grid-auto-rows is 8px; 24 ≈ 192px height area.
+  const spans = [32, 28, 24, 24, 20, 20, 16, 16, 12, 12];
+  tiles.forEach((tile, i) => {
+    const span = spans[i % spans.length];
+    tile.style.gridRowEnd = `span ${span}`;
+  });
 }
 
 // Initialize when DOM is ready

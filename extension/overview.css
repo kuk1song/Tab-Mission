@@ -15,6 +15,7 @@ html, body, #root {
   background: var(--bg);
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  animation: rootFadeIn 200ms ease-out both;
 }
 
 .toolbar {
@@ -60,10 +61,12 @@ html, body, #root {
   overflow: hidden;
   cursor: pointer;
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
-  animation: fadeInUp 300ms ease both;
+  animation: fadeInUp 320ms ease both;
+  animation-delay: var(--stagger, 0ms);
 }
 .tile:hover { transform: translateY(-1px) scale(1.01); box-shadow: 0 6px 18px rgba(0,0,0,0.38); }
 .tile.selected { outline: 2px solid var(--accent); outline-offset: -2px; background-color: #202433; }
+.tile.activating { transform: scale(0.98); box-shadow: 0 0 0 3px rgba(76,139,245,0.25) inset; }
 
 /* Preview area styles */
 .preview {
@@ -118,6 +121,11 @@ html, body, #root {
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rootFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .meta { 
