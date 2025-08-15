@@ -16,6 +16,11 @@ html, body, #root {
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   animation: rootFadeIn 200ms ease-out both;
+  overflow: hidden; /* Prevent scrollbars during animation */
+}
+
+body.closing #root {
+  animation: rootFadeOut 180ms ease-in both;
 }
 
 .toolbar {
@@ -124,8 +129,13 @@ html, body, #root {
 }
 
 @keyframes rootFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes rootFadeOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.97); }
 }
 
 .meta { 

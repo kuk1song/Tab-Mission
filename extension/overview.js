@@ -328,14 +328,31 @@ function startThumbnailCapture() {
 }
 
 function activateTab(tab) {
-  chrome.tabs.update(tab.id, { active: true });
-  chrome.runtime.sendMessage({ type: 'close-overview-window' });
+  const tile = gridEl.querySelector(`.tile[data-tab-id="${tab.id}"]`);
+  if (tile) {
+    tile.classList.add('activating');
+  }
+
+  // Add a delay for the animation to play before closing
+  setTimeout(() => {
+    chrome.tabs.update(tab.id, { active: true });
+    // Also focus the window the tab is in
+    chrome.windows.update(tab.windowId, { focused: true });
+    closeOverview();
+  }, 120);
+}
+
+function closeOverview() {
+  document.body.classList.add('closing');
+  setTimeout(() => {
+    chrome.runtime.sendMessage({ type: 'close-overview-window' });
+  }, 180); // Match animation duration
 }
 
 function handleKeydown(e) {
   switch (e.key) {
     case 'Escape':
-      chrome.runtime.sendMessage({ type: 'close-overview-window' });
+      closeOverview();
       break;
     case 'Enter':
       if (filtered[selectedIndex]) {
