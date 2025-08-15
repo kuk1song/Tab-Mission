@@ -114,18 +114,22 @@ function render() {
 
   if (toggleShots.checked && !toggleDomShots.checked) ric(() => startLazyCapture());
   if (toggleDomShots.checked && !toggleShots.checked) ric(() => startLazyDomCapture());
-  // show grant button if we see many errors due to lack of host access or not yet granted all_urls
-  updateGrantButtonVisibility();
+  // proactively check after first render
+  updateGrantButtonVisibility(true);
 }
 
-async function updateGrantButtonVisibility() {
+async function updateGrantButtonVisibility(eager = false) {
   if (!toggleDomShots.checked) { btnGrantAccess.style.display = 'none'; return; }
   try {
     const hasAll = await chrome.permissions.contains({ origins: ['<all_urls>'] });
     if (hasAll) { btnGrantAccess.style.display = 'none'; return; }
-  } catch {}
+  } catch (e) {
+    // If permissions API not available, hide button
+    btnGrantAccess.style.display = 'none';
+    return;
+  }
   const errLike = Array.from(domCaptureStatus.values()).filter(v => typeof v === 'string' && (v.includes('Cannot access contents') || v.includes('permission') || v.includes('dom-capture-timeout')));
-  btnGrantAccess.style.display = errLike.length >= 3 ? 'inline-flex' : 'none';
+  btnGrantAccess.style.display = (eager || errLike.length >= 1) ? 'inline-flex' : 'none';
 }
 
 function safeHostname(u) {
