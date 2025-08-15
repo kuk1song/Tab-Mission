@@ -3,8 +3,10 @@
   --fg: #e6e6e6;
   --muted: #9aa0a6;
   --accent: #4c8bf5;
+  --accent-glow: rgba(76, 139, 245, 0.4);
   --tile-bg: #1a1d24;
-  --selected: #3556b3;
+  --tile-bg-selected: #222630;
+  --border-color: rgba(255, 255, 255, 0.06);
 }
 
 html, body, #root {
@@ -15,19 +17,19 @@ html, body, #root {
   background: var(--bg);
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  animation: rootFadeIn 200ms ease-out both;
   overflow: hidden; /* Prevent scrollbars during animation */
-}
-
-body.closing #root {
-  animation: rootFadeOut 180ms ease-in both;
 }
 
 #root {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Use viewport height */
-  max-height: 100vh; /* Prevent growing beyond viewport */
+  height: 100vh;
+  max-height: 100vh;
+  animation: rootFadeIn 180ms ease-out both;
+}
+
+#root.closing {
+  animation: rootFadeOut 150ms ease-in both;
 }
 
 .toolbar {
@@ -36,7 +38,7 @@ body.closing #root {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--border-color);
 }
 
 #search {
@@ -51,7 +53,6 @@ body.closing #root {
 
 .spacer { flex: 1; }
 .ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
-.ctrl#grant-access { cursor: pointer; border: 1px solid rgba(255,255,255,0.12); padding: 6px 10px; border-radius: 6px; color: var(--fg); }
 .hint { color: var(--muted); font-size: 12px; }
 
 .grid {
@@ -79,7 +80,7 @@ body.closing #root {
   display: flex;
   flex-direction: column;
   background: var(--tile-bg);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
@@ -93,17 +94,17 @@ body.closing #root {
   box-shadow: 0 8px 24px rgba(0,0,0,0.45); 
   z-index: 10;
 }
-.tile.selected { 
+.tile.selected {
   transform: scale(1.03);
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent), 0 10px 30px rgba(0,0,0,0.5);
-  background-color: #202433; 
-  z-index: 20; /* Ensure selected is on top */
+  box-shadow: 0 0 0 3px var(--accent-glow), 0 8px 24px rgba(0,0,0,0.55);
+  background: var(--tile-bg-selected);
+  z-index: 20;
 }
 .tile.activating { 
   transition: transform 100ms ease, box-shadow 100ms ease;
   transform: scale(0.98); 
-  box-shadow: 0 0 0 3px rgba(76,139,245,0.25) inset; 
+  box-shadow: 0 0 0 3px var(--accent-glow) inset; 
 }
 
 /* Preview area styles */
@@ -156,24 +157,24 @@ body.closing #root {
 }
 
 .preview-url {
-  color: #9aa0a6;
+  color: var(--muted);
   font-size: 12px;
   opacity: 0.8;
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { transform: translateY(12px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 @keyframes rootFadeIn {
-  from { opacity: 0; transform: scale(0.97); }
+  from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes rootFadeOut {
   from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.97); }
+  to { opacity: 0; transform: scale(0.98); }
 }
 
 .meta { 

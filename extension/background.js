@@ -1,3 +1,5 @@
+// background.js
+
 let overviewWindowId = null;
 
 async function openOverviewWindow() {
@@ -6,68 +8,46 @@ async function openOverviewWindow() {
       await chrome.windows.update(overviewWindowId, { focused: true });
       return;
     } catch (e) {
-      // Window may have been closed
+      // Window was closed, so we'll create a new one.
       overviewWindowId = null;
     }
   }
 
-  const display = await getPrimaryDisplayBounds();
-  const width = Math.min(1280, display.width);
-  const height = Math.min(900, display.height);
-  const left = Math.round(display.left + (display.width - width) / 2);
-  const top = Math.round(display.top + (display.height - height) / 3);
+  const { screen } = await chrome.system.display.getInfo();
+  const [display] = screen; // Use the primary display
+  const w = Math.min(1024, display.workArea.width - 40);
+  const h = Math.min(800, display.workArea.height - 40);
+  const top = display.workArea.top + (display.workArea.height - h) / 2;
+  const left = display.workArea.left + (display.workArea.width - w) / 2;
 
-  const url = chrome.runtime.getURL('overview.html');
-  const created = await chrome.windows.create({
-    url,
+  const win = await chrome.windows.create({
+    url: chrome.runtime.getURL('extension/overview.html'),
     type: 'popup',
-    focused: true,
-    width,
-    height,
-    left,
-    top
+    width: Math.round(w),
+    height: Math.round(h),
+    top: Math.round(top),
+    left: Math.round(left),
   });
-
-  overviewWindowId = created.id || null;
+  overviewWindowId = win.id;
 }
 
-async function getPrimaryDisplayBounds() {
-  // Approximate by using current window bounds when possible
-  try {
-    const current = await chrome.windows.getCurrent();
-    if (current && current.left !== undefined && current.top !== undefined && current.width && current.height) {
-      return { left: current.left, top: current.top, width: current.width, height: current.height };
-    }
-  } catch (_) {}
-  // Fallback to a common size
-  return { left: 0, top: 0, width: 1440, height: 900 };
-}
-
-chrome.action.onClicked.addListener(() => {
-  openOverviewWindow();
-});
-
+// Listen for the command to open the overview.
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'open-overview') {
     openOverviewWindow();
   }
 });
 
-chrome.windows.onRemoved.addListener((id) => {
-  if (id === overviewWindowId) {
-    overviewWindowId = null;
-  }
+// Also provide a browser action for discoverability.
+chrome.action.onClicked.addListener(() => {
+  openOverviewWindow();
 });
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message && message.type === 'close-overview-window' && overviewWindowId !== null) {
-    chrome.windows.remove(overviewWindowId).catch(() => {});
+// When the overview window is closed, reset our ID so we can open a new one.
+chrome.windows.onRemoved.addListener((windowId) => {
+  if (windowId === overviewWindowId) {
     overviewWindowId = null;
-    sendResponse({ ok: true });
-    return true;
   }
-  
-
 });
 
 
