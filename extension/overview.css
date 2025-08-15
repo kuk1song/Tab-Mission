@@ -69,8 +69,16 @@ body.closing #root {
   animation: fadeInUp 320ms ease both;
   animation-delay: var(--stagger, 0ms);
 }
-.tile:hover { transform: translateY(-1px) scale(1.01); box-shadow: 0 6px 18px rgba(0,0,0,0.38); }
-.tile.selected { outline: 2px solid var(--accent); outline-offset: -2px; background-color: #202433; }
+.tile:hover { 
+  transform: translateY(-2px) scale(1.02); 
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45); 
+}
+.tile.selected { 
+  transform: scale(1.03);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 10px 30px rgba(0,0,0,0.5);
+  background-color: #202433; 
+}
 .tile.activating { transform: scale(0.98); box-shadow: 0 0 0 3px rgba(76,139,245,0.25) inset; }
 
 /* Preview area styles */
