@@ -54,31 +54,12 @@ function createPreviewElement(tab) {
   const preview = document.createElement('div');
   preview.className = 'preview';
   
-  const toggleThumbnails = document.getElementById('toggle-thumbnails');
+  const img = document.createElement('img');
+  img.className = 'thumbnail';
+  img.alt = 'Tab preview';
+  img.src = getPlaceholderDataUrl(tab.title || 'Untitled', getHostname(tab.url));
+  preview.appendChild(img);
   
-  if (toggleThumbnails && toggleThumbnails.checked) {
-    const img = document.createElement('img');
-    img.className = 'thumbnail';
-    img.alt = 'Tab preview';
-    img.src = getPlaceholderDataUrl(tab.title || 'Untitled', getHostname(tab.url));
-    preview.appendChild(img);
-  } else {
-    const textPreview = document.createElement('div');
-    textPreview.className = 'text-preview';
-    textPreview.style.background = generateGradient(tab.title || getHostname(tab.url));
-    
-    const title = document.createElement('div');
-    title.className = 'preview-title';
-    title.textContent = tab.title || 'Untitled';
-    textPreview.appendChild(title);
-    
-    const url = document.createElement('div');
-    url.className = 'preview-url';
-    url.textContent = getHostname(tab.url);
-    textPreview.appendChild(url);
-    
-    preview.appendChild(textPreview);
-  }
   return preview;
 }
 

@@ -7,19 +7,22 @@ import { startThumbnailCapture } from './thumbnail.js';
 async function main() {
   await fetchAllTabs();
   
+  const searchEl = document.getElementById('search');
+  const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
+  const toggleCurrentWindow = document.getElementById('toggle-current-window');
+  
   const uiState = {
-    searchTerm: document.getElementById('search').value,
-    hideDiscarded: document.getElementById('toggle-hide-discarded').checked,
-    currentWindowOnly: document.getElementById('toggle-current-window').checked,
+    searchTerm: searchEl ? searchEl.value : '',
+    showSleeping: toggleHideDiscarded ? toggleHideDiscarded.checked : false,
+    showAllWindows: toggleCurrentWindow ? toggleCurrentWindow.checked : false,
   };
   applyFilters(uiState);
   
   render();
 
+  // Thumbnails are now a default feature, so we always start the capture.
   requestAnimationFrame(() => {
-    if (document.getElementById('toggle-thumbnails').checked) {
-      startThumbnailCapture();
-    }
+    startThumbnailCapture();
   });
 
   initializeEventListeners();

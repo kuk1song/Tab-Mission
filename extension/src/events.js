@@ -8,13 +8,11 @@ export function initializeEventListeners() {
   const searchEl = document.getElementById('search');
   const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
   const toggleCurrentWindow = document.getElementById('toggle-current-window');
-  const toggleThumbnails = document.getElementById('toggle-thumbnails');
   const toggleArt = document.getElementById('toggle-art');
 
   if (searchEl) searchEl.addEventListener('input', handleFilterChange);
   if (toggleHideDiscarded) toggleHideDiscarded.addEventListener('change', handleFilterChange);
   if (toggleCurrentWindow) toggleCurrentWindow.addEventListener('change', handleFilterChange);
-  if (toggleThumbnails) toggleThumbnails.addEventListener('change', handleThumbnailToggle);
   if (toggleArt) toggleArt.addEventListener('change', applyArtLayout);
   
   window.addEventListener('keydown', handleKeydown);
@@ -39,21 +37,9 @@ function handleFilterChange() {
   };
   applyFilters(uiState);
   render();
+  // Always start thumbnail capture after filtering
   requestAnimationFrame(() => {
-    const toggleThumbnails = document.getElementById('toggle-thumbnails');
-    if (toggleThumbnails && toggleThumbnails.checked) {
-      startThumbnailCapture();
-    }
-  });
-}
-
-function handleThumbnailToggle() {
-  render();
-  requestAnimationFrame(() => {
-    const toggleThumbnails = document.getElementById('toggle-thumbnails');
-    if (toggleThumbnails && toggleThumbnails.checked) {
-      startThumbnailCapture();
-    }
+    startThumbnailCapture();
   });
 }
 
