@@ -35,6 +35,12 @@ function createTile(tab, index) {
   tile.setAttribute('data-index', String(index));
   tile.addEventListener('click', () => activateTab(tab));
 
+  // Add mouseenter listener to update selection on hover
+  tile.addEventListener('mouseenter', () => {
+    state.selectedIndex = index;
+    updateSelection();
+  });
+
   const preview = createPreviewElement(tab);
   tile.appendChild(preview);
   

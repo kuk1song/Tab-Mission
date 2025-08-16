@@ -104,6 +104,7 @@ html, body {
   grid-auto-flow: dense;
   flex-grow: 1; /* Allow grid to fill available space */
   min-height: 0; /* Important for flexbox scrolling bug in some browsers */
+  align-content: start; /* Prevent vertical stretching */
 }
 
 .grid.art { 
