@@ -4,11 +4,11 @@ import { activateTab } from './events.js';
 import { getHostname, isValidIconUrl, generateGradient, getPlaceholderDataUrl } from './utils.js';
 import { applyArtLayout } from './layout.js';
 
-const gridEl = document.getElementById('grid');
-const toggleThumbnails = document.getElementById('toggle-thumbnails');
-const toggleArt = document.getElementById('toggle-art');
+// Removed top-level element getters to prevent race conditions.
 
 export function render() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
   gridEl.innerHTML = '';
   
   if (state.filteredTabs.length === 0) {
@@ -54,7 +54,9 @@ function createPreviewElement(tab) {
   const preview = document.createElement('div');
   preview.className = 'preview';
   
-  if (toggleThumbnails.checked) {
+  const toggleThumbnails = document.getElementById('toggle-thumbnails');
+  
+  if (toggleThumbnails && toggleThumbnails.checked) {
     const img = document.createElement('img');
     img.className = 'thumbnail';
     img.alt = 'Tab preview';
@@ -112,6 +114,7 @@ function createMetaElement(tab) {
 
 function renderEmptyMessage() {
   const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
   const emptyMessage = document.createElement('div');
   emptyMessage.style.cssText = 'padding: 40px; text-align: center; color: #9aa0a6; font-size: 14px;';
   emptyMessage.textContent = state.allTabs.length === 0 
@@ -121,6 +124,8 @@ function renderEmptyMessage() {
 }
 
 export function updateSelection() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
   const tiles = Array.from(gridEl.querySelectorAll('.tile'));
   tiles.forEach((tile, index) => {
     tile.classList.toggle('selected', index === state.selectedIndex);

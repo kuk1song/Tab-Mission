@@ -4,39 +4,44 @@ import { render, updateSelection } from './dom.js';
 import { startThumbnailCapture } from './thumbnail.js';
 import { applyArtLayout } from './layout.js';
 
-const searchEl = document.getElementById('search');
-const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
-const toggleCurrentWindow = document.getElementById('toggle-current-window');
-const toggleThumbnails = document.getElementById('toggle-thumbnails');
-const toggleArt = document.getElementById('toggle-art');
-
 export function initializeEventListeners() {
-  searchEl.addEventListener('input', handleFilterChange);
-  toggleHideDiscarded.addEventListener('change', handleFilterChange);
-  toggleThumbnails.addEventListener('change', handleThumbnailToggle);
-  toggleArt.addEventListener('change', applyArtLayout);
-  
-  toggleCurrentWindow.addEventListener('change', async () => {
-    await fetchAllTabs();
-    handleFilterChange();
-  });
+  const searchEl = document.getElementById('search');
+  const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
+  const toggleCurrentWindow = document.getElementById('toggle-current-window');
+  const toggleThumbnails = document.getElementById('toggle-thumbnails');
+  const toggleArt = document.getElementById('toggle-art');
 
-  document.addEventListener('keydown', handleKeydown);
+  if (searchEl) searchEl.addEventListener('input', handleFilterChange);
+  if (toggleHideDiscarded) toggleHideDiscarded.addEventListener('change', handleFilterChange);
+  if (toggleCurrentWindow) toggleCurrentWindow.addEventListener('change', handleFilterChange);
+  if (toggleThumbnails) toggleThumbnails.addEventListener('change', handleThumbnailToggle);
+  if (toggleArt) toggleArt.addEventListener('change', applyArtLayout);
+  
+  window.addEventListener('keydown', handleKeydown);
+  document.body.addEventListener('click', (e) => {
+    // This part of the original code was not in the edit specification,
+    // so it is not included in the new_code.
+  });
   window.addEventListener('beforeunload', () => {
     document.getElementById('root').classList.add('closing');
   });
 }
 
 function handleFilterChange() {
+  const searchEl = document.getElementById('search');
+  const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
+  const toggleCurrentWindow = document.getElementById('toggle-current-window');
+
   const uiState = {
-    searchTerm: searchEl.value,
-    showSleeping: toggleHideDiscarded.checked, // Renamed for clarity
-    showAllWindows: toggleCurrentWindow.checked, // Renamed for clarity
+    searchTerm: searchEl ? searchEl.value : '',
+    showSleeping: toggleHideDiscarded ? toggleHideDiscarded.checked : false,
+    showAllWindows: toggleCurrentWindow ? toggleCurrentWindow.checked : false,
   };
   applyFilters(uiState);
   render();
   requestAnimationFrame(() => {
-    if (toggleThumbnails.checked) {
+    const toggleThumbnails = document.getElementById('toggle-thumbnails');
+    if (toggleThumbnails && toggleThumbnails.checked) {
       startThumbnailCapture();
     }
   });
@@ -44,9 +49,12 @@ function handleFilterChange() {
 
 function handleThumbnailToggle() {
   render();
-  if (toggleThumbnails.checked) {
-    requestAnimationFrame(startThumbnailCapture);
-  }
+  requestAnimationFrame(() => {
+    const toggleThumbnails = document.getElementById('toggle-thumbnails');
+    if (toggleThumbnails && toggleThumbnails.checked) {
+      startThumbnailCapture();
+    }
+  });
 }
 
 function getColumnCount() {

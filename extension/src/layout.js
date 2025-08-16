@@ -1,11 +1,12 @@
 // layout.js
 import { state } from './state.js';
 
-const gridEl = document.getElementById('grid');
-const toggleArt = document.getElementById('toggle-art');
-
 export function applyArtLayout() {
-  const enable = !!toggleArt?.checked;
+  const gridEl = document.getElementById('grid');
+  const toggleArt = document.getElementById('toggle-art');
+  if (!gridEl || !toggleArt) return;
+
+  const enable = !!toggleArt.checked;
   gridEl.classList.toggle('art', enable);
   
   const tiles = Array.from(gridEl.querySelectorAll('.tile'));
