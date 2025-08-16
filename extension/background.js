@@ -21,8 +21,8 @@ async function openOverviewWindow() {
     }
 
     const display = displays.find(d => d.isPrimary) || displays[0];
-    const w = Math.min(1024, display.workArea.width - 40);
-    const h = Math.min(800, display.workArea.height - 40);
+          const w = Math.min(1400, display.workArea.width - 40); // Larger window
+      const h = Math.min(1000, display.workArea.height - 40);
     const top = display.workArea.top + (display.workArea.height - h) / 2;
     const left = display.workArea.left + (display.workArea.width - w) / 2;
 
@@ -38,12 +38,12 @@ async function openOverviewWindow() {
   } catch (error) {
     console.error("Tab Mosaic: Could not create window with display info. Opening with default size.", error);
     // Fallback for when system.display is not available or fails
-    const win = await chrome.windows.create({
-      url: chrome.runtime.getURL('overview.html'),
-      type: 'popup',
-      width: 1024,
-      height: 768,
-    });
+          const win = await chrome.windows.create({
+        url: chrome.runtime.getURL('overview.html'),
+        type: 'popup',
+        width: 1400, // Larger fallback window
+        height: 1000,
+      });
     overviewWindowId = win.id;
   }
 }

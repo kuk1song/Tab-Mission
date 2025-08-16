@@ -58,35 +58,66 @@ export function applyArtLayout() {
 function generateCollageLayout(nodes, width, height) {
   const sortedNodes = [...nodes].sort((a, b) => b.weight - a.weight);
   const layout = [];
-  const occupied = [];
-
-  const baseWidth = width / 5;
-  const baseHeight = height / 3;
-
+  
+  // Calculate optimal grid that gives good spacing
+  const numNodes = nodes.length;
+  const cols = Math.ceil(Math.sqrt(numNodes * (width / height))) + 1;
+  const rows = Math.ceil(numNodes / cols);
+  
+  const cellWidth = width / cols;
+  const cellHeight = height / rows;
+  
+  // Base size maintains 16:10 aspect ratio and leaves breathing room
+  const baseWidth = Math.min(cellWidth * 0.75, cellHeight * 0.75 * (16/10));
+  const baseHeight = baseWidth / (16/10);
+  
+  const grid = Array(rows).fill(null).map(() => Array(cols).fill(false));
+  
   sortedNodes.forEach((node, i) => {
-    const scale = 1 + (node.weight / 100);
-    const itemWidth = baseWidth * scale;
-    const itemHeight = baseHeight * scale;
+    let placed = false;
     
-    let x, y, attempts = 0;
+    // Larger tiles for important nodes
+    const importance = i < 3 ? (i === 0 ? 1.3 : 1.15) : 1.0;
+    const itemWidth = baseWidth * importance;
+    const itemHeight = baseHeight * importance;
     
-    // Find a non-overlapping position
-    do {
-      if (i < 3) { // Place the most important items near the center
-        x = width * 0.5 + (Math.random() - 0.5) * (width * 0.4) - itemWidth / 2;
-        y = height * 0.5 + (Math.random() - 0.5) * (height * 0.4) - itemHeight / 2;
-      } else {
-        x = Math.random() * (width - itemWidth);
-        y = Math.random() * (height - itemHeight);
+    // Find placement in grid
+    for (let r = 0; r < rows && !placed; r++) {
+      for (let c = 0; c < cols && !placed; c++) {
+        if (!grid[r][c]) {
+          // Calculate center position in cell
+          const centerX = (c + 0.5) * cellWidth;
+          const centerY = (r + 0.5) * cellHeight;
+          
+          // Add slight organic offset but ensure no overlap
+          const maxOffset = Math.min(cellWidth - itemWidth, cellHeight - itemHeight) * 0.2;
+          const offsetX = (Math.random() - 0.5) * maxOffset;
+          const offsetY = (Math.random() - 0.5) * maxOffset;
+          
+          const x = centerX - itemWidth / 2 + offsetX;
+          const y = centerY - itemHeight / 2 + offsetY;
+          
+          // Ensure within bounds
+          const finalX = Math.max(0, Math.min(x, width - itemWidth));
+          const finalY = Math.max(0, Math.min(y, height - itemHeight));
+          
+          const zIndex = 10 + numNodes - i;
+          
+          layout.push({ 
+            x: finalX, 
+            y: finalY, 
+            width: itemWidth, 
+            height: itemHeight, 
+            rotation: 0, // No rotation for cleaner F3-like look
+            zIndex, 
+            node 
+          });
+          
+          grid[r][c] = true;
+          placed = true;
+        }
       }
-      attempts++;
-    } while (isOverlapping({ x, y, width: itemWidth, height: itemHeight }, occupied) && attempts < 100);
-
-    const rotation = (Math.random() - 0.5) * 8;
-    const zIndex = 10 + sortedNodes.length - i;
-    
-    layout.push({ x, y, width: itemWidth, height: itemHeight, rotation, zIndex, node });
-    occupied.push({ x, y, width: itemWidth, height: itemHeight });
+    }
   });
 
   return layout;

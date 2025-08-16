@@ -1,23 +1,34 @@
 :root {
-  --bg: #0f1115;
-  --fg: #e6e6e6;
-  --muted: #9aa0a6;
-  --accent: #4c8bf5;
-  --accent-glow: rgba(76, 139, 245, 0.4);
-  --tile-bg: #1a1d24;
-  --tile-bg-selected: #222630;
-  --border-color: rgba(255, 255, 255, 0.06);
+  --bg: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 50%, #1a1a2e 100%);
+  --bg-overlay: rgba(15, 15, 25, 0.8);
+  --fg: #f0f0f0;
+  --muted: #a0a0aa;
+  --accent: #00d4ff;
+  --accent-glow: rgba(0, 212, 255, 0.3);
+  --tile-bg: rgba(255, 255, 255, 0.05);
+  --tile-bg-hover: rgba(255, 255, 255, 0.08);
+  --tile-bg-selected: rgba(0, 212, 255, 0.1);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --shadow-subtle: 0 2px 20px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.4);
 }
 
-html, body, #root {
+html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  background: var(--bg);
+  background: linear-gradient(-45deg, #0f0f23, #1a1a2e, #16213e, #0f3460);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  /* DO NOT set overflow: hidden here, it breaks hover transforms and scrolling */
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 #root {
@@ -25,7 +36,25 @@ html, body, #root {
   flex-direction: column;
   height: 100vh;
   max-height: 100vh;
+  background: var(--bg);
+  position: relative;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-elevated);
   animation: rootFadeIn 180ms ease-out both;
+  overflow: hidden;
+}
+
+#root::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-overlay);
+  backdrop-filter: blur(30px) saturate(150%);
+  z-index: -1;
 }
 
 #root.closing {
@@ -33,22 +62,32 @@ html, body, #root {
 }
 
 .toolbar {
-  flex-shrink: 0; /* Prevent the toolbar from shrinking */
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(20px);
 }
 
 #search {
   flex: 1;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.12);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
   outline: none;
-  background: #0c0e12;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--fg);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+#search:focus {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .spacer { flex: 1; }
@@ -83,14 +122,15 @@ html, body, #root {
   flex-direction: column;
   background: var(--tile-bg);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  /* Use 'all' for simplicity when animating between grid and absolute layouts */
-  transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(20px);
+  transition: all 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   animation: fadeInUp 320ms ease both;
   animation-delay: var(--stagger, 0ms);
-  min-height: 200px; /* Ensure minimum height to prevent squashing */
+  min-height: 200px;
+  box-shadow: var(--shadow-subtle);
 }
 
 .grid.art .tile {
@@ -100,19 +140,23 @@ html, body, #root {
 }
 
 .tile:hover { 
-  transform: translateY(-2px) scale(1.02); 
-  box-shadow: 0 8px 24px rgba(0,0,0,0.45); 
+  transform: translateY(-8px) scale(1.03); 
+  background: var(--tile-bg-hover);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-elevated);
   z-index: 10;
 }
+
 .grid.art .tile:hover {
   transform: translateZ(50px) scale(1.1);
   z-index: 100;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
+
 .tile.selected {
-  transform: scale(1.03);
+  transform: scale(1.05);
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow), 0 8px 24px rgba(0,0,0,0.55);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 30px var(--accent-glow);
   background: var(--tile-bg-selected);
   z-index: 20;
 }
@@ -126,10 +170,11 @@ html, body, #root {
 .preview {
   width: 100%;
   aspect-ratio: 16 / 10;
-  background-color: #0c0e12;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f1e 100%);
   overflow: hidden;
   position: relative;
-  border-radius: 4px; /* Slightly rounded corners for the image container */
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .thumbnail {
@@ -159,8 +204,8 @@ html, body, #root {
 }
 
 .preview-title {
-  color: white;
-  font-size: 14px;
+  color: var(--fg);
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
   line-height: 1.3;
@@ -169,6 +214,7 @@ html, body, #root {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .preview-url {
@@ -193,10 +239,12 @@ html, body, #root {
 }
 
 .meta { 
-  padding: 8px 10px 10px; 
+  padding: 12px 16px 16px; 
   display: flex;
   flex-direction: column;
-  gap: 4px; 
+  gap: 8px; 
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
 }
 
 .title-row { 
@@ -215,11 +263,11 @@ html, body, #root {
 }
 
 .title {
-  color: #ffffff;
-  font-size: 13px;
-  line-height: 1.35;
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.4;
   font-weight: 600;
-  letter-spacing: 0.1px;
+  letter-spacing: -0.01em;
   white-space: nowrap; 
   overflow: hidden; 
   text-overflow: ellipsis; 
