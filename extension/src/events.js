@@ -127,8 +127,25 @@ function handleKeydown(e) {
 }
 
 function closeOverview() {
+  const gridEl = document.getElementById('grid');
+  if (gridEl) {
+    const tiles = Array.from(gridEl.querySelectorAll('.tile'));
+    const totalTiles = tiles.length;
+    tiles.forEach((tile, index) => {
+      // To get the "sucked back" effect, we reverse the index for the delay.
+      const reverseIndex = totalTiles - 1 - index;
+      // Stagger in batches. Adjust the '20' if you want it faster/slower.
+      const staggerDelay = (reverseIndex % totalTiles) * 20; 
+      tile.style.setProperty('--stagger-out', `${staggerDelay}ms`);
+    });
+  }
+
   document.body.classList.add('closing');
+  
+  // The timeout should be the duration of the animation + the longest stagger delay.
+  // ~320ms for animation + (e.g., 20 tiles * 20ms = 400ms) = ~720ms
+  // Let's give it a safe 800ms to be sure.
   setTimeout(() => {
     window.close();
-  }, 180);
+  }, 800); 
 }
