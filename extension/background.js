@@ -13,16 +13,25 @@ async function toggleOverviewWindow() {
 
   // If a window already exists (its ID is stored), close it.
   if (typeof overviewWindowId === 'number') {
-    console.log("Tab Mosaic: Closing existing window:", overviewWindowId);
-    const windowIdToClose = overviewWindowId;
-    // Immediately clear the ID to prevent race conditions on closing.
-    overviewWindowId = null; 
+    console.log("Tab Mosaic: Window exists, sending shortcut command:", overviewWindowId);
     try {
-      await chrome.windows.remove(windowIdToClose);
-      console.log("Tab Mosaic: Window closed successfully");
+      // Send a message to the overview window to handle the shortcut
+      const tabs = await chrome.tabs.query({ windowId: overviewWindowId });
+      if (tabs.length > 0) {
+        await chrome.tabs.sendMessage(tabs[0].id, { action: 'handleShortcut' });
+      } else {
+        // If no tabs are in the window (shouldn't happen), just close it.
+        await chrome.windows.remove(overviewWindowId);
+      }
     } catch (e) {
-      // This error is expected if the user manually closed the window right before the command.
-      console.log("Tab Mosaic: Window was already closed:", e.message);
+      console.log("Tab Mosaic: Could not communicate with overview, closing window.", e.message);
+      // If messaging fails, it might be because the window is already closed.
+      // We attempt to close it just in case.
+      try {
+        await chrome.windows.remove(overviewWindowId);
+      } catch (closeError) {
+        // Ignore error, window was likely already gone.
+      }
     }
     return;
   }

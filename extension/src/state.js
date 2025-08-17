@@ -3,7 +3,7 @@
 export const state = {
   allTabs: [],
   filteredTabs: [],
-  selectedIndex: 0,
+  selectedIndex: -1, // -1 means no selection
   currentWindowId: null,
 };
 
@@ -43,5 +43,12 @@ export function applyFilters(uiState) {
   }
   
   state.filteredTabs = tabs;
-  state.selectedIndex = Math.min(state.selectedIndex, Math.max(0, state.filteredTabs.length - 1));
+  // If there was a selection, try to keep it. Otherwise, no selection.
+  state.selectedIndex = Math.min(state.selectedIndex, Math.max(-1, state.filteredTabs.length - 1));
+  if (state.filteredTabs.length > 0 && state.selectedIndex === -1) {
+    // If we previously had no selection and now we have tabs, we still want no selection by default.
+    // However, if arrow keys are used, it should start from 0.
+  } else if (state.filteredTabs.length === 0) {
+    state.selectedIndex = -1;
+  }
 }

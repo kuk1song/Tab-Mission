@@ -1,6 +1,6 @@
 {
   "name": "Tab Mission",
-  "description": "A Mission Control-inspired overview for your Chrome tabs.",
+  "description": "Mission Control for your Chrome tabs. The fastest way to navigate your browser.",
   "version": "1.0.0",
   "manifest_version": 3,
   "icons": {
@@ -30,7 +30,7 @@
   },
   "commands": {
     "open-overview": {
-      "description": "Open tab overview",
+      "description": "Toggle Tab Mission Overview",
       "suggested_key": {
         "default": "Ctrl+E",
         "mac": "Command+E"

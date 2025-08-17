@@ -11,6 +11,12 @@ export function render() {
   if (!gridEl) return;
   gridEl.innerHTML = '';
   
+  // Add a mouseleave event to the grid container to clear the selection
+  gridEl.addEventListener('mouseleave', () => {
+    state.selectedIndex = -1;
+    updateSelection();
+  });
+
   if (state.filteredTabs.length === 0) {
     renderEmptyMessage();
     return;

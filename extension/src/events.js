@@ -23,6 +23,19 @@ export function initializeEventListeners() {
   window.addEventListener('beforeunload', () => {
     document.getElementById('root').classList.add('closing');
   });
+
+  // Listen for messages from the background script (e.g., from the shortcut)
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'handleShortcut') {
+      if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
+        // If a tab is selected, activate it
+        activateTab(state.filteredTabs[state.selectedIndex]);
+      } else {
+        // If no tab is selected, just close the overview
+        closeOverview();
+      }
+    }
+  });
 }
 
 function handleFilterChange() {
@@ -70,28 +83,44 @@ function handleKeydown(e) {
       closeOverview();
       break;
     case 'Enter':
-      if (state.filteredTabs[state.selectedIndex]) {
+      if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
         activateTab(state.filteredTabs[state.selectedIndex]);
       }
       break;
     case 'ArrowUp':
       e.preventDefault();
-      state.selectedIndex = Math.max(0, state.selectedIndex - getColumnCount());
+      if (state.selectedIndex === -1) {
+        state.selectedIndex = state.filteredTabs.length - 1;
+      } else {
+        state.selectedIndex = Math.max(0, state.selectedIndex - getColumnCount());
+      }
       updateSelection();
       break;
     case 'ArrowDown':
       e.preventDefault();
-      state.selectedIndex = Math.min(state.filteredTabs.length - 1, state.selectedIndex + getColumnCount());
+      if (state.selectedIndex === -1) {
+        state.selectedIndex = 0;
+      } else {
+        state.selectedIndex = Math.min(state.filteredTabs.length - 1, state.selectedIndex + getColumnCount());
+      }
       updateSelection();
       break;
     case 'ArrowLeft':
       e.preventDefault();
-      state.selectedIndex = Math.max(0, state.selectedIndex - 1);
+      if (state.selectedIndex === -1) {
+        state.selectedIndex = state.filteredTabs.length - 1;
+      } else {
+        state.selectedIndex = Math.max(0, state.selectedIndex - 1);
+      }
       updateSelection();
       break;
     case 'ArrowRight':
       e.preventDefault();
-      state.selectedIndex = Math.min(state.filteredTabs.length - 1, state.selectedIndex + 1);
+      if (state.selectedIndex === -1) {
+        state.selectedIndex = 0;
+      } else {
+        state.selectedIndex = Math.min(state.filteredTabs.length - 1, state.selectedIndex + 1);
+      }
       updateSelection();
       break;
   }
