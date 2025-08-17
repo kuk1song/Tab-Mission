@@ -1,7 +1,7 @@
 // dom.js
 import { state } from './state.js';
 import { activateTab } from './events.js';
-import { getHostname, isValidIconUrl, generateGradient, getPlaceholderDataUrl } from './utils.js';
+import { getHostname, isValidIconUrl, generateGradient, getPlaceholderDataUrl, createPlaceholderIcon } from './utils.js';
 import { applyArtLayout } from './layout.js';
 
 // Removed top-level element getters to prevent race conditions.
@@ -94,13 +94,19 @@ function createMetaElement(tab) {
   const titleRow = document.createElement('div');
   titleRow.className = 'title-row';
   
+  const favicon = document.createElement('img');
+  favicon.className = 'favicon';
+  favicon.alt = '';
+
   if (tab.favIconUrl && isValidIconUrl(tab.favIconUrl)) {
-    const favicon = document.createElement('img');
-    favicon.className = 'favicon';
     favicon.src = tab.favIconUrl;
-    favicon.alt = '';
-    titleRow.appendChild(favicon);
+    favicon.onerror = () => {
+      favicon.src = createPlaceholderIcon(getHostname(tab.url));
+    };
+  } else {
+    favicon.src = createPlaceholderIcon(getHostname(tab.url));
   }
+  titleRow.appendChild(favicon);
   
   const title = document.createElement('div');
   title.className = 'title';

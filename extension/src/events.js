@@ -73,7 +73,7 @@ export function activateTab(tab) {
   setTimeout(() => {
     chrome.tabs.update(tab.id, { active: true });
     chrome.windows.update(tab.windowId, { focused: true });
-    closeOverview();
+    closeOverview(true); // Pass true for a fast close
   }, 120);
 }
 
@@ -126,7 +126,13 @@ function handleKeydown(e) {
   }
 }
 
-function closeOverview() {
+function closeOverview(fast = false) {
+  if (fast) {
+    document.body.classList.add('closing-fast');
+    setTimeout(() => window.close(), 150);
+    return;
+  }
+
   const gridEl = document.getElementById('grid');
   if (gridEl) {
     const tiles = Array.from(gridEl.querySelectorAll('.tile'));

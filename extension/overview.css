@@ -61,6 +61,11 @@ html, body {
   animation: rootFadeOut 150ms ease-in both;
 }
 
+/* New style for the fast closing animation */
+#root.closing-fast {
+  animation: rootFadeOut 120ms ease-in both;
+}
+
 .toolbar {
   flex-shrink: 0;
   display: flex;
@@ -237,6 +242,28 @@ html, body {
 @keyframes rootFadeOut {
   from { opacity: 1; transform: scale(1); }
   to { opacity: 0; transform: scale(0.98); }
+}
+
+/* Add this new animation for tiles when closing */
+@keyframes fadeOutUp {
+  from {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(12px) scale(0.98);
+    opacity: 0;
+  }
+}
+
+/* This rule applies the animation when the body has the .closing class */
+#root.closing .tile {
+  /* Use our new animation */
+  animation: fadeOutUp 320ms ease-in both;
+  /* Apply the reverse stagger delay calculated in JS */
+  animation-delay: var(--stagger-out, 0ms);
+  /* Prevent interacting with tiles that are animating out */
+  pointer-events: none;
 }
 
 .meta { 

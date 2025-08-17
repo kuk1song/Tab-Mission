@@ -57,3 +57,23 @@ export function generateGradient(seed) {
   const hue = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
   return `linear-gradient(135deg, hsl(${hue}, 40%, 25%), hsl(${hue}, 40%, 15%))`;
 }
+
+export function createPlaceholderIcon(hostname) {
+  const letter = (hostname.startsWith('www.') ? hostname.substring(4) : hostname)[0]?.toUpperCase() || '?';
+  const hue = Array.from(hostname).reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
+  const bgColor = `hsl(${hue}, 30%, 20%)`;
+  const textColor = `hsl(${hue}, 15%, 80%)`;
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+      <rect width="16" height="16" rx="3" fill="${bgColor}"></rect>
+      <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle"
+            font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            font-size="9" font-weight="600" fill="${textColor}">
+        ${letter}
+      </text>
+    </svg>
+  `.trim();
+
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
