@@ -3,6 +3,7 @@ import { state, applyFilters, fetchAllTabs } from './state.js';
 import { render, updateSelection } from './dom.js';
 import { startThumbnailCapture } from './thumbnail.js';
 import { applyArtLayout } from './layout.js';
+import { saveSettings } from './settings.js';
 
 export function initializeEventListeners() {
   const searchEl = document.getElementById('search');
@@ -50,6 +51,10 @@ function handleFilterChange() {
   };
   applyFilters(uiState);
   render();
+
+  // Save the latest state of the filters
+  saveSettings(uiState);
+
   // Always start thumbnail capture after filtering
   requestAnimationFrame(() => {
     startThumbnailCapture();

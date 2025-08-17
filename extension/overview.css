@@ -100,6 +100,40 @@ html, body {
 .ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
 .hint { color: var(--muted); font-size: 12px; }
 
+.hint-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-grow: 1;
+  justify-content: flex-end;
+}
+
+#shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#shortcut-hint kbd {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+#shortcut-hint a {
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+#shortcut-hint a:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
