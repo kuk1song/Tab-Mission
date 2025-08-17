@@ -69,10 +69,7 @@ async function updateShortcutHint() {
     const openCommand = commands.find(cmd => cmd.name === 'open-overview');
     if (openCommand && openCommand.shortcut) {
       const shortcut = openCommand.shortcut.replace(/\+/g, ' + ');
-      hintEl.innerHTML = `
-        <span>Toggle with <kbd>${shortcut}</kbd></span>
-        <a href="#" data-shortcuts="chrome://extensions/shortcuts" title="Change shortcut">⚙️</a>
-      `;
+      hintEl.innerHTML = `Toggle with <kbd>${shortcut}</kbd>`;
     }
   } catch (error) {
     console.warn('Could not load shortcut command.', error);

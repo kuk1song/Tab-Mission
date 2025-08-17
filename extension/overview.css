@@ -108,6 +108,10 @@ html, body {
   justify-content: flex-end;
 }
 
+.hint-bar .hint {
+  margin-right: auto;
+}
+
 #shortcut-hint {
   display: inline-flex;
   align-items: center;
@@ -145,6 +149,8 @@ html, body {
   opacity: 0.6;
   transition: color 0.2s, opacity 0.2s, transform 0.1s ease;
 }
+
+.icon-btn + .icon-btn { margin-left: 4px; }
 
 .icon-btn:hover {
   opacity: 1;

@@ -12,6 +12,7 @@ export function initializeEventListeners() {
   const toggleArt = document.getElementById('toggle-art');
   const shortcutHint = document.getElementById('shortcut-hint');
   const resetBtn = document.getElementById('reset-window');
+  const openShortcutsBtn = document.getElementById('open-shortcuts');
 
   if (searchEl) searchEl.addEventListener('input', handleFilterChange);
   if (toggleHideDiscarded) toggleHideDiscarded.addEventListener('change', handleFilterChange);
@@ -29,6 +30,12 @@ export function initializeEventListeners() {
         const url = target.getAttribute('data-shortcuts') || 'chrome://extensions/shortcuts';
         chrome.tabs.create({ url });
       }
+    });
+  }
+
+  if (openShortcutsBtn) {
+    openShortcutsBtn.addEventListener('click', () => {
+      chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
     });
   }
 
