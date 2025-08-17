@@ -22,10 +22,11 @@ export function initializeEventListeners() {
 
   if (shortcutHint) {
     shortcutHint.addEventListener('click', (e) => {
-      const target = e.target.closest('a[href^="chrome://extensions/shortcuts"]');
+      const target = e.target.closest('a[data-shortcuts]');
       if (target) {
         e.preventDefault();
-        chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+        const url = target.getAttribute('data-shortcuts') || 'chrome://extensions/shortcuts';
+        chrome.tabs.create({ url });
       }
     });
   }

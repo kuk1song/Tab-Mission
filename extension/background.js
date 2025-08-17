@@ -26,6 +26,21 @@ async function saveOverviewBounds(windowId) {
 	} catch {}
 }
 
+async function getStoredOverviewWindowId() {
+	try {
+		const { overviewWindowId } = await chrome.storage.local.get({ overviewWindowId: null });
+		return typeof overviewWindowId === 'number' ? overviewWindowId : null;
+	} catch {
+		return null;
+	}
+}
+
+async function setStoredOverviewWindowId(idOrNull) {
+	try {
+		await chrome.storage.local.set({ overviewWindowId: idOrNull ?? null });
+	} catch {}
+}
+
 async function toggleOverviewWindow() {
 	console.log("Tab Mosaic: toggleOverviewWindow called, current state:", overviewWindowId);
 	
@@ -35,10 +50,26 @@ async function toggleOverviewWindow() {
 		return;
 	}
 
+	// If service worker restarted, try to recover existing window id from storage
+	if (overviewWindowId === null) {
+		const storedId = await getStoredOverviewWindowId();
+		if (storedId) {
+			try {
+				await chrome.windows.get(storedId);
+				overviewWindowId = storedId;
+			} catch {
+				// Stored id is stale; clear it
+				await setStoredOverviewWindowId(null);
+			}
+		}
+	}
+
 	// If a window already exists (its ID is stored), close it.
 	if (typeof overviewWindowId === 'number') {
 		console.log("Tab Mosaic: Window exists, sending shortcut command:", overviewWindowId);
 		try {
+			// Try to save latest bounds before closing
+			saveOverviewBounds(overviewWindowId);
 			// Send a message to the overview window to handle the shortcut
 			const tabs = await chrome.tabs.query({ windowId: overviewWindowId });
 			if (tabs.length > 0) {
@@ -101,6 +132,7 @@ async function toggleOverviewWindow() {
 		// This handles a rare edge case where the window might be closed before creation completes.
 		if (overviewWindowId === 'creating') {
 			overviewWindowId = win.id;
+			await setStoredOverviewWindowId(win.id);
 		}
 
 	} catch (error) {
@@ -125,8 +157,9 @@ chrome.action.onClicked.addListener(() => {
 });
 
 // Persist bounds when the overview window is moved or resized (throttled)
-chrome.windows.onBoundsChanged.addListener((windowId) => {
-	if (windowId !== overviewWindowId) return;
+chrome.windows.onBoundsChanged.addListener(async (windowId) => {
+	const storedId = await getStoredOverviewWindowId();
+	if (!storedId || windowId !== storedId) return;
 	if (saveBoundsTimeout) clearTimeout(saveBoundsTimeout);
 	saveBoundsTimeout = setTimeout(() => {
 		saveOverviewBounds(windowId);
@@ -134,9 +167,11 @@ chrome.windows.onBoundsChanged.addListener((windowId) => {
 });
 
 // Add a listener for when our window is closed by any means (user, or our own code).
-chrome.windows.onRemoved.addListener((windowId) => {
-	if (windowId === overviewWindowId) {
+chrome.windows.onRemoved.addListener(async (windowId) => {
+	const storedId = await getStoredOverviewWindowId();
+	if (windowId === overviewWindowId || windowId === storedId) {
 		overviewWindowId = null;
+		await setStoredOverviewWindowId(null);
 	}
 });
 

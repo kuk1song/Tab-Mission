@@ -45,6 +45,20 @@ async function main() {
   });
 
   initializeEventListeners();
+
+  // Persist window bounds on hide/close to ensure latest resize is saved
+  const saveBoundsNow = async () => {
+    try {
+      const win = await chrome.windows.getCurrent();
+      if (!win) return;
+      const bounds = { width: win.width, height: win.height, top: win.top, left: win.left };
+      await chrome.storage.local.set({ overviewBounds: bounds });
+    } catch {}
+  };
+  window.addEventListener('pagehide', saveBoundsNow);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) saveBoundsNow();
+  });
 }
 
 async function updateShortcutHint() {
