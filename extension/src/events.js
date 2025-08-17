@@ -10,11 +10,25 @@ export function initializeEventListeners() {
   const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
   const toggleCurrentWindow = document.getElementById('toggle-current-window');
   const toggleArt = document.getElementById('toggle-art');
+  const shortcutHint = document.getElementById('shortcut-hint');
 
   if (searchEl) searchEl.addEventListener('input', handleFilterChange);
   if (toggleHideDiscarded) toggleHideDiscarded.addEventListener('change', handleFilterChange);
   if (toggleCurrentWindow) toggleCurrentWindow.addEventListener('change', handleFilterChange);
-  if (toggleArt) toggleArt.addEventListener('change', applyArtLayout);
+  if (toggleArt) toggleArt.addEventListener('change', () => {
+    applyArtLayout();
+    persistSettings();
+  });
+
+  if (shortcutHint) {
+    shortcutHint.addEventListener('click', (e) => {
+      const target = e.target.closest('a[href^="chrome://extensions/shortcuts"]');
+      if (target) {
+        e.preventDefault();
+        chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+      }
+    });
+  }
   
   window.addEventListener('keydown', handleKeydown);
   document.body.addEventListener('click', (e) => {
@@ -43,11 +57,13 @@ function handleFilterChange() {
   const searchEl = document.getElementById('search');
   const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
   const toggleCurrentWindow = document.getElementById('toggle-current-window');
+  const toggleArt = document.getElementById('toggle-art');
 
   const uiState = {
     searchTerm: searchEl ? searchEl.value : '',
     showSleeping: toggleHideDiscarded ? toggleHideDiscarded.checked : false,
     showAllWindows: toggleCurrentWindow ? toggleCurrentWindow.checked : false,
+    artMode: toggleArt ? toggleArt.checked : false,
   };
   applyFilters(uiState);
   render();
@@ -59,6 +75,21 @@ function handleFilterChange() {
   requestAnimationFrame(() => {
     startThumbnailCapture();
   });
+}
+
+function persistSettings() {
+  const searchEl = document.getElementById('search');
+  const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
+  const toggleCurrentWindow = document.getElementById('toggle-current-window');
+  const toggleArt = document.getElementById('toggle-art');
+
+  const uiState = {
+    searchTerm: searchEl ? searchEl.value : '',
+    showSleeping: toggleHideDiscarded ? toggleHideDiscarded.checked : false,
+    showAllWindows: toggleCurrentWindow ? toggleCurrentWindow.checked : false,
+    artMode: toggleArt ? toggleArt.checked : false,
+  };
+  saveSettings(uiState);
 }
 
 function getColumnCount() {

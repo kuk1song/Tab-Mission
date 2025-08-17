@@ -4,6 +4,7 @@ import { render } from './dom.js';
 import { initializeEventListeners } from './events.js';
 import { startThumbnailCapture } from './thumbnail.js';
 import { loadSettings } from './settings.js';
+import { applyArtLayout } from './layout.js';
 
 async function main() {
   await fetchAllTabs();
@@ -13,10 +14,12 @@ async function main() {
   const searchEl = document.getElementById('search');
   const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
   const toggleCurrentWindow = document.getElementById('toggle-current-window');
+  const toggleArt = document.getElementById('toggle-art');
   
   // Apply loaded settings to the UI controls
   if (toggleHideDiscarded) toggleHideDiscarded.checked = settings.showSleeping;
   if (toggleCurrentWindow) toggleCurrentWindow.checked = settings.showAllWindows;
+  if (toggleArt) toggleArt.checked = settings.artMode;
 
   const uiState = {
     searchTerm: searchEl ? searchEl.value : '',
@@ -26,6 +29,13 @@ async function main() {
   applyFilters(uiState);
   
   render();
+
+  // Apply art layout after initial render based on settings
+  if (toggleArt && toggleArt.checked) {
+    requestAnimationFrame(() => {
+      applyArtLayout();
+    });
+  }
 
   updateShortcutHint();
 
@@ -47,7 +57,7 @@ async function updateShortcutHint() {
       const shortcut = openCommand.shortcut.replace(/\+/g, ' + ');
       hintEl.innerHTML = `
         <span>Toggle with <kbd>${shortcut}</kbd></span>
-        <a href="chrome://extensions/shortcuts" title="Change shortcut" target="_blank">⚙️</a>
+        <a href="#" data-shortcuts="chrome://extensions/shortcuts" title="Change shortcut">⚙️</a>
       `;
     }
   } catch (error) {

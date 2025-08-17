@@ -3,6 +3,7 @@
 const DEFAULTS = {
   showSleeping: false,
   showAllWindows: false,
+  artMode: false,
   // Add other settings here as needed
 };
 
