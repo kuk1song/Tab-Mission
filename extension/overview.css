@@ -134,21 +134,25 @@ html, body {
   color: var(--accent);
 }
 
-.btn-reset {
-  background: rgba(255, 255, 255, 0.08);
+.icon-btn {
+  background: transparent;
+  border: none;
   color: var(--muted);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
+  padding: 4px 6px;
+  font-size: 14px;
+  line-height: 1;
   cursor: pointer;
-  transition: all 0.2s ease;
+  opacity: 0.6;
+  transition: color 0.2s, opacity 0.2s, transform 0.1s ease;
 }
 
-.btn-reset:hover {
-  color: var(--fg);
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+.icon-btn:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.icon-btn:active {
+  transform: scale(0.96);
 }
 
 .grid {
