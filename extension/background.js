@@ -156,6 +156,29 @@ chrome.action.onClicked.addListener(() => {
 	toggleOverviewWindow();
 });
 
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+	if (request?.action === 'resetWindowBounds') {
+		try {
+			await chrome.storage.local.set({ overviewBounds: null });
+			// Recenter current window to defaults
+			const displays = await chrome.system.display.getInfo();
+			const display = displays.find(d => d.isPrimary) || displays[0];
+			const w = Math.min(display.workArea.width * 0.88, 1400);
+			const h = Math.min(display.workArea.height * 0.9, 1000);
+			const top = Math.round(display.workArea.top + (display.workArea.height - h) / 2);
+			const left = Math.round(display.workArea.left + (display.workArea.width - w) / 2);
+			const storedId = await getStoredOverviewWindowId();
+			if (storedId) {
+				await chrome.windows.update(storedId, { width: Math.round(w), height: Math.round(h), top, left });
+			}
+			sendResponse({ ok: true });
+		} catch (e) {
+			sendResponse({ ok: false, error: e?.message || String(e) });
+		}
+		return true; // async response
+	}
+});
+
 // Persist bounds when the overview window is moved or resized (throttled)
 chrome.windows.onBoundsChanged.addListener(async (windowId) => {
 	const storedId = await getStoredOverviewWindowId();
