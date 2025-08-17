@@ -57,11 +57,12 @@ html, body {
   z-index: -1;
 }
 
-#root.closing {
-  animation: rootFadeOut 150ms ease-in both;
-}
-
-/* New style for the fast closing animation */
+/* 
+  By removing the `#root.closing` rule, we prevent the entire window from fading out prematurely.
+  This allows the individual tile animations (`fadeOutUp`) to complete, creating the desired
+  "sucked back" effect without being cut off. The window close is now solely timed by
+  the JavaScript `setTimeout` in `closeOverview`, which is calculated to match the tile animation duration.
+*/
 #root.closing-fast {
   animation: rootFadeOut 120ms ease-in both;
 }
@@ -258,8 +259,8 @@ html, body {
 
 /* This rule applies the animation when the body has the .closing class */
 #root.closing .tile {
-  /* Use our new animation */
-  animation: fadeOutUp 320ms ease-in both;
+  /* Use our new animation - using ease-in matches the feel of being "sucked back" */
+  animation: fadeOutUp 320ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
   /* Apply the reverse stagger delay calculated in JS */
   animation-delay: var(--stagger-out, 0ms);
   /* Prevent interacting with tiles that are animating out */

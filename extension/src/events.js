@@ -70,11 +70,11 @@ export function activateTab(tab) {
     tile.classList.add('activating');
   }
 
-  setTimeout(() => {
-    chrome.tabs.update(tab.id, { active: true });
-    chrome.windows.update(tab.windowId, { focused: true });
-    closeOverview(true); // Pass true for a fast close
-  }, 120);
+  // To achieve a "SOTA" silky smooth transition, we remove the timeout.
+  // The tab switch is initiated instantly, and the closing animation runs in parallel.
+  chrome.tabs.update(tab.id, { active: true });
+  chrome.windows.update(tab.windowId, { focused: true });
+  closeOverview(true); // Pass true for a fast close
 }
 
 function handleKeydown(e) {
