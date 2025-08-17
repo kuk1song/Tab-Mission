@@ -11,10 +11,15 @@ export function render() {
   if (!gridEl) return;
   gridEl.innerHTML = '';
   
+  // Single, delegated mousemove listener for efficient hover handling.
+  gridEl.addEventListener('mousemove', handleGridMouseMove);
+  
   // Add a mouseleave event to the grid container to clear the selection
   gridEl.addEventListener('mouseleave', () => {
-    state.selectedIndex = -1;
-    updateSelection();
+    if (state.selectedIndex !== -1) {
+      state.selectedIndex = -1;
+      updateSelection();
+    }
   });
 
   if (state.filteredTabs.length === 0) {
@@ -41,12 +46,6 @@ function createTile(tab, index) {
   tile.setAttribute('data-index', String(index));
   tile.addEventListener('click', () => activateTab(tab));
 
-  // Add mouseenter listener to update selection on hover
-  tile.addEventListener('mouseenter', () => {
-    state.selectedIndex = index;
-    updateSelection();
-  });
-
   const preview = createPreviewElement(tab);
   tile.appendChild(preview);
   
@@ -54,6 +53,25 @@ function createTile(tab, index) {
   tile.appendChild(meta);
   
   return tile;
+}
+
+function handleGridMouseMove(e) {
+  const target = e.target;
+  const tile = target.closest('.tile');
+  
+  if (tile) {
+    const index = parseInt(tile.dataset.index, 10);
+    if (state.selectedIndex !== index) {
+      state.selectedIndex = index;
+      updateSelection();
+    }
+  } else {
+    // If we are not over any tile (e.g., in the grid gap)
+    if (state.selectedIndex !== -1) {
+      state.selectedIndex = -1;
+      updateSelection();
+    }
+  }
 }
 
 function createPreviewElement(tab) {
