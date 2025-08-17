@@ -127,31 +127,46 @@ function handleKeydown(e) {
 }
 
 function closeOverview(fast = false) {
+  const rootEl = document.getElementById('root');
+
   if (fast) {
-    document.body.classList.add('closing-fast');
+    if (rootEl) {
+      rootEl.classList.add('closing-fast');
+    } else {
+      document.body.classList.add('closing-fast');
+    }
     setTimeout(() => window.close(), 150);
     return;
   }
 
   const gridEl = document.getElementById('grid');
+  let totalTiles = 0;
   if (gridEl) {
     const tiles = Array.from(gridEl.querySelectorAll('.tile'));
-    const totalTiles = tiles.length;
+    totalTiles = tiles.length;
     tiles.forEach((tile, index) => {
-      // To get the "sucked back" effect, we reverse the index for the delay.
+      // Reverse index so the last tile starts first
       const reverseIndex = totalTiles - 1 - index;
-      // Stagger in batches. Adjust the '20' if you want it faster/slower.
-      const staggerDelay = (reverseIndex % totalTiles) * 20; 
+      // Match the opening stagger pattern (batches of 10, 20ms each)
+      const staggerDelay = (reverseIndex % 10) * 20;
       tile.style.setProperty('--stagger-out', `${staggerDelay}ms`);
     });
   }
 
-  document.body.classList.add('closing');
-  
-  // The timeout should be the duration of the animation + the longest stagger delay.
-  // ~320ms for animation + (e.g., 20 tiles * 20ms = 400ms) = ~720ms
-  // Let's give it a safe 800ms to be sure.
+  if (rootEl) {
+    rootEl.classList.add('closing');
+  } else {
+    document.body.classList.add('closing');
+  }
+
+  // Compute a close delay that matches animation duration + max stagger + small margin
+  const animationDurationMs = 320; // must match CSS fadeOutUp duration
+  const maxStaggerSteps = Math.min(Math.max(totalTiles - 1, 0), 9); // 0..9
+  const maxStaggerMs = maxStaggerSteps * 20;
+  const safetyMarginMs = 120;
+  const closeDelayMs = animationDurationMs + maxStaggerMs + safetyMarginMs; // 320.. (max 320+180+120=620)
+
   setTimeout(() => {
     window.close();
-  }, 800); 
+  }, closeDelayMs);
 }
