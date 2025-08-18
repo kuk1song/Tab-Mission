@@ -150,6 +150,11 @@ html, body {
 #open-shortcuts { font-size: 13.5px; }
 #reset-window { font-size: 20px; }
 
+#reset-window {
+  position: relative;
+  top: -2.2px; /* 如仍偏低，试 -2px */
+}
+
 .icon-btn + .icon-btn { margin-left: 2px; }
 
 .icon-btn:hover { opacity: 1; color: var(--accent); }
