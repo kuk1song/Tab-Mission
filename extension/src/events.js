@@ -35,7 +35,12 @@ export function initializeEventListeners() {
 
   if (openShortcutsBtn) {
     openShortcutsBtn.addEventListener('click', () => {
-      chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+      try {
+        chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+      } finally {
+        // Immediately close the overview for a smooth UX
+        closeOverview(true);
+      }
     });
   }
 

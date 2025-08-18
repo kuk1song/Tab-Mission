@@ -152,7 +152,12 @@ html, body {
 
 #reset-window {
   position: relative;
-  top: -2.2px; /* 如仍偏低，试 -2px */
+  top: -0.31px; 
+}
+
+#open-shortcuts {
+  position: relative;
+  top: 1.5px; 
 }
 
 .icon-btn + .icon-btn { margin-left: 2px; }
