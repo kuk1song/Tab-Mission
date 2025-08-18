@@ -2,6 +2,7 @@
 
 let overviewWindowId = null; // Can be null, 'creating', or a window ID (number)
 let saveBoundsTimeout = null;
+let latestOverviewBounds = null; // in-memory snapshot updated on every save
 
 async function getSavedOverviewBounds() {
 	try {
@@ -22,6 +23,7 @@ async function saveOverviewBounds(windowId) {
 			top: win.top,
 			left: win.left,
 		};
+		latestOverviewBounds = bounds; // update in-memory snapshot
 		await chrome.storage.local.set({ overviewBounds: bounds });
 	} catch {}
 }
@@ -69,7 +71,7 @@ async function toggleOverviewWindow() {
 		console.log("Tab Mosaic: Window exists, sending shortcut command:", overviewWindowId);
 		try {
 			// Try to save latest bounds before closing
-			saveOverviewBounds(overviewWindowId);
+			await saveOverviewBounds(overviewWindowId);
 			// Send a message to the overview window to handle the shortcut
 			const tabs = await chrome.tabs.query({ windowId: overviewWindowId });
 			if (tabs.length > 0) {
@@ -107,14 +109,22 @@ async function toggleOverviewWindow() {
 		// Try to restore saved bounds; otherwise fallback to adaptive defaults with caps
 		const saved = await getSavedOverviewBounds();
 		let w, h, top, left;
+		
+		// Restore size (width/height)
 		if (saved && saved.width && saved.height) {
 			w = Math.min(saved.width, display.workArea.width);
 			h = Math.min(saved.height, display.workArea.height);
-			top = Math.max(display.workArea.top, Math.min(saved.top ?? display.workArea.top, display.workArea.top + display.workArea.height - h));
-			left = Math.max(display.workArea.left, Math.min(saved.left ?? display.workArea.left, display.workArea.left + display.workArea.width - w));
 		} else {
 			w = Math.min(display.workArea.width * 0.88, 1400); // 88% of width, capped at 1400px
 			h = Math.min(display.workArea.height * 0.9, 1000); // 90% of height, capped at 1000px
+		}
+		
+		// Restore position (top/left) - can be independent of size
+		if (saved && typeof saved.top === 'number' && typeof saved.left === 'number') {
+			top = Math.max(display.workArea.top, Math.min(saved.top, display.workArea.top + display.workArea.height - h));
+			left = Math.max(display.workArea.left, Math.min(saved.left, display.workArea.left + display.workArea.width - w));
+		} else {
+			// Default to center if no saved position
 			top = display.workArea.top + (display.workArea.height - h) / 2;
 			left = display.workArea.left + (display.workArea.width - w) / 2;
 		}
@@ -177,22 +187,34 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 		}
 		return true; // async response
 	}
+	if (request?.action === 'saveBoundsNow') {
+		try {
+			const storedId = await getStoredOverviewWindowId();
+			if (storedId) await saveOverviewBounds(storedId);
+			sendResponse({ ok: true });
+		} catch (e) {
+			sendResponse({ ok: false, error: e?.message || String(e) });
+		}
+		return true;
+	}
 });
 
-// Persist bounds when the overview window is moved or resized (throttled)
+// Persist bounds when the overview window is moved or resized
 chrome.windows.onBoundsChanged.addListener(async (windowId) => {
 	const storedId = await getStoredOverviewWindowId();
 	if (!storedId || windowId !== storedId) return;
-	if (saveBoundsTimeout) clearTimeout(saveBoundsTimeout);
-	saveBoundsTimeout = setTimeout(() => {
-		saveOverviewBounds(windowId);
-	}, 200);
+	// Save immediately to avoid losing the latest size when the window is closed quickly
+	await saveOverviewBounds(windowId);
 });
 
 // Add a listener for when our window is closed by any means (user, or our own code).
 chrome.windows.onRemoved.addListener(async (windowId) => {
 	const storedId = await getStoredOverviewWindowId();
 	if (windowId === overviewWindowId || windowId === storedId) {
+		// Final safeguard: persist the most recent bounds snapshot if we have one
+		if (latestOverviewBounds) {
+			try { await chrome.storage.local.set({ overviewBounds: latestOverviewBounds }); } catch {}
+		}
 		overviewWindowId = null;
 		await setStoredOverviewWindowId(null);
 	}

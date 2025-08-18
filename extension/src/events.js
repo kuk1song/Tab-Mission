@@ -59,6 +59,9 @@ export function initializeEventListeners() {
   });
   window.addEventListener('beforeunload', () => {
     document.getElementById('root').classList.add('closing');
+    try {
+      chrome.runtime.sendMessage({ action: 'saveBoundsNow' });
+    } catch {}
   });
 
   // Listen for messages from the background script (e.g., from the shortcut)
