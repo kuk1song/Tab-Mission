@@ -69,7 +69,12 @@ async function updateShortcutHint() {
     const openCommand = commands.find(cmd => cmd.name === 'open-overview');
     if (openCommand && openCommand.shortcut) {
       const shortcut = openCommand.shortcut.replace(/\+/g, ' + ');
-      hintEl.innerHTML = `Toggle with <kbd>${shortcut}</kbd>`;
+      hintEl.textContent = '';
+      const kbd = document.createElement('kbd');
+      kbd.textContent = shortcut;
+      kbd.title = `Toggle with ${shortcut}`; // full hint on hover
+      kbd.setAttribute('aria-label', `Toggle with ${shortcut}`);
+      hintEl.appendChild(kbd);
     }
   } catch (error) {
     console.warn('Could not load shortcut command.', error);

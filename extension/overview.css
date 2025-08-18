@@ -100,7 +100,7 @@ html, body {
 .ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
 .hint { color: var(--muted); font-size: 12px; }
 
-.hint-inline { margin-left: auto; margin-right: 8px; }
+.hint-inline { margin-left: 8px; }
 
 .hint-bar { display: inline-flex; align-items: center; gap: 6px; }
 
