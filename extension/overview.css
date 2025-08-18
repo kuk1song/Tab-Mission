@@ -100,13 +100,9 @@ html, body {
 .ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
 .hint { color: var(--muted); font-size: 12px; }
 
-.hint-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-grow: 1;
-  justify-content: flex-end;
-}
+.hint-inline { margin-left: auto; margin-right: 8px; }
+
+.hint-bar { display: inline-flex; align-items: center; gap: 6px; }
 
 .hint-bar .hint {
   margin-right: auto;
@@ -142,24 +138,18 @@ html, body {
   background: transparent;
   border: none;
   color: var(--muted);
-  padding: 4px 6px;
-  font-size: 14px;
+  padding: 6px;
+  font-size: 16px; /* bigger icon for better discoverability */
   line-height: 1;
   cursor: pointer;
-  opacity: 0.6;
+  opacity: 0.7;
   transition: color 0.2s, opacity 0.2s, transform 0.1s ease;
 }
 
-.icon-btn + .icon-btn { margin-left: 4px; }
+.icon-btn + .icon-btn { margin-left: 2px; }
 
-.icon-btn:hover {
-  opacity: 1;
-  color: var(--accent);
-}
-
-.icon-btn:active {
-  transform: scale(0.96);
-}
+.icon-btn:hover { opacity: 1; color: var(--accent); }
+.icon-btn:active { transform: scale(0.96); }
 
 .grid {
   display: grid;
