@@ -18,11 +18,10 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(-45deg, #0f0f23, #1a1a2e, #16213e, #0f3460);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  background: #1a1a2e; /* Use a solid, dark color that matches the theme */
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden; /* Prevent body from scrolling */
 }
 
 @keyframes gradientShift {
@@ -43,6 +42,7 @@ html, body {
   box-shadow: var(--shadow-elevated);
   animation: rootFadeIn 180ms ease-out both;
   overflow: hidden;
+  box-sizing: border-box; /* Include padding in height calculation */
 }
 
 #root::before {
