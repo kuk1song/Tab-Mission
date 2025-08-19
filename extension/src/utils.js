@@ -61,12 +61,21 @@ export function generateGradient(seed) {
 export function createPlaceholderIcon(hostname) {
   const letter = (hostname.startsWith('www.') ? hostname.substring(4) : hostname)[0]?.toUpperCase() || '?';
   const hue = Array.from(hostname).reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
-  const bgColor = `hsl(${hue}, 30%, 20%)`;
-  const textColor = `hsl(${hue}, 15%, 80%)`;
+  
+  // Define two colors for a subtle gradient, derived from the hostname hue
+  const color1 = `hsl(${hue}, 35%, 20%)`;
+  const color2 = `hsl(${(hue + 40) % 360}, 40%, 15%)`;
+  const textColor = `hsl(${hue}, 20%, 85%)`;
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
-      <rect width="16" height="16" rx="3" fill="${bgColor}"></rect>
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${color1}" />
+          <stop offset="100%" stop-color="${color2}" />
+        </linearGradient>
+      </defs>
+      <rect width="16" height="16" rx="3" fill="url(#grad)" />
       <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle"
             font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
             font-size="9" font-weight="600" fill="${textColor}">
@@ -74,6 +83,5 @@ export function createPlaceholderIcon(hostname) {
       </text>
     </svg>
   `.trim();
-
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }

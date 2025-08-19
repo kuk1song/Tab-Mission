@@ -1,6 +1,6 @@
 // thumbnail.js
 import { state } from './state.js';
-import { isCapturableUrl } from './utils.js';
+import { isCapturableUrl, createPlaceholderIcon, getHostname } from './utils.js';
 
 const captureCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -42,12 +42,20 @@ async function loadThumbnail(tab, imgElement) {
   const cacheKey = `${tab.id}|${tab.url}`;
   const cached = captureCache.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+    // If found in cache, directly use the dataUrl for both src and background
     imgElement.src = cached.dataUrl;
+    imgElement.style.backgroundImage = `url('${cached.dataUrl}')`;
     imgElement.classList.add('loaded');
     return;
   }
   
-  if (!isCapturableUrl(tab.url)) return;
+  if (!isCapturableUrl(tab.url)) {
+    const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
+    imgElement.src = placeholderIconUrl;
+    imgElement.style.backgroundImage = ''; // Clear background
+    imgElement.classList.add('loaded'); // Mark as loaded to show the icon
+    return;
+  }
   
   try {
     const result = await extractPreviewImage(tab.id);
@@ -63,12 +71,33 @@ async function loadThumbnail(tab, imgElement) {
           captureCache.set(cacheKey, { dataUrl: finalUrl, timestamp: Date.now() });
         };
         imgElement.onerror = () => {
-          imgElement.style.backgroundImage = '';
+          // On error, fallback to the clear icon placeholder
+          const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
+          imgElement.src = placeholderIconUrl;
+          imgElement.style.backgroundImage = ''; // Clear background
+          imgElement.classList.add('loaded');
         };
+      } else {
+        // If no URL is returned, use the icon placeholder
+        const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
+        imgElement.src = placeholderIconUrl;
+        imgElement.style.backgroundImage = ''; // Clear background
+        imgElement.classList.add('loaded');
       }
+    } else {
+      // If result is null, also use the icon placeholder
+      const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
+      imgElement.src = placeholderIconUrl;
+      imgElement.style.backgroundImage = ''; // Clear background
+      imgElement.classList.add('loaded');
     }
   } catch (err) {
     console.debug('Thumbnail capture failed for tab', tab.id, err.message);
+    // On failure, fallback to the clear icon placeholder
+    const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
+    imgElement.src = placeholderIconUrl;
+    imgElement.style.backgroundImage = ''; // Clear background
+    imgElement.classList.add('loaded');
   }
 }
 

@@ -5,6 +5,26 @@ import { startThumbnailCapture } from './thumbnail.js';
 import { applyArtLayout } from './layout.js';
 import { saveSettings } from './settings.js';
 
+/**
+ * Creates a debounced function that delays invoking `func` until after `wait` milliseconds
+ * have elapsed since the last time the debounced function was invoked.
+ * @param {Function} func The function to debounce.
+ * @param {number} wait The number of milliseconds to delay.
+ * @returns {Function} Returns the new debounced function.
+ */
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+
 export function initializeEventListeners() {
   const searchEl = document.getElementById('search');
   const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
@@ -14,7 +34,8 @@ export function initializeEventListeners() {
   const resetBtn = document.getElementById('reset-window');
   const openShortcutsBtn = document.getElementById('open-shortcuts');
 
-  if (searchEl) searchEl.addEventListener('input', handleFilterChange);
+  // Debounce the search input handler to prevent excessive re-renders
+  if (searchEl) searchEl.addEventListener('input', debounce(handleFilterChange, 200));
   if (toggleHideDiscarded) toggleHideDiscarded.addEventListener('change', handleFilterChange);
   if (toggleCurrentWindow) toggleCurrentWindow.addEventListener('change', handleFilterChange);
   if (toggleArt) toggleArt.addEventListener('change', () => {

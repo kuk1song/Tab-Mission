@@ -81,7 +81,15 @@ function createPreviewElement(tab) {
   const img = document.createElement('img');
   img.className = 'thumbnail';
   img.alt = 'Tab preview';
-  img.src = getPlaceholderDataUrl(tab.title || 'Untitled', getHostname(tab.url));
+  // Initially set a transparent pixel to avoid showing a broken image icon
+  // before the placeholder or real thumbnail is loaded.
+  img.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+  
+  // Set the initial blurry placeholder as a background image.
+  preview.style.backgroundImage = `url('${getPlaceholderDataUrl(tab.title || 'Untitled', getHostname(tab.url))}')`;
+  preview.style.backgroundSize = 'cover';
+  preview.style.backgroundPosition = 'center';
+
   preview.appendChild(img);
   
   return preview;
