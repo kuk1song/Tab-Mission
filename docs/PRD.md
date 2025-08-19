@@ -1,92 +1,53 @@
-# Tab Mosaic Overview – PRD (MVP)
+# PRD: Tab Mission (v1.0 Release)
 
-## 1. 背景与目标
-- 痛点：在 Chrome 中切换大量标签页时，列表/搜索虽高效，但缺少类似 macOS Mission Control 的“铺开可视化选择”的直觉。
-- 目标：提供“快速铺开网格 + 搜索 + 键盘导航”的标签总览，后续演进为“带权不规则马赛克 + 丝滑动画”的近似体验。
+## 1. Goals
+This release focuses on transforming the initial MVP into a polished, delightful, and highly reliable product. The primary goals are to:
+1.  **Achieve a "Silky Smooth" User Experience:** Eliminate all sources of lag, stutter, or visual inconsistency to mirror the fluid feeling of macOS Mission Control.
+2.  **Establish Intelligent & Consistent UI:** Ensure the application is intuitive, remembers user preferences, and handles all edge cases (like uncapturable pages) gracefully and consistently.
+3.  **Solidify the Core Feature Set:** Finalize the core functionality around navigation, search, and window management, providing a robust foundation for future iterations.
 
-## 2. 用户画像与场景
-- 重度浏览器用户：同时打开 20–100+ 标签，跨多个窗口。
-- 关键场景：基于视觉线索/标题/域，快速定位“记忆中的某个页面”，不中断当前上下文太久。
+## 2. Core UX Pillars & Feature Breakdown
 
-## 3. 核心价值
-- 降低寻找成本：缩略图、标题、域名；配合搜索与最近使用排序。
-- 降低切换成本：全键盘、明确焦点、高对比设计、稳定布局。
+### Pillar 1: Silky Smooth & Responsive
+*This pillar is about ensuring every interaction feels instant, fluid, and satisfying.*
 
-## 4. 版本范围与路线图
+*   **Symmetric Open/Close Animations:**
+    *   **Feature:** Implemented a reverse-staggered "sucked back" closing animation that is the perfect counterpart to the staggered opening animation.
+    *   **User Benefit:** Creates a polished and intuitive feeling that the tab grid is an overlay that can be summoned and dismissed, rather than just a window that appears and disappears.
+*   **Instant UI Responsiveness (First Interaction):**
+    *   **Feature:** Resolved a critical bug where the first user interaction (hover/click) had a noticeable delay. The root cause was main thread contention, and it was fixed by deferring the non-essential `startThumbnailCapture` task by 100ms.
+    *   **User Benefit:** The application feels professional and reliable from the very first moment of use.
+*   **Debounced Search:**
+    *   **Feature:** The search input is debounced by 200ms.
+    *   **User Benefit:** Rapidly typing in the search box is now a fluid experience, free of UI lag, even with a large number of tabs.
 
-### v0.1 (当前已完成) - 稳定 MVP
+### Pillar 2: Intelligent & Consistent
+*This pillar focuses on making the extension feel smart, reliable, and predictable.*
 
-我们已经完成了一个功能强大且稳定的 MVP (最小可行产品) 版本，核心是**“默认即好用，可选更强大”**：
+*   **Robust Window State Persistence:**
+    *   **Feature:** The window's size and position are now managed by the background service worker, using `onBoundsChanged` and `onRemoved` events for 100% reliable state saving.
+    *   **User Benefit:** The user's workspace is respected and remembered perfectly, every time. The window always reopens exactly where they last left it.
+*   **Unified Thumbnail Fallback:**
+    *   **Feature:** All scenarios where a thumbnail cannot be generated (system pages, sleeping tabs, dev servers, errors) now fall back to a single, consistent, and informative "sleeping tab" style, which displays the page title and hostname.
+    *   **User Benefit:** Eliminates all confusing UI states (e.g., abstract single letters, redundant text). The interface is now predictable and communicates clearly what each tab is, regardless of its state.
+*   **Persistent User Filters:**
+    *   **Feature:** The state of the "Show sleeping" and "Show all windows" checkboxes are saved and restored across sessions.
+    *   **User Benefit:** Reduces repetitive actions. The user can set their preferred view once, and the extension will remember it.
 
-1.  **核心功能稳定**：
-    *   可以正常打开/关闭概览窗口。
-    *   支持搜索、筛选“当前窗口”、“隐藏休眠标签页”。
-    *   完整的键盘导航（上下左右、Enter、Esc）。
+### Pillar 3: Clear & Controllable
+*This pillar is about empowering the user and ensuring they always feel in control.*
 
-2.  **默认体验优秀 (开箱即用)**：
-    *   **默认开启缩略图模式**。对于无法生成截图的页面（如 `chrome://` 页面或某些网站），会显示一个根据网站域名智能配色的**设计化文字卡片**作为优雅的兜底方案。
-    *   这保证了你一安装就能获得美观且实用的界面，**无需任何额外操作**。
+*   **Dynamic Shortcut Display & Access:**
+    *   **Feature:** The toolbar now dynamically shows the user's current keyboard shortcut and provides a direct link to the Chrome settings page to change it.
+    *   **User Benefit:** Lowers the learning curve and makes a core feature (the shortcut) highly visible and easily configurable.
+*   **Window Reset:**
+    *   **Feature:** A dedicated reset button allows the user to instantly return the window to its default, centered state.
+    *   **User Benefit:** Provides a simple "escape hatch" if the window is resized or moved to an inconvenient location.
 
-3.  **“艺术化布局” 初版 (Art Mode v1)**：
-    *   我们已经加入了一个 `Art mode` 开关。
-    *   开启后，卡片会呈现**高低错落的不规则布局**，这是实现最终 F3 “艺术感”的第一步。
-
-4.  **“丝滑感” 基础动效 (Animation v1)**：
-    *   窗口和卡片都有**淡入和交错出现的动画**，避免了生硬的弹出，为后续更精细的动效打下了基础。
-
-### 未来路线图 (Roadmap)
-
-我们的最终目标始终是 **“镜像 macOS F3 的丝滑、有设计感的标签选择体验”**。为此，我们规划了以下三个核心阶段：
-
-#### 第一阶段：完善动效链路 (Enhance the "Silky Smooth" Feel) - **下一步**
-
-*   **目标**：让整个操作体验**“活”**起来，充满物理感和响应感。
-*   **任务**:
-    1.  **窗口过渡**：概览窗口弹出/关闭时，增加**缩放+淡入/淡出**的动画。
-    2.  **选择动效**：使用键盘导航时，被选中的卡片会有轻微**放大和发光**的动效。
-    3.  **点击动效**：点击卡片切换标签页时，卡片会有一个**“按下”**的反馈动画，然后再关闭窗口。
-
-#### 第二阶段：提升视觉丰富度 (Improve Visual Richness)
-
-*   **目标**：让缩略图的**成功率和质量**更高，视觉信息更丰富。
-*   **任务**:
-    1.  **智能提取图片**：增强脚本，尝试从更多地方（如文章头图、视频封面）抓取高质量的预览图。
-    2.  **常见站点优化**：为 YouTube、GitHub 等常见网站增加专门的图片提取规则。
-    3.  **非打扰式授权**：当遇到很多权限问题导致截图失败时，**适时**在右上角提供一个“提升截图质量”的按钮，让你**一次性**授权，从而解决恼人的权限问题，而不是每次都失败。
-
-#### 第三阶段：“艺术化布局”进化 (Evolve "Art Mode")
-
-*   **目标**：实现真正**智能、动态、不规则**的 F3 布局。
-*   **任务**:
-    1.  **引入 Treemap 算法**：使用专业算法，根据标签页的“权重”（如：最近使用、是否在当前窗口）来智能计算每个卡片的大小和位置。
-    2.  **动态权重**：你越常用的标签页，显示的面积就越大，越容易被找到。
-
-
-## 5. 非目标/约束
-- 不做“实时活画面”缩放（浏览器架构限制）。
-- 不做真实透明/桌面透视（需屏幕捕捉授权；隐私/复杂度不符）。
-- 不抢焦：未选择前不改变原标签状态。
-
-## 6. 指标（MVP 验证）
-- 从呼出到打开目标标签的平均用时（对比 Command+Shift+A）。
-- 1.5s 内出现截图的比例（目标 >70%）。
-- 控制台无报错；主线程无>50ms长任务。
-
-## 7. 技术方案
-- MV3：`background`（开窗）、`overview.html/js/css`（UI）。
-- 权限：`tabs`、`windows`、`activeTab`、`scripting`、`<all_urls>` (安装时请求)。
-- 截图：`chrome.scripting.executeScript` 注入脚本抓取 `og:image` 或最大图片；失败则降级为设计化文字卡片；结果缓存 5 分钟。
-- 性能：懒加载、CSS 硬件加速、虚拟滚动（未来）。
-
-## 8. 风险与对策
-- 截图命中率：部分网站 CSP 严格或无合适图片，接受文字卡片兜底。通过增强选择器和站点特化逐步提升。
-- 标签过多性能：当前实现对 100-200 标签性能可接受。未来可通过虚拟滚动优化。
-- 特殊页面不可截：接受文字卡片兜底；依赖标题/域名。
-
-## 9. 里程碑
-- M0：v0.1 完成（稳定 MVP，默认缩略图+文字兜底，Art mode v1）
-- M1：完成第一阶段（动效链路）
-- M2：完成第二阶段（视觉丰富度）
-- M3：完成第三阶段（Art mode 进化）
+## 3. Future Roadmap
+With v1.0 complete, the focus will shift to:
+*   **Advanced Thumbnail Logic:** Improving thumbnail quality and success rate.
+*   **Evolved "Art Mode":** Implementing a true weighted Treemap layout.
+*   **Deeper Animations:** Exploring more physics-based interaction animations.
 
 
