@@ -39,6 +39,18 @@ export function startThumbnailCapture() {
 }
 
 async function loadThumbnail(tab, imgElement) {
+  const previewElement = imgElement.parentElement;
+  const textPreviewElement = previewElement.querySelector('.text-preview');
+
+  // Keep the canvas placeholder background (title top-left, URL bottom-left)
+  // and simply hide the <img> when we cannot load a real thumbnail.
+  const showTextFallback = () => {
+    imgElement.style.display = 'none';
+    if (textPreviewElement) textPreviewElement.style.display = 'none';
+    // Do NOT clear previewElement.style.backgroundImage here;
+    // createPreviewElement already set a placeholder that matches sleeping tabs.
+  };
+
   const cacheKey = `${tab.id}|${tab.url}`;
   const cached = captureCache.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
@@ -50,10 +62,7 @@ async function loadThumbnail(tab, imgElement) {
   }
   
   if (!isCapturableUrl(tab.url)) {
-    const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
-    imgElement.src = placeholderIconUrl;
-    imgElement.style.backgroundImage = ''; // Clear background
-    imgElement.classList.add('loaded'); // Mark as loaded to show the icon
+    showTextFallback();
     return;
   }
   
@@ -71,33 +80,17 @@ async function loadThumbnail(tab, imgElement) {
           captureCache.set(cacheKey, { dataUrl: finalUrl, timestamp: Date.now() });
         };
         imgElement.onerror = () => {
-          // On error, fallback to the clear icon placeholder
-          const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
-          imgElement.src = placeholderIconUrl;
-          imgElement.style.backgroundImage = ''; // Clear background
-          imgElement.classList.add('loaded');
+          showTextFallback();
         };
       } else {
-        // If no URL is returned, use the icon placeholder
-        const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
-        imgElement.src = placeholderIconUrl;
-        imgElement.style.backgroundImage = ''; // Clear background
-        imgElement.classList.add('loaded');
+        showTextFallback();
       }
     } else {
-      // If result is null, also use the icon placeholder
-      const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
-      imgElement.src = placeholderIconUrl;
-      imgElement.style.backgroundImage = ''; // Clear background
-      imgElement.classList.add('loaded');
+      showTextFallback();
     }
   } catch (err) {
     console.debug('Thumbnail capture failed for tab', tab.id, err.message);
-    // On failure, fallback to the clear icon placeholder
-    const placeholderIconUrl = createPlaceholderIcon(getHostname(tab.url));
-    imgElement.src = placeholderIconUrl;
-    imgElement.style.backgroundImage = ''; // Clear background
-    imgElement.classList.add('loaded');
+    showTextFallback();
   }
 }
 

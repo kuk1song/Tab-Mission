@@ -78,19 +78,34 @@ function createPreviewElement(tab) {
   const preview = document.createElement('div');
   preview.className = 'preview';
   
+  // 1. Create the image element for the thumbnail
   const img = document.createElement('img');
   img.className = 'thumbnail';
   img.alt = 'Tab preview';
-  // Initially set a transparent pixel to avoid showing a broken image icon
-  // before the placeholder or real thumbnail is loaded.
   img.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+  preview.appendChild(img);
   
-  // Set the initial blurry placeholder as a background image.
+  // 2. Create the text-based fallback preview, initially hidden
+  const textPreview = document.createElement('div');
+  textPreview.className = 'text-preview';
+  textPreview.style.display = 'none'; // Initially hidden
+  
+  const title = document.createElement('div');
+  title.className = 'preview-title';
+  title.textContent = tab.title || 'Untitled';
+  
+  const url = document.createElement('div');
+  url.className = 'preview-url';
+  url.textContent = getHostname(tab.url);
+  
+  textPreview.appendChild(title);
+  textPreview.appendChild(url);
+  preview.appendChild(textPreview);
+
+  // Set the initial blurry placeholder as a background on the main preview container
   preview.style.backgroundImage = `url('${getPlaceholderDataUrl(tab.title || 'Untitled', getHostname(tab.url))}')`;
   preview.style.backgroundSize = 'cover';
   preview.style.backgroundPosition = 'center';
-
-  preview.appendChild(img);
   
   return preview;
 }
