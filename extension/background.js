@@ -1,8 +1,7 @@
 // background.js
 
 let overviewWindowId = null; // Can be null, 'creating', or a window ID (number)
-let saveBoundsTimeout = null;
-let latestOverviewBounds = null; // in-memory snapshot updated on every save
+let latestBounds = null; // In-memory snapshot for the final save-on-close
 
 async function getSavedOverviewBounds() {
 	try {
@@ -11,21 +10,6 @@ async function getSavedOverviewBounds() {
 	} catch {
 		return null;
 	}
-}
-
-async function saveOverviewBounds(windowId) {
-	try {
-		const win = await chrome.windows.get(windowId);
-		if (!win) return;
-		const bounds = {
-			width: win.width,
-			height: win.height,
-			top: win.top,
-			left: win.left,
-		};
-		latestOverviewBounds = bounds; // update in-memory snapshot
-		await chrome.storage.local.set({ overviewBounds: bounds });
-	} catch {}
 }
 
 async function getStoredOverviewWindowId() {
@@ -70,8 +54,6 @@ async function toggleOverviewWindow() {
 	if (typeof overviewWindowId === 'number') {
 		console.log("Tab Mosaic: Window exists, sending shortcut command:", overviewWindowId);
 		try {
-			// Try to save latest bounds before closing
-			await saveOverviewBounds(overviewWindowId);
 			// Send a message to the overview window to handle the shortcut
 			const tabs = await chrome.tabs.query({ windowId: overviewWindowId });
 			if (tabs.length > 0) {
@@ -190,7 +172,19 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 	if (request?.action === 'saveBoundsNow') {
 		try {
 			const storedId = await getStoredOverviewWindowId();
-			if (storedId) await saveOverviewBounds(storedId);
+			if (storedId) {
+				// Update in-memory snapshot
+				latestBounds = {
+					width: window.width,
+					height: window.height,
+					top: window.top,
+					left: window.left,
+				};
+				// Asynchronously save to storage
+				try {
+					await chrome.storage.local.set({ overviewBounds: latestBounds });
+				} catch {}
+			}
 			sendResponse({ ok: true });
 		} catch (e) {
 			sendResponse({ ok: false, error: e?.message || String(e) });
@@ -199,23 +193,37 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 	}
 });
 
-// Persist bounds when the overview window is moved or resized
-chrome.windows.onBoundsChanged.addListener(async (windowId) => {
+// Primary listener for any size or position change.
+chrome.windows.onBoundsChanged.addListener(async (window) => {
 	const storedId = await getStoredOverviewWindowId();
-	if (!storedId || windowId !== storedId) return;
-	// Save immediately to avoid losing the latest size when the window is closed quickly
-	await saveOverviewBounds(windowId);
+	if (!storedId || window.id !== storedId) return;
+
+	// Update the in-memory snapshot immediately
+	latestBounds = {
+		width: window.width,
+		height: window.height,
+		top: window.top,
+		left: window.left,
+	};
+	// Asynchronously save to storage
+	try {
+		await chrome.storage.local.set({ overviewBounds: latestBounds });
+	} catch {}
 });
 
-// Add a listener for when our window is closed by any means (user, or our own code).
+// Final safeguard listener for when the window is closed by any means.
 chrome.windows.onRemoved.addListener(async (windowId) => {
 	const storedId = await getStoredOverviewWindowId();
 	if (windowId === overviewWindowId || windowId === storedId) {
-		// Final safeguard: persist the most recent bounds snapshot if we have one
-		if (latestOverviewBounds) {
-			try { await chrome.storage.local.set({ overviewBounds: latestOverviewBounds }); } catch {}
+		// Before clearing the ID, perform one final, definitive save
+		// using the most recent in-memory data.
+		if (latestBounds) {
+			try {
+				await chrome.storage.local.set({ overviewBounds: latestBounds });
+			} catch {}
 		}
 		overviewWindowId = null;
+		latestBounds = null; // Clear snapshot
 		await setStoredOverviewWindowId(null);
 	}
 });
