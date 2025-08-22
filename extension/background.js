@@ -28,11 +28,8 @@ async function setStoredOverviewWindowId(idOrNull) {
 }
 
 async function toggleOverviewWindow() {
-	console.log("Tab Mosaic: toggleOverviewWindow called, current state:", overviewWindowId);
-	
 	// If a window is currently in the process of being created, do nothing.
 	if (overviewWindowId === 'creating') {
-		console.log("Tab Mosaic: Window is already being created.");
 		return;
 	}
 
@@ -52,7 +49,6 @@ async function toggleOverviewWindow() {
 
 	// If a window already exists (its ID is stored), close it.
 	if (typeof overviewWindowId === 'number') {
-		console.log("Tab Mosaic: Window exists, sending shortcut command:", overviewWindowId);
 		try {
 			// Send a message to the overview window to handle the shortcut
 			const tabs = await chrome.tabs.query({ windowId: overviewWindowId });
@@ -63,7 +59,6 @@ async function toggleOverviewWindow() {
 				await chrome.windows.remove(overviewWindowId);
 			}
 		} catch (e) {
-			console.log("Tab Mosaic: Could not communicate with overview, closing window.", e.message);
 			// If messaging fails, it might be because the window is already closed.
 			// We attempt to close it just in case.
 			try {
@@ -136,7 +131,6 @@ async function toggleOverviewWindow() {
 
 // Listen for the command to open/toggle the overview.
 chrome.commands.onCommand.addListener((command) => {
-	console.log("Tab Mosaic: Keyboard shortcut triggered, command:", command);
 	if (command === 'open-overview') {
 		toggleOverviewWindow();
 	}
@@ -144,7 +138,6 @@ chrome.commands.onCommand.addListener((command) => {
 
 // Also listen for the browser action icon click to toggle.
 chrome.action.onClicked.addListener(() => {
-	console.log("Tab Mosaic: Browser action icon clicked");
 	toggleOverviewWindow();
 });
 
