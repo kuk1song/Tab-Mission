@@ -1,0 +1,44 @@
+{
+  "appName": {
+    "message": "Tab Mission",
+    "description": "扩展程序的名称。"
+  },
+  "appDescription": {
+    "message": "你的标签页指挥中心。所有标签页一览无余，即时搜索，精准切换。",
+    "description": "扩展程序的简短描述。"
+  },
+  "pageTitle": {
+    "message": "Tab Mission",
+    "description": "扩展程序主 HTML 页面的标题。"
+  },
+  "searchPlaceholder": {
+    "message": "搜索标签页 (标题或网址)...",
+    "description": "搜索输入框的占位符文本。"
+  },
+  "showSleepingLabel": {
+    "message": "显示休眠标签",
+    "description": "“显示休眠标签”复选框的标签。"
+  },
+  "showAllWindowsLabel": {
+    "message": "显示所有窗口",
+    "description": "“显示所有窗口”复选框的标签。"
+  },
+  "changeShortcutTitle": {
+    "message": "更改快捷键",
+    "description": "打开快捷键设置按钮的工具提示。"
+  },
+  "resetWindowTitle": {
+    "message": "重置大小和位置",
+    "description": "重置窗口大小和位置按钮的工具提示。"
+  },
+  "toggleWithShortcut": {
+    "message": "使用 $shortcut$ 切换",
+    "description": "快捷键提示的工具提示/无障碍文本，包含当前快捷键。",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "Command + E"
+      }
+    }
+  }
+}

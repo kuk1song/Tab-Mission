@@ -1,0 +1,44 @@
+{
+  "appName": {
+    "message": "Tab Mission",
+    "description": "Il nome dell'estensione."
+  },
+  "appDescription": {
+    "message": "Il tuo centro di comando per le schede. Panoramica istantanea, ricerca immediata, cambio fulmineo.",
+    "description": "Una breve descrizione dell'estensione."
+  },
+  "pageTitle": {
+    "message": "Tab Mission",
+    "description": "Il titolo della pagina HTML principale dell'estensione."
+  },
+  "searchPlaceholder": {
+    "message": "Cerca schede (titolo o URL)...",
+    "description": "Testo segnaposto per il campo di input di ricerca."
+  },
+  "showSleepingLabel": {
+    "message": "Mostra inattive",
+    "description": "Etichetta per la casella di controllo 'Mostra schede inattive'."
+  },
+  "showAllWindowsLabel": {
+    "message": "Mostra tutte le finestre",
+    "description": "Etichetta per la casella di controllo 'Mostra tutte le finestre'."
+  },
+  "changeShortcutTitle": {
+    "message": "Modifica scorciatoia",
+    "description": "Tooltip per il pulsante che apre le impostazioni delle scorciatoie."
+  },
+  "resetWindowTitle": {
+    "message": "Reimposta dimensioni e centra",
+    "description": "Tooltip per il pulsante che reimposta le dimensioni e la posizione della finestra."
+  },
+  "toggleWithShortcut": {
+    "message": "Attiva con $shortcut$",
+    "description": "Tooltip/etichetta ARIA per l'indicazione della scorciatoia attiva.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "Cmd + E"
+      }
+    }
+  }
+}

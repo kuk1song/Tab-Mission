@@ -5,8 +5,12 @@ import { initializeEventListeners } from './events.js';
 import { startThumbnailCapture } from './thumbnail.js';
 import { loadSettings } from './settings.js';
 import { applyArtLayout } from './layout.js';
+import { localizeStaticText } from './i18n.js';
 
 async function main() {
+  // Apply localization for any static text before interacting with the UI
+  localizeStaticText();
+
   await fetchAllTabs();
   
   const settings = await loadSettings();
@@ -54,12 +58,22 @@ async function updateShortcutHint() {
     const commands = await chrome.commands.getAll();
     const openCommand = commands.find(cmd => cmd.name === 'open-overview');
     if (openCommand && openCommand.shortcut) {
-      const shortcut = openCommand.shortcut.replace(/\+/g, ' + ');
+      const rawShortcut = openCommand.shortcut.replace(/\+/g, ' + ');
       hintEl.textContent = '';
       const kbd = document.createElement('kbd');
-      kbd.textContent = shortcut;
-      kbd.title = `Toggle with ${shortcut}`; // full hint on hover
-      kbd.setAttribute('aria-label', `Toggle with ${shortcut}`);
+      kbd.textContent = rawShortcut;
+
+      // Localize tooltip text: "Toggle with $shortcut$"
+      let tooltip = '';
+      try {
+        tooltip = chrome.i18n.getMessage('toggleWithShortcut', [rawShortcut]);
+      } catch {}
+      if (!tooltip) {
+        tooltip = `Toggle with ${rawShortcut}`;
+      }
+
+      kbd.title = tooltip; // full hint on hover
+      kbd.setAttribute('aria-label', tooltip);
       hintEl.appendChild(kbd);
     }
   } catch (error) {

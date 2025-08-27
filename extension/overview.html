@@ -3,21 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Tab Mission</title>
+    <title>__MSG_pageTitle__</title>
     <link rel="stylesheet" href="overview.css" />
   </head>
   <body>
     <div id="root">
       <header class="toolbar">
-        <input id="search" type="text" placeholder="Search tabs (title or URL)…" autocomplete="off" />
+        <input id="search" type="text" placeholder="__MSG_searchPlaceholder__" autocomplete="off" />
         <div class="spacer"></div>
         <label class="ctrl">
           <input id="toggle-hide-discarded" type="checkbox" />
-          <span>Show sleeping</span>
+          <span>__MSG_showSleepingLabel__</span>
         </label>
         <label class="ctrl">
           <input id="toggle-current-window" type="checkbox" />
-          <span>Show all windows</span>
+          <span>__MSG_showAllWindowsLabel__</span>
         </label>
         <!--
         <label class="ctrl">
@@ -27,8 +27,8 @@
         -->
         <div id="shortcut-hint" class="hint hint-inline"></div>
         <div class="hint-bar">
-          <button id="open-shortcuts" class="icon-btn" title="Change shortcut" aria-label="Change shortcut">⚙️</button>
-          <button id="reset-window" class="icon-btn" title="Reset size & center" aria-label="Reset size and center">↺</button>
+          <button id="open-shortcuts" class="icon-btn" title="__MSG_changeShortcutTitle__" aria-label="__MSG_changeShortcutTitle__">⚙️</button>
+          <button id="reset-window" class="icon-btn" title="__MSG_resetWindowTitle__" aria-label="__MSG_resetWindowTitle__">↺</button>
         </div>
       </header>
       <main id="grid" class="grid" aria-label="All tabs"></main>

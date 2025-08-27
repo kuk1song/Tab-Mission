@@ -1,0 +1,44 @@
+{
+  "appName": {
+    "message": "Tab Mission",
+    "description": "The name of the extension."
+  },
+  "appDescription": {
+    "message": "Mission Control for your Chrome tabs. Instantly search and switch between visual tab previews.",
+    "description": "A short description of the extension."
+  },
+  "pageTitle": {
+    "message": "Tab Mission",
+    "description": "The title of the extension's main HTML page."
+  },
+  "searchPlaceholder": {
+    "message": "Search tabs (title or URL)…",
+    "description": "Placeholder text for the search input field."
+  },
+  "showSleepingLabel": {
+    "message": "Show sleeping",
+    "description": "Label for the 'Show sleeping' checkbox."
+  },
+  "showAllWindowsLabel": {
+    "message": "Show all windows",
+    "description": "Label for the 'Show all windows' checkbox."
+  },
+  "changeShortcutTitle": {
+    "message": "Change shortcut",
+    "description": "Tooltip for the button that opens shortcut settings."
+  },
+  "resetWindowTitle": {
+    "message": "Reset size & center",
+    "description": "Tooltip for the button that resets the window size and position."
+  },
+  "toggleWithShortcut": {
+    "message": "Toggle with $shortcut$",
+    "description": "Tooltip/ARIA label for the shortcut hint; includes the active shortcut.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "Cmd + E"
+      }
+    }
+  }
+}
