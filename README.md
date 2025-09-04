@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">
-  Tab Mission &nbsp;&nbsp;-&nbsp;&nbsp; <em><small>Your Mission Control for Tabs</small></em>
+  Tab Mission &nbsp;&nbsp;-&nbsp;&nbsp; <em><small>your mission control for tabs</small></em>
 </h1>
 
 <p align="center">
