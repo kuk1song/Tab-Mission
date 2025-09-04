@@ -2,16 +2,9 @@
   <img src="https://raw.githubusercontent.com/kuk1song/Tab-Mission/main/assets/production/logo.png" alt="Tab Mission Logo" width="128">
 </p>
 
-<p align="center">
-<svg width="750" height="40" viewBox="0 0 750 40" xmlns="http://www.w3.org/2000/svg">
-    <style>
-        .title { font: 600 32px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; fill: #c9d1d9; }
-        .slogan { font: italic 400 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; fill: #8b949e; }
-    </style>
-    <text x="0" y="28" class="title">Tab Mission</text>
-    <text x="180" y="28" class="slogan"> Your Mission Control for Tabs</text>
-</svg>
-</p>
+<h1 align="center">
+  Tab Mission &nbsp;&nbsp;-&nbsp;&nbsp; <em><small>Your Mission Control for Tabs</small></em>
+</h1>
 
 <p align="center">
   <em>A beautiful and blazing-fast way to find, preview, and switch between your browser tabs.</em>
