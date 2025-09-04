@@ -56,3 +56,9 @@ Tab Mission is **free, open-source, and built with your privacy as its top prior
 -   We **do not** collect, transmit, or sell any of your browsing data.
 
 We believe in transparency. For more details, please review our [**Privacy Policy**](PRIVACY.md). This project is licensed under the MIT License, and you can view the source code in this repository.
+
+---
+
+<p align="center">
+  Made with ♥ by <a href="https://github.com/kuk1song">Haokun Song</a>
+</p>

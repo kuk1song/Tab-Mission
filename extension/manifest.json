@@ -3,6 +3,10 @@
   "description": "__MSG_appDescription__",
   "version": "1.0.0",
   "manifest_version": 3,
+  "author": {
+    "name": "Haokun Song",
+    "email": "shk741612898@gmail.com"
+  },
   "default_locale": "en",
   "icons": {
     "16": "icons/icon16.png",
