@@ -2,11 +2,11 @@
   <img src="https://raw.githubusercontent.com/kuk1song/Tab-Mission/main/assets/production/logo.png" alt="Tab Mission Logo" width="128">
 </p>
 
-<h1 align="center">Tab Mission</h1>
+<h1 align="center">
+  Tab Mission &nbsp;&nbsp;-&nbsp;&nbsp; <em><small>Your Mission Control for Tabs</small></em>
+</h1>
 
 <p align="center">
-  <strong>Your Mission Control for Tabs.</strong>
-  <br />
   <em>A beautiful and blazing-fast way to find, preview, and switch between your browser tabs.</em>
 </p>
 
