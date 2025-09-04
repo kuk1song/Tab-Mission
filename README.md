@@ -1,31 +1,58 @@
-# Tab Mission
+<p align="center">
+  <img src="https://raw.githubusercontent.com/kuk1song/Tab-Mission/main/assets/production/logo.png" alt="Tab Mission Logo" width="128">
+</p>
 
-**Your Mission Control for Tabs.**
+<h1 align="center">Tab Mission</h1>
 
-A beautiful and blazing-fast "Mission Control" for your browser, designed to help you find, preview, and switch between your open tabs with speed and precision.
+<p align="center">
+  <strong>Your Mission Control for Tabs.</strong>
+  <br />
+  <em>A beautiful and blazing-fast way to find, preview, and switch between your browser tabs.</em>
+</p>
 
-![Tab Mission Preview](https://i.imgur.com/example-solution.png) 
+<p align="center">
+  <a href="https://chrome.google.com/webstore/detail/your-extension-id">
+    <img src="https://img.shields.io/badge/Chrome_Web_Store-Install-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Install from Chrome Web Store">
+  </a>
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT">
+</p>
+
+---
+
+Tab Mission transforms your chaotic tabs into a stunning, searchable grid of live previews. Summon it with a single shortcut and glide through your browser at the speed of thought.
 
 ## ✨ Features
 
-- **Instant Overview:** Summon a stunning grid of all your tabs with a single shortcut.
-- **Visual Search, Perfected:** Just start typing to filter tabs by title or URL in real-time.
-- **Intuitive Navigation:** Use your mouse or keyboard (arrow keys + Enter) to jump to any tab instantly.
-- **Smart & Elegant:** Beautifully handles sleeping tabs and pages that can't be captured.
-- **Lightweight & Fast:** Built for performance, with fluid animations and a native feel.
+- **Instant Overview:** A beautiful grid of all your tabs, available in a keystroke.
+- **Visual Search, Perfected:** Instantly filter tabs by title or URL. No lag, just results.
+- **Intuitive Navigation:** Use your mouse or keyboard (`↑↓←→` + `Enter`) to navigate with precision.
+- **Smart & Elegant:** Gracefully handles sleeping tabs and pages that can't be captured.
+- **Lightweight & Native:** Built for performance, with fluid animations that feel like a part of your OS.
 
-## 🚀 Installation
+## 🚀 Getting Started
 
-1.  Go to the [Chrome Web Store]() page for Tab Mission. 
-2.  Click "Add to Chrome".
-3.  Use the default shortcut `Cmd/Ctrl + E` to get started!
+1.  **[Install Tab Mission from the Chrome Web Store](https://chrome.google.com/webstore/detail/your-extension-id)**.
+2.  Click the extension icon or use the default shortcut **`Cmd/Ctrl + E`** to launch.
+3.  Enjoy a calmer, more organized browsing experience!
 
-## 🔒 Privacy & Security
+## 💡 Pro-Tip: The Ultimate Shortcut
 
-This extension is open-source and built with your privacy in mind. All your data is processed and stored locally on your machine. We do not collect or transmit any of your browsing data.
+Want to fly through your tabs?
+1. Press your shortcut to open the grid.
+2. Hover your mouse over the tab you want.
+3. Press the shortcut **AGAIN** to jump there instantly—no click required.
 
-For more details, please see our [Privacy Policy](PRIVACY.md). 
+## 💬 Feedback & Support
 
-## 📜 License
+Have a question, a bug to report, or a feature request? We would love to hear from you!
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+The best way to get in touch is by **[opening an issue on our GitHub repository](https://github.com/kuk1song/Tab-Mission/issues)**. This allows us to track all feedback in one place and helps other users who might have the same question.
+
+## 🛡️ Privacy & Open Source
+
+Tab Mission is **free, open-source, and built with your privacy as its top priority.**
+
+-   All of your data is processed and stored **locally** on your machine.
+-   We **do not** collect, transmit, or sell any of your browsing data.
+
+We believe in transparency. For more details, please review our [**Privacy Policy**](PRIVACY.md). This project is licensed under the MIT License, and you can view the source code in this repository.
