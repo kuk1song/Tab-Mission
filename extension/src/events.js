@@ -40,7 +40,8 @@ export function initializeEventListeners() {
   if (toggleCurrentWindow) toggleCurrentWindow.addEventListener('change', handleFilterChange);
   if (toggleArt) toggleArt.addEventListener('change', () => {
     applyArtLayout();
-    persistSettings();
+    // Persist the artMode setting directly
+    handleFilterChange();
   });
 
   if (shortcutHint) {
@@ -114,28 +115,13 @@ function handleFilterChange() {
   applyFilters(uiState);
   render();
 
-  // Save the latest state of the filters
+  // Save the latest state of all filters
   saveSettings(uiState);
 
   // Always start thumbnail capture after filtering
   requestAnimationFrame(() => {
     startThumbnailCapture();
   });
-}
-
-function persistSettings() {
-  const searchEl = document.getElementById('search');
-  const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
-  const toggleCurrentWindow = document.getElementById('toggle-current-window');
-  const toggleArt = document.getElementById('toggle-art');
-
-  const uiState = {
-    searchTerm: searchEl ? searchEl.value : '',
-    showSleeping: toggleHideDiscarded ? toggleHideDiscarded.checked : false,
-    showAllWindows: toggleCurrentWindow ? toggleCurrentWindow.checked : false,
-    artMode: toggleArt ? toggleArt.checked : false,
-  };
-  saveSettings(uiState);
 }
 
 function getColumnCount() {

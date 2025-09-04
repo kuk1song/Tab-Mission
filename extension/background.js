@@ -117,13 +117,13 @@ async function toggleOverviewWindow() {
 
 		// Important: After creation, only update the ID if we are still in the 'creating' state.
 		// This handles a rare edge case where the window might be closed before creation completes.
-		if (overviewWindowId === 'creating') {
+		if (overviewWindowId === 'creating' && win?.id) {
 			overviewWindowId = win.id;
 			await setStoredOverviewWindowId(win.id);
 		}
 
 	} catch (error) {
-		console.error("Tab Mosaic: Could not create window.", error);
+		console.error("Tab Mission: Could not create window.", error);
 		// If any error occurs, reset the state to allow future attempts.
 		overviewWindowId = null;
 	}
