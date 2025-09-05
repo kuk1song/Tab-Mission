@@ -60,5 +60,5 @@ We believe in transparency. For more details, please review our [**Privacy Polic
 ---
 
 <p align="center">
-  Made with ♥ by <a href="https://github.com/kuk1song">Haokun Song</a>
+  Made with ♥ by <a href="https://www.kuk1song.com/">Haokun Song</a>
 </p>
