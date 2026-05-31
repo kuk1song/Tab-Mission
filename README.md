@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://chrome.google.com/webstore/detail/your-extension-id">
+  <a href="https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca">
     <img src="https://img.shields.io/badge/Chrome_Web_Store-Install-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Install from Chrome Web Store">
   </a>
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT">
@@ -31,7 +31,7 @@ Tab Mission transforms your chaotic tabs into a stunning, searchable grid of liv
 
 ## 🚀 Getting Started
 
-1.  **[Install Tab Mission from the Chrome Web Store](https://chrome.google.com/webstore/detail/your-extension-id)**.
+1.  **[Install Tab Mission from the Chrome Web Store](https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca)**.
 2.  Click the extension icon or use the default shortcut **`Cmd/Ctrl + E`** to launch.
 3.  Enjoy a calmer, more organized browsing experience!
 
