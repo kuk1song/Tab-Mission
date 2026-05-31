@@ -1,5 +1,5 @@
 // events.js
-import { state, applyFilters, fetchAllTabs } from './state.js';
+import { state, applyFilters } from './state.js';
 import { render, updateSelection, initializeGridListeners } from './dom.js';
 import { startThumbnailCapture } from './thumbnail.js';
 import { applyArtLayout } from './layout.js';
