@@ -1,7 +1,7 @@
 // dom.js
 import { state } from './state.js';
 import { activateTab } from './events.js';
-import { getHostname, isValidIconUrl, generateGradient, getPlaceholderDataUrl, createPlaceholderIcon } from './utils.js';
+import { getHostname, isValidIconUrl, getPlaceholderDataUrl, createPlaceholderIcon } from './utils.js';
 import { applyArtLayout } from './layout.js';
 
 // Removed top-level element getters to prevent race conditions.

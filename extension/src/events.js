@@ -77,10 +77,6 @@ export function initializeEventListeners() {
   initializeGridListeners();
 
   window.addEventListener('keydown', handleKeydown);
-  document.body.addEventListener('click', (e) => {
-    // This part of the original code was not in the edit specification,
-    // so it is not included in the new_code.
-  });
   window.addEventListener('beforeunload', () => {
     document.getElementById('root').classList.add('closing');
   });
