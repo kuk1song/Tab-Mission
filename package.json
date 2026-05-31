@@ -13,10 +13,12 @@
   "scripts": {
     "lint": "eslint .",
     "validate:json": "node scripts/validate-json.mjs",
-    "check": "npm run lint && npm run validate:json"
+    "test": "vitest run",
+    "check": "npm run lint && npm run validate:json && npm run test"
   },
   "devDependencies": {
     "eslint": "^9.0.0",
-    "globals": "^15.0.0"
+    "globals": "^15.0.0",
+    "vitest": "^3.2.4"
   }
 }

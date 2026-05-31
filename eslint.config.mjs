@@ -43,4 +43,14 @@ export default [
     },
     rules,
   },
+  {
+    // Vitest unit tests (node env). Test helpers are imported from 'vitest'.
+    files: ['tests/**/*.mjs', 'vitest.config.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: { ...globals.node },
+    },
+    rules,
+  },
 ];
