@@ -1,0 +1,22 @@
+{
+  "name": "tab-mission",
+  "version": "1.0.0",
+  "description": "Mission control for your browser tabs — a searchable visual grid of every open tab.",
+  "private": true,
+  "license": "MIT",
+  "author": "Haokun Song <shk741612898@gmail.com>",
+  "homepage": "https://github.com/kuk1song/Tab-Mission#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kuk1song/Tab-Mission.git"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "validate:json": "node scripts/validate-json.mjs",
+    "check": "npm run lint && npm run validate:json"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0"
+  }
+}
