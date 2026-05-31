@@ -162,28 +162,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 		}
 		return true; // async response
 	}
-	if (request?.action === 'saveBoundsNow') {
-		try {
-			const storedId = await getStoredOverviewWindowId();
-			if (storedId) {
-				// Update in-memory snapshot
-				latestBounds = {
-					width: window.width,
-					height: window.height,
-					top: window.top,
-					left: window.left,
-				};
-				// Asynchronously save to storage
-				try {
-					await chrome.storage.local.set({ overviewBounds: latestBounds });
-				} catch {}
-			}
-			sendResponse({ ok: true });
-		} catch (e) {
-			sendResponse({ ok: false, error: e?.message || String(e) });
-		}
-		return true;
-	}
 });
 
 // Primary listener for any size or position change.
