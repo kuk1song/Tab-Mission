@@ -62,10 +62,30 @@ function createTile(tab, index) {
   return tile;
 }
 
+// Hover should not take over until the pointer genuinely moves. When the
+// overview window opens under a stationary cursor, the browser can fire a
+// synthetic mousemove that would otherwise clobber the keyboard preselection
+// (the previous tab). Ignore movement until the pointer position changes.
+let pointerArmed = false;
+let lastPointerX = null;
+let lastPointerY = null;
+
 function handleGridMouseMove(e) {
+  if (!pointerArmed) {
+    if (lastPointerX === null) {
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
+      return;
+    }
+    if (e.clientX === lastPointerX && e.clientY === lastPointerY) {
+      return;
+    }
+    pointerArmed = true;
+  }
+
   const target = e.target;
   const tile = target.closest('.tile');
-  
+
   if (tile) {
     const index = parseInt(tile.dataset.index, 10);
     if (state.selectedIndex !== index) {

@@ -42,13 +42,27 @@ export function applyFilters(uiState) {
     );
   }
   
-  state.filteredTabs = tabs;
-  // If there was a selection, try to keep it. Otherwise, no selection.
-  state.selectedIndex = Math.min(state.selectedIndex, Math.max(-1, state.filteredTabs.length - 1));
-  if (state.filteredTabs.length > 0 && state.selectedIndex === -1) {
-    // If we previously had no selection and now we have tabs, we still want no selection by default.
-    // However, if arrow keys are used, it should start from 0.
-  } else if (state.filteredTabs.length === 0) {
-    state.selectedIndex = -1;
+  // Order by most-recently-used (descending lastAccessed). This is how every
+  // OS task switcher (Alt+Tab / Cmd+Tab) behaves and is the whole reason this
+  // extension exists — Chrome's own Ctrl+Tab walks the static tab-strip order.
+  // lastAccessed is present on every tab, so no extra permission is needed.
+  tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+
+  // The current tab is always the most-recently-accessed, but it's the one the
+  // user is already on. Move it to the end so the first tile is the *previous*
+  // tab — then a second press of the shortcut (or Enter) toggles straight back
+  // to it, mirroring Cmd+Tab's "next most recently used" default.
+  const activeIndex = tabs.findIndex(
+    tab => tab.active && tab.windowId === state.currentWindowId
+  );
+  if (activeIndex !== -1) {
+    const [activeTab] = tabs.splice(activeIndex, 1);
+    tabs.push(activeTab);
   }
+
+  state.filteredTabs = tabs;
+
+  // Preselect the first tile (the previous tab) so the shortcut/Enter can
+  // confirm immediately. Hover and arrow keys override this afterwards.
+  state.selectedIndex = state.filteredTabs.length > 0 ? 0 : -1;
 }
