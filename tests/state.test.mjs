@@ -50,10 +50,18 @@ describe('applyFilters — MRU ordering', () => {
     expect(state.filteredTabs.at(-1).id).toBe(1); // current tab is last
   });
 
-  it('preselects the first tile (index 0) when tabs exist', () => {
+  it('does not auto-select on open — nothing is highlighted until hover/arrow', () => {
+    state.selectedIndex = -1; // a freshly opened overview
     state.allTabs = [makeTab(1, { lastAccessed: 1 }), makeTab(2, { lastAccessed: 2 })];
     applyFilters(ui());
-    expect(state.selectedIndex).toBe(0);
+    expect(state.selectedIndex).toBe(-1);
+  });
+
+  it('clamps a stale selection to the last valid index', () => {
+    state.selectedIndex = 5;
+    state.allTabs = [makeTab(1, { lastAccessed: 2 }), makeTab(2, { lastAccessed: 1 })];
+    applyFilters(ui());
+    expect(state.selectedIndex).toBe(1);
   });
 
   it('selects nothing (-1) when no tab matches', () => {

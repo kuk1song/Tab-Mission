@@ -50,8 +50,7 @@ export function applyFilters(uiState) {
 
   // The current tab is always the most-recently-accessed, but it's the one the
   // user is already on. Move it to the end so the first tile is the *previous*
-  // tab — then a second press of the shortcut (or Enter) toggles straight back
-  // to it, mirroring Cmd+Tab's "next most recently used" default.
+  // tab — the most likely switch target sits first for hovering/scanning.
   const activeIndex = tabs.findIndex(
     tab => tab.active && tab.windowId === state.currentWindowId
   );
@@ -62,7 +61,9 @@ export function applyFilters(uiState) {
 
   state.filteredTabs = tabs;
 
-  // Preselect the first tile (the previous tab) so the shortcut/Enter can
-  // confirm immediately. Hover and arrow keys override this afterwards.
-  state.selectedIndex = state.filteredTabs.length > 0 ? 0 : -1;
+  // No auto-selection on open: -1 means nothing is highlighted until the user
+  // hovers a tile or presses an arrow key. With no selection, pressing the
+  // shortcut again closes the overview (rather than switching). A stale
+  // selection from a previous filter is clamped back into range.
+  state.selectedIndex = Math.min(state.selectedIndex, state.filteredTabs.length - 1);
 }
