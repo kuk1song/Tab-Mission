@@ -37,17 +37,15 @@ describe('applyFilters — MRU ordering', () => {
     expect(state.filteredTabs.map((t) => t.id)).toEqual([2, 3, 1]);
   });
 
-  it('moves the focused-window active tab to the end so the first tile is the previous tab', () => {
+  it('keeps the current tab first (pure MRU — it is the most recently accessed)', () => {
     state.allTabs = [
       makeTab(1, { lastAccessed: 500, active: true }), // current tab — most recent
       makeTab(2, { lastAccessed: 300 }),
       makeTab(3, { lastAccessed: 400 }),
     ];
     applyFilters(ui());
-    // Pure MRU would be [1, 3, 2]; the active tab (1) is pushed to the end.
-    expect(state.filteredTabs.map((t) => t.id)).toEqual([3, 2, 1]);
-    expect(state.filteredTabs[0].id).toBe(3); // previous tab is preselected
-    expect(state.filteredTabs.at(-1).id).toBe(1); // current tab is last
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 3, 2]);
+    expect(state.filteredTabs[0].id).toBe(1); // current tab heads the list
   });
 
   it('does not auto-select on open — nothing is highlighted until hover/arrow', () => {
@@ -71,16 +69,15 @@ describe('applyFilters — MRU ordering', () => {
     expect(state.selectedIndex).toBe(-1);
   });
 
-  it('only moves the focused window\'s active tab when showing all windows', () => {
+  it('orders across windows purely by recency when showing all windows', () => {
     state.currentWindowId = 1;
     state.allTabs = [
-      makeTab(1, { lastAccessed: 500, active: true, windowId: 1 }), // focused -> end
-      makeTab(2, { lastAccessed: 600, active: true, windowId: 2 }), // other window -> stays by MRU
+      makeTab(1, { lastAccessed: 600, active: true, windowId: 1 }), // focused current — most recent
+      makeTab(2, { lastAccessed: 500, active: true, windowId: 2 }),
       makeTab(3, { lastAccessed: 400, windowId: 1 }),
     ];
     applyFilters(ui({ showAllWindows: true }));
-    // MRU: [2(600), 1(500), 3(400)]; only tab 1 moves to the end.
-    expect(state.filteredTabs.map((t) => t.id)).toEqual([2, 3, 1]);
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 2, 3]);
   });
 });
 

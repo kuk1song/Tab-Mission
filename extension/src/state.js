@@ -42,22 +42,13 @@ export function applyFilters(uiState) {
     );
   }
   
-  // Order by most-recently-used (descending lastAccessed). This is how every
-  // OS task switcher (Alt+Tab / Cmd+Tab) behaves and is the whole reason this
+  // Order by most-recently-used (descending lastAccessed). This is how every OS
+  // task switcher (Alt+Tab / Cmd+Tab) behaves, and is the whole reason this
   // extension exists — Chrome's own Ctrl+Tab walks the static tab-strip order.
-  // lastAccessed is present on every tab, so no extra permission is needed.
+  // The current tab is the most recently accessed, so it naturally sorts first,
+  // matching those switchers (the current item heads the list). lastAccessed is
+  // present on every tab, so no extra permission is needed.
   tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
-
-  // The current tab is always the most-recently-accessed, but it's the one the
-  // user is already on. Move it to the end so the first tile is the *previous*
-  // tab — the most likely switch target sits first for hovering/scanning.
-  const activeIndex = tabs.findIndex(
-    tab => tab.active && tab.windowId === state.currentWindowId
-  );
-  if (activeIndex !== -1) {
-    const [activeTab] = tabs.splice(activeIndex, 1);
-    tabs.push(activeTab);
-  }
 
   state.filteredTabs = tabs;
 
