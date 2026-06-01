@@ -83,5 +83,8 @@ export function createPlaceholderIcon(hostname) {
       </text>
     </svg>
   `.trim();
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
+  // URL-encode rather than base64: btoa throws on non-Latin1 characters
+  // (e.g. the first letter of an IDN hostname), while encodeURIComponent
+  // handles all Unicode safely.
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }

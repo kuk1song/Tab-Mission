@@ -1,10 +1,9 @@
 // thumbnail.js
 import { state } from './state.js';
-import { isCapturableUrl, createPlaceholderIcon, getHostname } from './utils.js';
+import { isCapturableUrl } from './utils.js';
 
 const captureCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const NOT_FOUND_URL = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
 let thumbnailObserver = null;
 
 export function startThumbnailCapture() {
@@ -160,6 +159,8 @@ async function extractPreviewImage(tabId) {
     return results[0].result;
   } catch (err) {
     console.debug('Script injection failed for tab', tabId, err.message);
-    return { imageUrl: NOT_FOUND_URL };
+    // Returning null lets loadThumbnail fall back to the text/placeholder
+    // preview, instead of caching a 1x1 transparent gif as a "real" thumbnail.
+    return null;
   }
 }

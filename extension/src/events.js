@@ -1,6 +1,6 @@
 // events.js
-import { state, applyFilters, fetchAllTabs } from './state.js';
-import { render, updateSelection } from './dom.js';
+import { state, applyFilters } from './state.js';
+import { render, updateSelection, initializeGridListeners } from './dom.js';
 import { startThumbnailCapture } from './thumbnail.js';
 import { applyArtLayout } from './layout.js';
 import { saveSettings } from './settings.js';
@@ -74,16 +74,11 @@ export function initializeEventListeners() {
     });
   }
   
+  initializeGridListeners();
+
   window.addEventListener('keydown', handleKeydown);
-  document.body.addEventListener('click', (e) => {
-    // This part of the original code was not in the edit specification,
-    // so it is not included in the new_code.
-  });
   window.addEventListener('beforeunload', () => {
     document.getElementById('root').classList.add('closing');
-    try {
-      chrome.runtime.sendMessage({ action: 'saveBoundsNow' });
-    } catch {}
   });
 
   // Listen for messages from the background script (e.g., from the shortcut)
@@ -162,7 +157,7 @@ function handleKeydown(e) {
       } else {
         state.selectedIndex = Math.max(0, state.selectedIndex - getColumnCount());
       }
-      updateSelection();
+      updateSelection(true);
       break;
     case 'ArrowDown':
       e.preventDefault();
@@ -171,7 +166,7 @@ function handleKeydown(e) {
       } else {
         state.selectedIndex = Math.min(state.filteredTabs.length - 1, state.selectedIndex + getColumnCount());
       }
-      updateSelection();
+      updateSelection(true);
       break;
     case 'ArrowLeft':
       e.preventDefault();
@@ -180,7 +175,7 @@ function handleKeydown(e) {
       } else {
         state.selectedIndex = Math.max(0, state.selectedIndex - 1);
       }
-      updateSelection();
+      updateSelection(true);
       break;
     case 'ArrowRight':
       e.preventDefault();
@@ -189,7 +184,7 @@ function handleKeydown(e) {
       } else {
         state.selectedIndex = Math.min(state.filteredTabs.length - 1, state.selectedIndex + 1);
       }
-      updateSelection();
+      updateSelection(true);
       break;
   }
 }

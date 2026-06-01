@@ -42,13 +42,19 @@ export function applyFilters(uiState) {
     );
   }
   
+  // Order by most-recently-used (descending lastAccessed). This is how every OS
+  // task switcher (Alt+Tab / Cmd+Tab) behaves, and is the whole reason this
+  // extension exists — Chrome's own Ctrl+Tab walks the static tab-strip order.
+  // The current tab is the most recently accessed, so it naturally sorts first,
+  // matching those switchers (the current item heads the list). lastAccessed is
+  // present on every tab, so no extra permission is needed.
+  tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+
   state.filteredTabs = tabs;
-  // If there was a selection, try to keep it. Otherwise, no selection.
-  state.selectedIndex = Math.min(state.selectedIndex, Math.max(-1, state.filteredTabs.length - 1));
-  if (state.filteredTabs.length > 0 && state.selectedIndex === -1) {
-    // If we previously had no selection and now we have tabs, we still want no selection by default.
-    // However, if arrow keys are used, it should start from 0.
-  } else if (state.filteredTabs.length === 0) {
-    state.selectedIndex = -1;
-  }
+
+  // No auto-selection on open: -1 means nothing is highlighted until the user
+  // hovers a tile or presses an arrow key. With no selection, pressing the
+  // shortcut again closes the overview (rather than switching). A stale
+  // selection from a previous filter is clamped back into range.
+  state.selectedIndex = Math.min(state.selectedIndex, state.filteredTabs.length - 1);
 }

@@ -1,26 +1,33 @@
 // dom.js
 import { state } from './state.js';
 import { activateTab } from './events.js';
-import { getHostname, isValidIconUrl, generateGradient, getPlaceholderDataUrl, createPlaceholderIcon } from './utils.js';
+import { getHostname, isValidIconUrl, getPlaceholderDataUrl, createPlaceholderIcon } from './utils.js';
 import { applyArtLayout } from './layout.js';
 
 // Removed top-level element getters to prevent race conditions.
+
+// Bind the delegated hover listeners exactly once. render() rebuilds the
+// grid's children but keeps the same #grid element, so these must not be
+// re-added per render — the old per-render anonymous mouseleave listener
+// leaked a new closure on every render.
+export function initializeGridListeners() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  gridEl.addEventListener('mousemove', handleGridMouseMove);
+  gridEl.addEventListener('mouseleave', handleGridMouseLeave);
+}
+
+function handleGridMouseLeave() {
+  if (state.selectedIndex !== -1) {
+    state.selectedIndex = -1;
+    updateSelection();
+  }
+}
 
 export function render() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
   gridEl.innerHTML = '';
-  
-  // Single, delegated mousemove listener for efficient hover handling.
-  gridEl.addEventListener('mousemove', handleGridMouseMove);
-  
-  // Add a mouseleave event to the grid container to clear the selection
-  gridEl.addEventListener('mouseleave', () => {
-    if (state.selectedIndex !== -1) {
-      state.selectedIndex = -1;
-      updateSelection();
-    }
-  });
 
   if (state.filteredTabs.length === 0) {
     renderEmptyMessage();
@@ -58,7 +65,7 @@ function createTile(tab, index) {
 function handleGridMouseMove(e) {
   const target = e.target;
   const tile = target.closest('.tile');
-  
+
   if (tile) {
     const index = parseInt(tile.dataset.index, 10);
     if (state.selectedIndex !== index) {
@@ -157,16 +164,20 @@ function renderEmptyMessage() {
   gridEl.appendChild(emptyMessage);
 }
 
-export function updateSelection() {
+export function updateSelection(scrollToSelected = false) {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
   const tiles = Array.from(gridEl.querySelectorAll('.tile'));
   tiles.forEach((tile, index) => {
     tile.classList.toggle('selected', index === state.selectedIndex);
   });
-  
-  const selectedTile = tiles[state.selectedIndex];
-  if (selectedTile) {
-    selectedTile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Only scroll for keyboard navigation. Scrolling on hover makes the grid
+  // drift when the pointer merely grazes a tile near an edge.
+  if (scrollToSelected) {
+    const selectedTile = tiles[state.selectedIndex];
+    if (selectedTile) {
+      selectedTile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 }
