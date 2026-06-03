@@ -1,0 +1,29 @@
+# Dependabot keeps dependencies current by opening pull requests when updates
+# are available. Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+updates:
+  # GitHub Actions used in .github/workflows. Dependabot bumps the pinned commit
+  # SHA *and* the trailing "# vX.Y.Z" comment together, so SHA-pinning stays
+  # secure without going stale. (directory "/" means the .github/workflows tree.)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      # Bundle all action updates into one PR instead of one per action.
+      actions:
+        patterns: ["*"]
+
+  # npm dev dependencies (eslint, globals, vitest). The extension itself ships
+  # no runtime npm packages, so these are tooling-only.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+    groups:
+      dev-dependencies:
+        patterns: ["*"]
