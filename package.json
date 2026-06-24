@@ -17,8 +17,8 @@
     "check": "npm run lint && npm run validate:json && npm run test"
   },
   "devDependencies": {
-    "eslint": "^10.4.1",
-    "globals": "^17.6.0",
-    "vitest": "^4.1.8"
+    "eslint": "^10.5.0",
+    "globals": "^17.7.0",
+    "vitest": "^4.1.9"
   }
 }
