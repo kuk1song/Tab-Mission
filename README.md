@@ -19,28 +19,28 @@
 
 ---
 
-Tab Mission transforms your chaotic tabs into a stunning, searchable grid of live previews. Summon it with a single shortcut and glide through your browser at the speed of thought.
+Tab Mission puts every open tab into one searchable grid, ordered by when you last used it. Summon it with a single shortcut, type a few letters, press Enter, and you are there.
 
 ## ✨ Features
 
-- **Instant Overview:** A beautiful grid of all your tabs, available in a keystroke.
-- **Visual Search, Perfected:** Instantly filter tabs by title or URL. No lag, just results.
-- **Intuitive Navigation:** Use your mouse or keyboard (`↑↓←→` + `Enter`) to navigate with precision.
-- **Smart & Elegant:** Gracefully handles sleeping tabs and pages that can't be captured.
-- **Lightweight & Native:** Built for performance, with fluid animations that feel like a part of your OS.
+- **Instant Overview:** All your tabs in one grid, one keystroke away.
+- **Most Recent First:** Tabs are ordered by last use, current tab first, the way `Cmd+Tab` / `Alt+Tab` order apps.
+- **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. Search covers all windows and sleeping tabs.
+- **Site View:** A second shortcut (`Cmd/Ctrl + Shift + E`) shows only the tabs from the site you are on, across all windows.
+- **Keyboard or Mouse:** `↑↓←→` + `Enter`, click, or hover and press the shortcut again. Middle-click or `×` closes a tab.
+- **Page Previews:** Each tab shows the preview image its page provides, or a clean title card when there is none.
+- **Private by Design:** No server, no analytics. Everything stays in your browser.
 
 ## 🚀 Getting Started
 
 1.  **[Install Tab Mission from the Chrome Web Store](https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca)**.
-2.  Click the extension icon or use the default shortcut **`Cmd/Ctrl + E`** to launch.
-3.  Enjoy a calmer, more organized browsing experience!
+2.  Click the extension icon or use the default shortcut **`Cmd/Ctrl + E`** to launch. If another extension already owns that shortcut, pick your own at `chrome://extensions/shortcuts`.
+3.  Start typing, then press `Enter`.
 
-## 💡 Pro-Tip: The Ultimate Shortcut
+## 💡 Pro Tips
 
-Want to fly through your tabs?
-1. Press your shortcut to open the grid.
-2. Hover your mouse over the tab you want.
-3. Press the shortcut **AGAIN** to jump there instantly—no click required.
+- **Back to the previous tab:** press the shortcut, then `→` and `Enter`.
+- **No-click switching:** press the shortcut, hover the tab you want, and press the shortcut **again**.
 
 ## 💬 Feedback & Support
 

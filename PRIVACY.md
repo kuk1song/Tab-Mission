@@ -1,40 +1,34 @@
 # Privacy Policy for Tab Mission
 
-**Last Updated: 2025-09-04**
+**Last Updated: 2026-10-01**
 
-Thank you for using Tab Mission ("the Extension"). Your privacy is important to us. This Privacy Policy explains how your data is handled within the Extension.
+Thank you for using Tab Mission ("the Extension"). This policy explains exactly what the Extension reads, where that data stays, and why each permission is needed.
 
-## 1. Data Collection and Usage
+## 1. Summary
 
-Tab Mission is designed with a "privacy-first" approach. We do not collect, store, transmit, or sell any of your personal data.
+Tab Mission has no server, no analytics and no tracking. It does not collect, sell or transmit your browsing data. Everything it reads is used inside your browser to draw the tab overview, and nothing leaves your device through the Extension.
 
-### **Data Processed Locally:**
+## 2. What the Extension reads, and where it stays
 
-The Extension needs to access certain browser data to perform its core functions. This data is processed **exclusively on your local machine** and is never sent to any external server. This includes:
+- **Tab information:** the title, URL, favicon, window and last-used time of your open tabs, read with the `tabs` permission to build and order the overview grid. It is held in memory only while the overview window is open.
+- **Preview image addresses:** to show a picture for each tab, the Extension reads the address of an image the page itself declares (for example its `og:image` social preview image) or the largest image already on the page. It does **not** take screenshots. The image is then loaded from the same website that serves it, just as the page itself loads it. These image addresses are cached in `chrome.storage.session`, which lives in memory and is cleared when you quit the browser.
+- **Settings:** your "Show sleeping" and "Show all windows" choices and the overview window's size and position, saved with `chrome.storage.local` on your computer. Your search text is never saved.
 
--   **Tab Information:** The Extension accesses the title, URL, and favicon of your open tabs to display them in the overview grid. This is essential for you to find and switch between your tabs.
--   **Tab Previews:** The Extension captures a visual preview (screenshot) of your open tabs. This image data is used solely to display the thumbnail in the grid and is stored temporarily in your browser's local cache.
--   **User Settings:** Any settings you configure, such as custom keyboard shortcuts or the window's size and position, are saved using the `chrome.storage.local` API. This data is stored only on your computer.
+## 3. Permissions and why they are needed
 
-## 2. No Data Transmission
+- `tabs`: read tab titles, URLs and favicons, switch to a tab, and close a tab when you ask.
+- `scripting` and host access to all sites (`<all_urls>`): read the preview image address from a page, as described above. No other page content is read, and the Extension never changes a page.
+- `system.display`: size and place the overview window on the screen you are using.
+- `storage`: save the settings and the session cache listed above.
 
-To be perfectly clear: **no browsing data, personal information, or user activity is ever transmitted to or stored on our servers or any third-party servers.** All operations happen locally within your browser.
+## 4. No data transmission
 
-## 3. Permissions
+No browsing data, personal information or user activity is sent to the developer or to any third party. The only network requests involved are the preview images described in section 2, which go to the websites you already have open.
 
-The Extension requests the minimum permissions necessary to function:
+## 5. Changes to This Policy
 
--   `tabs`: To read information about your open tabs.
--   `scripting` & `host_permissions`: To capture tab previews.
--   `storage`: To save your settings locally.
--   ...and other permissions required for the core user experience.
+We may update this Privacy Policy from time to time. Any changes will be posted on this page with a new date.
 
-Each permission is used strictly to provide the features described in the Chrome Web Store listing.
-
-## 4. Changes to This Policy
-
-We may update this Privacy Policy from time to time. Any changes will be posted on this page.
-
-## 5. Contact Us
+## 6. Contact Us
 
 If you have any questions about this Privacy Policy, please open an issue on our [GitHub repository](https://github.com/kuk1song/Tab-Mission).
