@@ -1,25 +1,63 @@
 // dom.js
 import { state } from './state.js';
-import { activateTab } from './events.js';
-import { getHostname, isValidIconUrl, getPlaceholderDataUrl, createPlaceholderIcon } from './utils.js';
+import { activateTab, closeTab } from './events.js';
+import { getHostname, isValidIconUrl, isSleeping, generateGradient, createPlaceholderIcon } from './utils.js';
 import { applyArtLayout } from './layout.js';
+import { observeTiles } from './thumbnail.js';
+import { t } from './i18n.js';
 
-// Removed top-level element getters to prevent race conditions.
+// One tile per tab, built on first render and reused afterwards. Filtering
+// only reorders these nodes, so previews never reload and the entrance
+// animation never replays while typing.
+const tiles = new Map();
 
-// Bind the delegated hover listeners exactly once. render() rebuilds the
-// grid's children but keeps the same #grid element, so these must not be
-// re-added per render — the old per-render anonymous mouseleave listener
-// leaked a new closure on every render.
+// Bind the delegated grid listeners exactly once. render() swaps the grid's
+// children but keeps the same #grid element.
 export function initializeGridListeners() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
   gridEl.addEventListener('mousemove', handleGridMouseMove);
-  gridEl.addEventListener('mouseleave', handleGridMouseLeave);
+  gridEl.addEventListener('mouseleave', restDefaultSelection);
+  gridEl.addEventListener('click', (e) => {
+    const tab = tabForEvent(e);
+    if (!tab) return;
+    if (e.target.closest('.tile-close')) closeTab(tab);
+    else activateTab(tab);
+  });
+  // Middle-click closes a tab, as on Chrome's own tab strip.
+  gridEl.addEventListener('mousedown', (e) => {
+    if (e.button === 1) e.preventDefault(); // no autoscroll cursor
+  });
+  gridEl.addEventListener('auxclick', (e) => {
+    if (e.button !== 1) return;
+    const tab = tabForEvent(e);
+    if (tab) closeTab(tab);
+  });
 }
 
-function handleGridMouseLeave() {
-  if (state.selectedIndex !== -1) {
-    state.selectedIndex = -1;
+function tabForEvent(e) {
+  const tile = e.target.closest('.tile');
+  if (!tile) return null;
+  return state.filteredTabs[parseInt(tile.dataset.index, 10)] || null;
+}
+
+function restDefaultSelection() {
+  if (state.selectedIndex !== state.defaultIndex) {
+    state.selectedIndex = state.defaultIndex;
+    updateSelection();
+  }
+}
+
+function handleGridMouseMove(e) {
+  const tile = e.target.closest('.tile');
+  if (!tile) {
+    // In a grid gap: fall back to the default (the best search match, or none).
+    restDefaultSelection();
+    return;
+  }
+  const index = parseInt(tile.dataset.index, 10);
+  if (state.selectedIndex !== index) {
+    state.selectedIndex = index;
     updateSelection();
   }
 }
@@ -27,103 +65,103 @@ function handleGridMouseLeave() {
 export function render() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
-  gridEl.innerHTML = '';
 
   if (state.filteredTabs.length === 0) {
-    renderEmptyMessage();
+    gridEl.replaceChildren(createEmptyMessage());
+    updateSelection();
     return;
   }
-  
-  const fragment = document.createDocumentFragment();
-  state.filteredTabs.forEach((tab, index) => {
-    const tile = createTile(tab, index);
-    fragment.appendChild(tile);
+
+  const nodes = state.filteredTabs.map((tab, index) => {
+    let tile = tiles.get(tab.id);
+    if (!tile) {
+      tile = createTile(tab, index);
+      tiles.set(tab.id, tile);
+    }
+    tile.dataset.index = String(index);
+    return tile;
   });
-  gridEl.appendChild(fragment);
+  gridEl.replaceChildren(...nodes);
 
   updateSelection();
   applyArtLayout();
+  observeTiles(nodes);
+}
+
+export function forgetTile(tabId) {
+  tiles.delete(tabId);
 }
 
 function createTile(tab, index) {
   const tile = document.createElement('button');
   tile.className = 'tile';
+  tile.id = `tile-${tab.id}`;
+  tile.setAttribute('role', 'option');
+  tile.setAttribute('aria-selected', 'false');
+  tile.tabIndex = -1; // focus stays in the search box; arrows move the highlight
   tile.style.setProperty('--stagger', `${(index % 10) * 20}ms`);
   tile.setAttribute('data-tab-id', String(tab.id));
-  tile.setAttribute('data-index', String(index));
-  tile.addEventListener('click', () => activateTab(tab));
+  if (isSleeping(tab)) tile.classList.add('sleeping');
 
-  const preview = createPreviewElement(tab);
-  tile.appendChild(preview);
-  
-  const meta = createMetaElement(tab);
-  tile.appendChild(meta);
-  
+  tile.appendChild(createPreviewElement(tab));
+  tile.appendChild(createMetaElement(tab));
+
+  // A span, not a nested <button> (invalid inside a button); clicks on it are
+  // handled by the grid's delegated listener.
+  const close = document.createElement('span');
+  close.className = 'tile-close';
+  close.textContent = '×';
+  close.title = t('closeTabTitle') || 'Close tab';
+  close.setAttribute('aria-hidden', 'true');
+  tile.appendChild(close);
+
   return tile;
 }
 
-function handleGridMouseMove(e) {
-  const target = e.target;
-  const tile = target.closest('.tile');
-
-  if (tile) {
-    const index = parseInt(tile.dataset.index, 10);
-    if (state.selectedIndex !== index) {
-      state.selectedIndex = index;
-      updateSelection();
-    }
-  } else {
-    // If we are not over any tile (e.g., in the grid gap)
-    if (state.selectedIndex !== -1) {
-      state.selectedIndex = -1;
-      updateSelection();
-    }
-  }
-}
-
 function createPreviewElement(tab) {
+  const hostname = getHostname(tab.url);
+  const title = tab.title || t('untitled') || 'Untitled';
+
   const preview = document.createElement('div');
   preview.className = 'preview';
-  
-  // 1. Create the image element for the thumbnail
-  const img = document.createElement('img');
-  img.className = 'thumbnail';
-  img.alt = 'Tab preview';
-  img.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-  preview.appendChild(img);
-  
-  // 2. Create the text-based fallback preview, initially hidden
+  preview.style.backgroundImage = generateGradient(hostname);
+
+  // Placeholder text (title top-left, hostname bottom-left). It stays visible
+  // until a real preview image loads over it, and remains for pages without one.
   const textPreview = document.createElement('div');
   textPreview.className = 'text-preview';
-  textPreview.style.display = 'none'; // Initially hidden
-  
-  const title = document.createElement('div');
-  title.className = 'preview-title';
-  title.textContent = tab.title || 'Untitled';
-  
-  const url = document.createElement('div');
-  url.className = 'preview-url';
-  url.textContent = getHostname(tab.url);
-  
-  textPreview.appendChild(title);
-  textPreview.appendChild(url);
+  const previewTitle = document.createElement('div');
+  previewTitle.className = 'preview-title';
+  previewTitle.textContent = title;
+  const previewUrl = document.createElement('div');
+  previewUrl.className = 'preview-url';
+  previewUrl.textContent = hostname;
+  textPreview.append(previewTitle, previewUrl);
   preview.appendChild(textPreview);
 
-  // Set the initial blurry placeholder as a background on the main preview container
-  preview.style.backgroundImage = `url('${getPlaceholderDataUrl(tab.title || 'Untitled', getHostname(tab.url))}')`;
-  preview.style.backgroundSize = 'cover';
-  preview.style.backgroundPosition = 'center';
-  
+  const img = document.createElement('img');
+  img.className = 'thumbnail';
+  img.alt = '';
+  img.decoding = 'async';
+  preview.appendChild(img);
+
+  if (isSleeping(tab)) {
+    const badge = document.createElement('span');
+    badge.className = 'badge-sleeping';
+    badge.textContent = t('sleepingBadge') || 'Sleeping';
+    preview.appendChild(badge);
+  }
+
   return preview;
 }
 
 function createMetaElement(tab) {
   const meta = document.createElement('div');
   meta.className = 'meta';
-  
+
   const titleRow = document.createElement('div');
   titleRow.className = 'title-row';
-  
+
   const favicon = document.createElement('img');
   favicon.className = 'favicon';
   favicon.alt = '';
@@ -137,47 +175,51 @@ function createMetaElement(tab) {
     favicon.src = createPlaceholderIcon(getHostname(tab.url));
   }
   titleRow.appendChild(favicon);
-  
+
   const title = document.createElement('div');
   title.className = 'title';
-  title.textContent = tab.title || 'Untitled';
+  title.textContent = tab.title || t('untitled') || 'Untitled';
   titleRow.appendChild(title);
-  
+
   meta.appendChild(titleRow);
-  
+
   const url = document.createElement('div');
   url.className = 'url';
   url.textContent = getHostname(tab.url);
   meta.appendChild(url);
-  
+
   return meta;
 }
 
-function renderEmptyMessage() {
-  const gridEl = document.getElementById('grid');
-  if (!gridEl) return;
+function createEmptyMessage() {
   const emptyMessage = document.createElement('div');
-  emptyMessage.style.cssText = 'padding: 40px; text-align: center; color: #9aa0a6; font-size: 14px;';
-  emptyMessage.textContent = state.allTabs.length === 0 
-    ? 'No tabs found. Please check permissions.'
-    : 'No tabs match current filters.';
-  gridEl.appendChild(emptyMessage);
+  emptyMessage.className = 'empty';
+  emptyMessage.textContent = state.allTabs.length === 0
+    ? (t('emptyNoTabs') || 'No tabs found.')
+    : (t('emptyNoMatch') || 'No tabs match.');
+  return emptyMessage;
 }
 
 export function updateSelection(scrollToSelected = false) {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
-  const tiles = Array.from(gridEl.querySelectorAll('.tile'));
-  tiles.forEach((tile, index) => {
-    tile.classList.toggle('selected', index === state.selectedIndex);
+  const tileEls = Array.from(gridEl.querySelectorAll('.tile'));
+  tileEls.forEach((tile, index) => {
+    const selected = index === state.selectedIndex;
+    tile.classList.toggle('selected', selected);
+    tile.setAttribute('aria-selected', String(selected));
   });
+
+  const selectedTile = tileEls[state.selectedIndex];
+  const searchEl = document.getElementById('search');
+  if (searchEl) {
+    if (selectedTile) searchEl.setAttribute('aria-activedescendant', selectedTile.id);
+    else searchEl.removeAttribute('aria-activedescendant');
+  }
 
   // Only scroll for keyboard navigation. Scrolling on hover makes the grid
   // drift when the pointer merely grazes a tile near an edge.
-  if (scrollToSelected) {
-    const selectedTile = tiles[state.selectedIndex];
-    if (selectedTile) {
-      selectedTile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+  if (scrollToSelected && selectedTile) {
+    selectedTile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 }

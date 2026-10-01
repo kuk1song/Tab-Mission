@@ -1,96 +1,93 @@
 // thumbnail.js
 import { state } from './state.js';
-import { isCapturableUrl } from './utils.js';
+import { isCapturableUrl, isSleeping } from './utils.js';
 
-const captureCache = new Map();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// Preview image URLs are cached in chrome.storage.session (kept in memory and
+// cleared when the browser quits), so reopening the overview shows previews
+// instantly instead of injecting a script into every visible tab again.
+const CACHE_KEY = 'previewCache';
+const HIT_TTL_MS = 30 * 60 * 1000; // a found image is reused for 30 minutes
+const MISS_TTL_MS = 5 * 60 * 1000; // a page without one is retried after 5
+let cache = {};
+let cacheLoaded = null;
 let thumbnailObserver = null;
 
-export function startThumbnailCapture() {
-  const gridEl = document.getElementById('grid');
-  if (thumbnailObserver) {
-    thumbnailObserver.disconnect();
-  }
-
-  thumbnailObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const tile = entry.target;
-        const tabId = parseInt(tile.getAttribute('data-tab-id'));
-        const tab = state.filteredTabs.find(t => t.id === tabId);
-        const img = tile.querySelector('.thumbnail');
-        
-        if (tab && img) {
-          loadThumbnail(tab, img);
-        }
-        observer.unobserve(tile);
-      }
-    });
-  }, { root: gridEl, rootMargin: '0px 0px 300px 0px' });
-
-  const tilesWithThumbnails = gridEl.querySelectorAll('.tile .thumbnail');
-  tilesWithThumbnails.forEach(img => {
-    const tile = img.closest('.tile');
-    if (tile) {
-      thumbnailObserver.observe(tile);
-    }
-  });
+function loadCache() {
+  cacheLoaded ??= chrome.storage.session
+    .get(CACHE_KEY)
+    .then((stored) => { cache = stored[CACHE_KEY] || {}; })
+    .catch(() => {});
+  return cacheLoaded;
 }
 
-async function loadThumbnail(tab, imgElement) {
-  const previewElement = imgElement.parentElement;
-  const textPreviewElement = previewElement.querySelector('.text-preview');
+function remember(tab, imageUrl) {
+  cache[tab.id] = { url: tab.url, img: imageUrl || null, at: Date.now() };
+  // Drop entries for tabs that no longer exist so the cache stays small.
+  const openIds = new Set(state.allTabs.map((t) => String(t.id)));
+  for (const id of Object.keys(cache)) {
+    if (!openIds.has(id)) delete cache[id];
+  }
+  chrome.storage.session.set({ [CACHE_KEY]: cache }).catch(() => {});
+}
 
-  // Keep the canvas placeholder background (title top-left, URL bottom-left)
-  // and simply hide the <img> when we cannot load a real thumbnail.
-  const showTextFallback = () => {
-    imgElement.style.display = 'none';
-    if (textPreviewElement) textPreviewElement.style.display = 'none';
-    // Do NOT clear previewElement.style.backgroundImage here;
-    // createPreviewElement already set a placeholder that matches sleeping tabs.
+// Watch tiles that have not been handled yet; each loads its preview once,
+// when it first scrolls near the viewport. Tiles are reused across renders,
+// so filtering never reloads or flickers a preview.
+export function observeTiles(tiles) {
+  if (!thumbnailObserver) {
+    thumbnailObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const tile = entry.target;
+        observer.unobserve(tile);
+        const tabId = parseInt(tile.getAttribute('data-tab-id'), 10);
+        const tab = state.allTabs.find((t) => t.id === tabId);
+        if (tab) loadThumbnail(tab, tile);
+      });
+    }, { root: document.getElementById('grid'), rootMargin: '0px 0px 300px 0px' });
+  }
+  for (const tile of tiles) {
+    if (tile.dataset.thumb) continue;
+    tile.dataset.thumb = 'pending';
+    thumbnailObserver.observe(tile);
+  }
+}
+
+async function loadThumbnail(tab, tile) {
+  tile.dataset.thumb = 'done';
+  const img = tile.querySelector('.thumbnail');
+  // Pages we cannot read keep the placeholder (title + hostname on a gradient).
+  if (!img || !isCapturableUrl(tab.url)) return;
+
+  await loadCache();
+  const hit = cache[tab.id];
+  const sameUrl = hit && hit.url === tab.url;
+
+  // A sleeping tab cannot run scripts, and injecting would risk waking it, so
+  // it shows whatever was cached before it slept, however old.
+  if (isSleeping(tab)) {
+    if (sameUrl && hit.img) showImage(img, tab, hit.img);
+    return;
+  }
+
+  if (sameUrl && Date.now() - hit.at < (hit.img ? HIT_TTL_MS : MISS_TTL_MS)) {
+    if (hit.img) showImage(img, tab, hit.img);
+    return;
+  }
+
+  const imageUrl = await extractPreviewImage(tab.id);
+  remember(tab, imageUrl);
+  if (imageUrl) showImage(img, tab, imageUrl);
+}
+
+function showImage(img, tab, src) {
+  img.onload = () => requestAnimationFrame(() => img.classList.add('loaded'));
+  img.onerror = () => {
+    // A dead image URL: hide it and remember the miss so we do not retry it.
+    img.style.display = 'none';
+    remember(tab, null);
   };
-
-  const cacheKey = `${tab.id}|${tab.url}`;
-  const cached = captureCache.get(cacheKey);
-  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
-    // If found in cache, directly use the dataUrl for both src and background
-    imgElement.src = cached.dataUrl;
-    imgElement.style.backgroundImage = `url('${cached.dataUrl}')`;
-    imgElement.classList.add('loaded');
-    return;
-  }
-  
-  if (!isCapturableUrl(tab.url)) {
-    showTextFallback();
-    return;
-  }
-  
-  try {
-    const result = await extractPreviewImage(tab.id);
-    if (result) {
-      const { imageUrl, dataUrl } = result;
-      const finalUrl = imageUrl || dataUrl;
-      
-      if (finalUrl) {
-        imgElement.style.backgroundImage = `url('${finalUrl}')`;
-        imgElement.src = finalUrl;
-        imgElement.onload = () => {
-          requestAnimationFrame(() => imgElement.classList.add('loaded'));
-          captureCache.set(cacheKey, { dataUrl: finalUrl, timestamp: Date.now() });
-        };
-        imgElement.onerror = () => {
-          showTextFallback();
-        };
-      } else {
-        showTextFallback();
-      }
-    } else {
-      showTextFallback();
-    }
-  } catch (err) {
-    console.debug('Thumbnail capture failed for tab', tab.id, err.message);
-    showTextFallback();
-  }
+  img.src = src;
 }
 
 async function extractPreviewImage(tabId) {
@@ -98,14 +95,23 @@ async function extractPreviewImage(tabId) {
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
+        // og:image and friends may be relative; resolve against the page.
+        const absolute = (url) => {
+          try {
+            return new URL(url, document.baseURI).href;
+          } catch {
+            return null;
+          }
+        };
+
         // Special case for YouTube
         if (window.location.hostname.includes('youtube.com')) {
           const videoId = new URLSearchParams(window.location.search).get('v');
           if (videoId) {
-            return { imageUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` };
+            return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
           }
         }
-        
+
         // 1. Try OpenGraph or Twitter Card image
         const metaSelectors = [
           'meta[property="og:image"]', 'meta[property="og:image:secure_url"]',
@@ -113,19 +119,19 @@ async function extractPreviewImage(tabId) {
         ];
         for (const selector of metaSelectors) {
           const meta = document.querySelector(selector);
-          if (meta && meta.content) return { imageUrl: meta.content };
+          if (meta && meta.content) return absolute(meta.content);
         }
 
         // 2. Try other semantic link tags
         const linkSelectors = ['link[rel="image_src"]', 'link[rel="apple-touch-icon"]'];
         for (const selector of linkSelectors) {
           const link = document.querySelector(selector);
-          if (link && link.href) return { imageUrl: link.href };
+          if (link && link.href) return link.href;
         }
 
         // 3. Look for video posters
         const video = document.querySelector('video[poster]');
-        if (video && video.poster) return { imageUrl: video.poster };
+        if (video && video.poster) return video.poster;
 
         // 4. Check for background-image on large elements
         const largeElements = Array.from(document.querySelectorAll('body, body > *, body > * > *'));
@@ -133,7 +139,7 @@ async function extractPreviewImage(tabId) {
           const style = window.getComputedStyle(el);
           if (style.backgroundImage && style.backgroundImage.startsWith('url("')) {
             const url = style.backgroundImage.slice(5, -2);
-            if (el.clientWidth > 200 && el.clientHeight > 150) return { imageUrl: url };
+            if (el.clientWidth > 200 && el.clientHeight > 150) return url;
           }
         }
 
@@ -150,17 +156,17 @@ async function extractPreviewImage(tabId) {
             bestArea = area;
           }
         }
-        if (bestImage && bestImage.src) return { imageUrl: bestImage.src };
+        if (bestImage && bestImage.currentSrc) return bestImage.currentSrc;
 
         // Fallback: If no suitable image is found, signal to use placeholder
         return null;
       }
     });
-    return results[0].result;
+    return results[0]?.result || null;
   } catch (err) {
     console.debug('Script injection failed for tab', tabId, err.message);
-    // Returning null lets loadThumbnail fall back to the text/placeholder
-    // preview, instead of caching a 1x1 transparent gif as a "real" thumbnail.
+    // Returning null keeps the text/placeholder preview, instead of caching a
+    // blank image as a "real" thumbnail.
     return null;
   }
 }

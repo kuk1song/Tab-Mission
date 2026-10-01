@@ -24,7 +24,7 @@
     "<all_urls>"
   ],
   "action": {
-    "default_title": "Open Tab Overview",
+    "default_title": "__MSG_actionTitle__",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"
@@ -36,10 +36,17 @@
   },
   "commands": {
     "open-overview": {
-      "description": "Toggle Tab Mission Overview",
+      "description": "__MSG_commandOpen__",
       "suggested_key": {
         "default": "Ctrl+E",
         "mac": "Command+E"
+      }
+    },
+    "open-overview-site": {
+      "description": "__MSG_commandOpenSite__",
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
       }
     }
   }

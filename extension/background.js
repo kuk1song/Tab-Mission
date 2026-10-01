@@ -27,7 +27,42 @@ async function setStoredOverviewWindowId(idOrNull) {
 	} catch {}
 }
 
-async function toggleOverviewWindow() {
+// Find the display whose work area contains a point, if any.
+function displayAt(displays, x, y) {
+	return displays.find(({ workArea: a }) =>
+		x >= a.left && x < a.left + a.width && y >= a.top && y < a.top + a.height);
+}
+
+// Pick the display to open on: where the overview was last placed, else where
+// the user is working (the last focused browser window), else the primary.
+async function chooseDisplay(displays, saved) {
+	if (saved && typeof saved.left === 'number' && typeof saved.top === 'number' && saved.width && saved.height) {
+		const display = displayAt(displays, saved.left + saved.width / 2, saved.top + saved.height / 2);
+		if (display) return display;
+	}
+	try {
+		const focused = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+		if (typeof focused?.left === 'number') {
+			const display = displayAt(displays, focused.left + focused.width / 2, focused.top + focused.height / 2);
+			if (display) return display;
+		}
+	} catch {}
+	return displays.find(d => d.isPrimary) || displays[0];
+}
+
+function defaultBounds(display) {
+	const w = Math.min(display.workArea.width * 0.88, 1400); // 88% of width, capped at 1400px
+	const h = Math.min(display.workArea.height * 0.9, 1000); // 90% of height, capped at 1000px
+	return {
+		width: Math.round(w),
+		height: Math.round(h),
+		top: Math.round(display.workArea.top + (display.workArea.height - h) / 2),
+		left: Math.round(display.workArea.left + (display.workArea.width - w) / 2),
+	};
+}
+
+// scope is 'site' for the "current site" shortcut, anything else for all tabs.
+async function toggleOverviewWindow(scope) {
 	// If a window is currently in the process of being created, do nothing.
 	if (overviewWindowId === 'creating') {
 		return;
@@ -53,7 +88,7 @@ async function toggleOverviewWindow() {
 			// Send a message to the overview window to handle the shortcut
 			const tabs = await chrome.tabs.query({ windowId: overviewWindowId });
 			if (tabs.length > 0) {
-				await chrome.tabs.sendMessage(tabs[0].id, { action: 'handleShortcut' });
+				await chrome.tabs.sendMessage(tabs[0].id, { action: 'handleShortcut', scope });
 			} else {
 				// If no tabs are in the window (shouldn't happen), just close it.
 				await chrome.windows.remove(overviewWindowId);
@@ -81,10 +116,9 @@ async function toggleOverviewWindow() {
 			throw new Error("No display information found.");
 		}
 
-		const display = displays.find(d => d.isPrimary) || displays[0];
-
 		// Try to restore saved bounds; otherwise fallback to adaptive defaults with caps
 		const saved = await getSavedOverviewBounds();
+		const display = await chooseDisplay(displays, saved);
 		let w, h, top, left;
 		
 		// Restore size (width/height)
@@ -92,8 +126,7 @@ async function toggleOverviewWindow() {
 			w = Math.min(saved.width, display.workArea.width);
 			h = Math.min(saved.height, display.workArea.height);
 		} else {
-			w = Math.min(display.workArea.width * 0.88, 1400); // 88% of width, capped at 1400px
-			h = Math.min(display.workArea.height * 0.9, 1000); // 90% of height, capped at 1000px
+			({ width: w, height: h } = defaultBounds(display));
 		}
 		
 		// Restore position (top/left) - can be independent of size
@@ -107,7 +140,7 @@ async function toggleOverviewWindow() {
 		}
 
 		const win = await chrome.windows.create({
-			url: chrome.runtime.getURL('overview.html'),
+			url: chrome.runtime.getURL(scope === 'site' ? 'overview.html?scope=site' : 'overview.html'),
 			type: 'popup',
 			width: Math.round(w),
 			height: Math.round(h),
@@ -129,10 +162,12 @@ async function toggleOverviewWindow() {
 	}
 }
 
-// Listen for the command to open/toggle the overview.
+// Listen for the commands to open/toggle the overview.
 chrome.commands.onCommand.addListener((command) => {
 	if (command === 'open-overview') {
 		toggleOverviewWindow();
+	} else if (command === 'open-overview-site') {
+		toggleOverviewWindow('site');
 	}
 });
 
@@ -141,27 +176,40 @@ chrome.action.onClicked.addListener(() => {
 	toggleOverviewWindow();
 });
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+// First install: open a short welcome page that shows the shortcut (or says
+// that none could be assigned) so new users are not left guessing.
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
+		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
+	}
+});
+
+async function resetWindowBounds() {
+	await chrome.storage.local.set({ overviewBounds: null });
+	// Recenter the open overview on the display it is currently on.
+	const storedId = await getStoredOverviewWindowId();
+	if (!storedId) return;
+	const win = await chrome.windows.get(storedId);
+	const displays = await chrome.system.display.getInfo();
+	const display = displayAt(displays, win.left + win.width / 2, win.top + win.height / 2)
+		|| displays.find(d => d.isPrimary) || displays[0];
+	await chrome.windows.update(storedId, defaultBounds(display));
+}
+
+// Not an async listener: Chrome keeps the response channel open only when the
+// listener synchronously returns true.
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request?.action === 'resetWindowBounds') {
-		try {
-			await chrome.storage.local.set({ overviewBounds: null });
-			// Recenter current window to defaults
-			const displays = await chrome.system.display.getInfo();
-			const display = displays.find(d => d.isPrimary) || displays[0];
-			const w = Math.min(display.workArea.width * 0.88, 1400);
-			const h = Math.min(display.workArea.height * 0.9, 1000);
-			const top = Math.round(display.workArea.top + (display.workArea.height - h) / 2);
-			const left = Math.round(display.workArea.left + (display.workArea.width - w) / 2);
-			const storedId = await getStoredOverviewWindowId();
-			if (storedId) {
-				await chrome.windows.update(storedId, { width: Math.round(w), height: Math.round(h), top, left });
-			}
-			sendResponse({ ok: true });
-		} catch (e) {
-			sendResponse({ ok: false, error: e?.message || String(e) });
-		}
+		resetWindowBounds().then(
+			() => sendResponse({ ok: true }),
+			(e) => sendResponse({ ok: false, error: e?.message || String(e) }),
+		);
 		return true; // async response
 	}
+	if (request?.action === 'openOverview') {
+		toggleOverviewWindow(request.scope);
+	}
+	return false;
 });
 
 // Primary listener for any size or position change.

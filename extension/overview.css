@@ -97,7 +97,36 @@ html, body {
 }
 
 .spacer { flex: 1; }
-.ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; transition: opacity 0.2s; }
+
+/* While searching (or in the site view) results span every window and
+   sleeping tab, so the toggles do not apply; dim them to say so. */
+.toolbar.searching .ctrl { opacity: 0.45; }
+
+.scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 6px 6px 6px 12px;
+  border-radius: 999px;
+  background: var(--tile-bg-selected);
+  border: 1px solid var(--accent);
+  color: var(--fg);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.scope-chip[hidden] { display: none; }
+.scope-clear {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+.scope-clear:hover { color: var(--accent); }
 .hint { color: var(--muted); font-size: 12px; }
 
 .hint-inline { margin-left: 8px; }
@@ -199,10 +228,16 @@ html, body {
   cursor: pointer;
   backdrop-filter: blur(20px);
   transition: all 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  animation: fadeInUp 320ms ease both;
-  animation-delay: var(--stagger, 0ms);
   min-height: 200px;
   box-shadow: var(--shadow-subtle);
+  position: relative; /* anchors the close control */
+}
+
+/* The staggered entrance plays on the first render only; filtering reuses the
+   same tiles and must not replay it on every keystroke. */
+.grid.entering .tile {
+  animation: fadeInUp 320ms ease both;
+  animation-delay: var(--stagger, 0ms);
 }
 
 .grid.art .tile {
@@ -250,14 +285,14 @@ html, body {
 }
 
 .thumbnail {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: opacity 0.3s ease-out;
-  /* Hide the img content itself, we use it for loading but display the background */
-  opacity: 0; 
-  background-size: cover;
-  background-position: center;
+  /* Invisible until loaded; the placeholder text underneath shows meanwhile. */
+  opacity: 0;
 }
 
 .thumbnail.loaded {
@@ -265,34 +300,82 @@ html, body {
 }
 
 .text-preview {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 16px;
-  text-align: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 16px;
+  text-align: left;
 }
 
 .preview-title {
-  color: var(--fg);
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  line-height: 1.3;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  word-break: break-word;
 }
 
 .preview-url {
+  color: #a0aec0;
+  font-family: monospace;
+  font-size: 10px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sleeping (discarded) tabs: muted, with a small badge. */
+.tile.sleeping .preview { filter: saturate(0.6) brightness(0.85); }
+.badge-sleeping {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
   color: var(--muted);
-  font-size: 12px;
-  opacity: 0.8;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* Close control: shown on hover or keyboard selection. */
+.tile-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--fg);
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  z-index: 2;
+}
+.tile:hover .tile-close,
+.tile.selected .tile-close { opacity: 0.85; }
+.tile-close:hover { opacity: 1; background: #e5484d; }
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: #9aa0a6;
+  font-size: 14px;
+  grid-column: 1 / -1;
 }
 
 @keyframes fadeInUp {
@@ -377,4 +460,18 @@ html, body {
   text-overflow: ellipsis; 
 }
 
-
+/* Respect the OS "reduce motion" setting: no entrance, hover or exit motion.
+   (closeOverview() also skips its exit delay in this mode.) */
+@media (prefers-reduced-motion: reduce) {
+  #root,
+  .tile,
+  .grid.entering .tile,
+  .thumbnail {
+    animation: none !important;
+    transition: none !important;
+  }
+  .tile:hover,
+  .tile.selected {
+    transform: none;
+  }
+}

@@ -1,44 +1,162 @@
 {
   "appName": {
     "message": "Tab Mission",
-    "description": "扩展程序的名称。"
+    "description": "The name of the extension."
   },
   "appDescription": {
-    "message": "你的标签页指挥中心。所有标签页一览无余，即时搜索，精准切换。",
-    "description": "扩展程序的简短描述。"
+    "message": "Chrome 标签页的“调度中心”：所有标签页以可视网格呈现，最近使用的排在前面。输入即搜索，回车即切换。",
+    "description": "Store summary and manifest description (max 132 characters)."
+  },
+  "actionTitle": {
+    "message": "打开 Tab Mission",
+    "description": "Toolbar button tooltip; also the welcome page's open button."
+  },
+  "commandOpen": {
+    "message": "打开或关闭标签页总览",
+    "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
+  },
+  "commandOpenSite": {
+    "message": "仅显示当前网站的标签页",
+    "description": "Description of the site-view keyboard shortcut."
   },
   "pageTitle": {
     "message": "Tab Mission",
-    "description": "扩展程序主 HTML 页面的标题。"
+    "description": "The title of the extension's main HTML page."
   },
   "searchPlaceholder": {
-    "message": "搜索标签页 (标题或网址)...",
-    "description": "搜索输入框的占位符文本。"
+    "message": "搜索标签页（标题或网址）…",
+    "description": "Placeholder text for the search input field."
+  },
+  "searchEverywhereHint": {
+    "message": "搜索时会包含所有窗口和休眠标签页",
+    "description": "Tooltip on the toggles: searching ignores them."
   },
   "showSleepingLabel": {
     "message": "显示休眠标签",
-    "description": "“显示休眠标签”复选框的标签。"
+    "description": "Label for the 'Show sleeping' checkbox."
   },
   "showAllWindowsLabel": {
     "message": "显示所有窗口",
-    "description": "“显示所有窗口”复选框的标签。"
+    "description": "Label for the 'Show all windows' checkbox."
   },
   "changeShortcutTitle": {
     "message": "更改快捷键",
-    "description": "打开快捷键设置按钮的工具提示。"
+    "description": "Tooltip for the button that opens shortcut settings."
   },
   "resetWindowTitle": {
     "message": "重置大小和位置",
-    "description": "重置窗口大小和位置按钮的工具提示。"
+    "description": "Tooltip for the button that resets the window size and position."
   },
   "toggleWithShortcut": {
     "message": "使用 $shortcut$ 切换",
-    "description": "快捷键提示的工具提示/无障碍文本，包含当前快捷键。",
+    "description": "Tooltip/ARIA label for the shortcut hint; includes the active shortcut.",
     "placeholders": {
       "shortcut": {
         "content": "$1",
-        "example": "Command + E"
+        "example": "⌘ + E"
       }
     }
+  },
+  "gridLabel": {
+    "message": "已打开的标签页",
+    "description": "Accessible name of the tab grid."
+  },
+  "emptyNoTabs": {
+    "message": "没有找到标签页。",
+    "description": "Shown when no tabs could be read."
+  },
+  "emptyNoMatch": {
+    "message": "没有匹配的标签页。",
+    "description": "Shown when the search or filters match nothing."
+  },
+  "untitled": {
+    "message": "无标题",
+    "description": "Fallback title for a tab without one."
+  },
+  "sleepingBadge": {
+    "message": "休眠",
+    "description": "Badge on tabs Chrome has put to sleep."
+  },
+  "closeTabTitle": {
+    "message": "关闭标签页（也可中键点击）",
+    "description": "Tooltip of the close control on a tile."
+  },
+  "siteScopeLabel": {
+    "message": "仅 $host$",
+    "description": "Chip shown while only one site's tabs are listed.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "github.com"
+      }
+    }
+  },
+  "siteScopeClear": {
+    "message": "显示全部标签页",
+    "description": "Button that leaves the site view."
+  },
+  "shortcutNotSet": {
+    "message": "未设置",
+    "description": "Shown in place of a shortcut that is not assigned."
+  },
+  "welcomeTitle": {
+    "message": "Tab Mission 已就绪",
+    "description": "Welcome page heading."
+  },
+  "welcomeLead": {
+    "message": "在 Chrome 中任意位置按 $shortcut$，即可看到所有标签页。",
+    "description": "Welcome page: how to open the overview.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "welcomeNoShortcut": {
+    "message": "Chrome 未能分配默认快捷键（可能已被其他扩展占用）。请设置一个快捷键，以便用键盘打开 Tab Mission。",
+    "description": "Welcome page: the default shortcut could not be assigned."
+  },
+  "welcomeSetShortcut": {
+    "message": "设置快捷键",
+    "description": "Welcome page button that opens chrome://extensions/shortcuts."
+  },
+  "welcomeTipsTitle": {
+    "message": "使用方法",
+    "description": "Welcome page: tips heading."
+  },
+  "welcomeTipSearch": {
+    "message": "直接输入即可按标题或网址筛选。最佳匹配会被高亮，按回车即可切换过去。",
+    "description": "Welcome page tip."
+  },
+  "welcomeTipMru": {
+    "message": "标签页按最近使用排序，当前标签页排第一。按 → 再按回车，即可回到上一个标签页。",
+    "description": "Welcome page tip."
+  },
+  "welcomeTipHover": {
+    "message": "也可以把鼠标悬停在某个标签页上，再按一次快捷键直接跳转。",
+    "description": "Welcome page tip."
+  },
+  "welcomeTipSite": {
+    "message": "网站视图（$shortcut$）：只显示当前网站的标签页。",
+    "description": "Welcome page tip about the site view shortcut.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "welcomeTipClose": {
+    "message": "中键点击标签页或点击其 ×，即可关闭。",
+    "description": "Welcome page tip."
+  },
+  "welcomePin": {
+    "message": "提示：把 Tab Mission 固定到工具栏（点击拼图图标，再点图钉），即可一键打开。",
+    "description": "Welcome page tip shown when the toolbar button is not pinned."
+  },
+  "welcomePrivacy": {
+    "message": "所有数据都留在你的浏览器里。Tab Mission 没有服务器，也不收集任何数据。",
+    "description": "Welcome page privacy note."
   }
 }
