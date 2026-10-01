@@ -20,4 +20,18 @@ for (const file of files) {
   }
 }
 
+// The store reads the version from manifest.json; keep package.json in step.
+try {
+  const manifest = JSON.parse(readFileSync('extension/manifest.json', 'utf8'));
+  const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+  if (manifest.version !== pkg.version) {
+    failed = true;
+    console.error(`FAIL version mismatch: manifest ${manifest.version}, package.json ${pkg.version}`);
+  } else {
+    console.log(`ok   version ${manifest.version}`);
+  }
+} catch {
+  // A parse failure was already reported above.
+}
+
 process.exit(failed ? 1 : 0);

@@ -1,6 +1,6 @@
 {
   "name": "tab-mission",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Mission control for your browser tabs — a searchable visual grid of every open tab.",
   "private": true,
   "license": "MIT",
@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "validate:json": "node scripts/validate-json.mjs",
     "test": "vitest run",
-    "check": "npm run lint && npm run validate:json && npm run test"
+    "check": "npm run lint && npm run validate:json && npm run test",
+    "package": "node scripts/package.mjs"
   },
   "devDependencies": {
     "eslint": "^10.4.1",
