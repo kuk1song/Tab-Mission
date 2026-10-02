@@ -158,5 +158,33 @@
   "welcomePrivacy": {
     "message": "所有数据都留在你的浏览器里。Tab Mission 没有服务器，也不收集任何数据。",
     "description": "Welcome page privacy note."
+  },
+  "optionsTitle": {
+    "message": "Tab Mission 设置",
+    "description": "Options page title."
+  },
+  "optionOpenHeading": {
+    "message": "打开概览时",
+    "description": "Options: heading of the open-selection choice."
+  },
+  "optionOpenNone": {
+    "message": "不选中任何标签。再按一次快捷键会关闭概览。",
+    "description": "Options: select nothing on open."
+  },
+  "optionOpenPrevious": {
+    "message": "预选上一个标签。再按一次快捷键会回到它。",
+    "description": "Options: pre-select the previous tab on open."
+  },
+  "optionOpenNote": {
+    "message": "两种方式下，都可以把鼠标悬停在某个标签上再按快捷键切过去，或按 Esc 关闭。",
+    "description": "Options: note under the open-selection choice."
+  },
+  "optionShortcutsHeading": {
+    "message": "快捷键",
+    "description": "Options: shortcuts heading."
+  },
+  "optionSaved": {
+    "message": "已保存。",
+    "description": "Options: confirmation after a change."
   }
 }

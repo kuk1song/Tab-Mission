@@ -158,5 +158,33 @@
   "welcomePrivacy": {
     "message": "Everything stays in your browser. Tab Mission has no server and collects nothing.",
     "description": "Welcome page privacy note."
+  },
+  "optionsTitle": {
+    "message": "Tab Mission settings",
+    "description": "Options page title."
+  },
+  "optionOpenHeading": {
+    "message": "When the overview opens",
+    "description": "Options: heading of the open-selection choice."
+  },
+  "optionOpenNone": {
+    "message": "Select nothing. Pressing the shortcut again closes the overview.",
+    "description": "Options: select nothing on open."
+  },
+  "optionOpenPrevious": {
+    "message": "Select the previous tab. Pressing the shortcut again goes back to it.",
+    "description": "Options: pre-select the previous tab on open."
+  },
+  "optionOpenNote": {
+    "message": "Either way, hover a tab and press the shortcut to switch to it, or press Esc to close.",
+    "description": "Options: note under the open-selection choice."
+  },
+  "optionShortcutsHeading": {
+    "message": "Keyboard shortcuts",
+    "description": "Options: shortcuts heading."
+  },
+  "optionSaved": {
+    "message": "Saved.",
+    "description": "Options: confirmation after a change."
   }
 }

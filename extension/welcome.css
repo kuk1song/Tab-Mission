@@ -63,3 +63,8 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .tips { margin: 0; padding-left: 20px; line-height: 1.6; font-size: 14px; }
 .tips li { margin: 6px 0; }
 .note { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 16px 0 0; }
+
+.choices { border: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.choices label { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; cursor: pointer; }
+.choices input { margin-top: 4px; }
+#shortcuts div { margin: 6px 0; }

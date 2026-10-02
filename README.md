@@ -41,6 +41,7 @@ Tab Mission puts every open tab into one searchable grid, ordered by when you la
 
 - **Back to the previous tab:** press the shortcut, then `→` and `Enter`.
 - **No-click switching:** press the shortcut, hover the tab you want, and press the shortcut **again**.
+- **Settings:** right-click the toolbar icon and choose **Options** to pick what is selected when the overview opens.
 
 ## 💬 Feedback & Support
 

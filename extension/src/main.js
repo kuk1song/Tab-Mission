@@ -24,6 +24,7 @@ async function main() {
   if (toggleHideDiscarded) toggleHideDiscarded.checked = settings.showSleeping;
   if (toggleCurrentWindow) toggleCurrentWindow.checked = settings.showAllWindows;
   if (toggleArt) toggleArt.checked = settings.artMode;
+  state.preselectPrevious = settings.preselectPrevious;
 
   // Opened by the "current site" shortcut: show only this site's tabs.
   if (new URLSearchParams(location.search).get('scope') === 'site') {

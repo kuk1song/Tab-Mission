@@ -158,5 +158,33 @@
   "welcomePrivacy": {
     "message": "Tutto resta nel tuo browser. Tab Mission non ha server e non raccoglie nulla.",
     "description": "Welcome page privacy note."
+  },
+  "optionsTitle": {
+    "message": "Impostazioni di Tab Mission",
+    "description": "Options page title."
+  },
+  "optionOpenHeading": {
+    "message": "Quando si apre la panoramica",
+    "description": "Options: heading of the open-selection choice."
+  },
+  "optionOpenNone": {
+    "message": "Non selezionare nulla. Premendo di nuovo la scorciatoia la panoramica si chiude.",
+    "description": "Options: select nothing on open."
+  },
+  "optionOpenPrevious": {
+    "message": "Seleziona la scheda precedente. Premendo di nuovo la scorciatoia ci torni.",
+    "description": "Options: pre-select the previous tab on open."
+  },
+  "optionOpenNote": {
+    "message": "In entrambi i casi, passa il mouse su una scheda e premi la scorciatoia per andarci, oppure premi Esc per chiudere.",
+    "description": "Options: note under the open-selection choice."
+  },
+  "optionShortcutsHeading": {
+    "message": "Scorciatoie da tastiera",
+    "description": "Options: shortcuts heading."
+  },
+  "optionSaved": {
+    "message": "Salvato.",
+    "description": "Options: confirmation after a change."
   }
 }

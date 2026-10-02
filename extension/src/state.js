@@ -10,6 +10,7 @@ export const state = {
   currentTabId: null,
   selfWindowId: null, // the overview popup itself; its own tab is never listed
   siteHost: '', // non-empty while showing only one site's tabs
+  preselectPrevious: false, // mirrors the setting of the same name
 };
 
 export async function fetchAllTabs() {
@@ -87,8 +88,11 @@ export function applyFilters(uiState) {
   // selected, so pressing the shortcut again still closes the overview; an
   // automatic selection left over from an erased query is dropped too.
   const selectionWasAutomatic = state.selectedIndex === state.defaultIndex;
-  state.defaultIndex = searching ? firstOtherIndex(tabs) : -1;
-  if (searching) {
+  // With the preselectPrevious setting the browse view rests on the previous
+  // tab as well, so the shortcut pressed twice goes back to it.
+  const preselect = searching || Boolean(uiState.preselectPrevious);
+  state.defaultIndex = preselect ? firstOtherIndex(tabs) : -1;
+  if (preselect && (searching || selectionWasAutomatic)) {
     state.selectedIndex = state.defaultIndex;
   } else if (selectionWasAutomatic) {
     state.selectedIndex = -1;

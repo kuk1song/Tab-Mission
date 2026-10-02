@@ -111,6 +111,7 @@ function readUiState() {
     showSleeping: toggleHideDiscarded ? toggleHideDiscarded.checked : false,
     showAllWindows: toggleCurrentWindow ? toggleCurrentWindow.checked : false,
     artMode: toggleArt ? toggleArt.checked : false,
+    preselectPrevious: state.preselectPrevious,
   };
 }
 

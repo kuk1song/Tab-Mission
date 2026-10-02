@@ -4,6 +4,10 @@ const DEFAULTS = {
   showSleeping: false,
   showAllWindows: false,
   artMode: false,
+  // Experiment: true pre-selects the previous tab on open, so pressing the
+  // shortcut twice goes back to it (Alt+Tab style). false keeps nothing
+  // selected, so pressing it twice closes the overview.
+  preselectPrevious: false,
   // Add other settings here as needed
 };
 

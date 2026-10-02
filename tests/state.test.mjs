@@ -253,3 +253,34 @@ describe('moveSelection', () => {
     expect(state.selectedIndex).toBe(-1);
   });
 });
+
+describe('applyFilters — preselectPrevious setting', () => {
+  beforeEach(() => {
+    state.currentTabId = 1;
+    state.allTabs = [1, 2, 3].map((id) => makeTab(id, { lastAccessed: 10 - id }));
+  });
+
+  it('rests on the previous tab when the overview opens', () => {
+    applyFilters(ui({ preselectPrevious: true }));
+    expect(state.filteredTabs[state.selectedIndex].id).toBe(2);
+    expect(state.defaultIndex).toBe(1);
+  });
+
+  it('keeps nothing selected when the setting is off', () => {
+    applyFilters(ui({ preselectPrevious: false }));
+    expect(state.selectedIndex).toBe(-1);
+  });
+
+  it('returns to the previous tab after a query is erased', () => {
+    applyFilters(ui({ preselectPrevious: true, searchTerm: 'x' }));
+    applyFilters(ui({ preselectPrevious: true, searchTerm: '' }));
+    expect(state.filteredTabs[state.selectedIndex].id).toBe(2);
+  });
+
+  it('keeps a hovered tile selected when a toggle changes', () => {
+    applyFilters(ui({ preselectPrevious: true }));
+    state.selectedIndex = 2; // hovered
+    applyFilters(ui({ preselectPrevious: true, showSleeping: true }));
+    expect(state.selectedIndex).toBe(2);
+  });
+});
