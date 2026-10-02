@@ -78,8 +78,10 @@ html, body {
   backdrop-filter: blur(20px);
 }
 
+/* The search box takes all free width so its placeholder is never cut off. */
 #search {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 180px;
   padding: 12px 16px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
@@ -96,7 +98,6 @@ html, body {
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-.spacer { flex: 1; }
 .ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; transition: opacity 0.2s; }
 
 /* While searching (or in the site view) results span every window and
@@ -176,7 +177,7 @@ html, body {
 }
 
 /* Fine-tune individual sizes without affecting layout or hit area */
-#open-shortcuts { font-size: 13.5px; }
+#open-settings { font-size: 13.5px; }
 #reset-window { font-size: 20px; }
 
 #reset-window {
@@ -184,7 +185,7 @@ html, body {
   top: -0.31px; 
 }
 
-#open-shortcuts {
+#open-settings {
   position: relative;
   top: 1.5px; 
 }

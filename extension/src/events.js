@@ -32,7 +32,7 @@ export function initializeEventListeners() {
   const toggleCurrentWindow = document.getElementById('toggle-current-window');
   const toggleArt = document.getElementById('toggle-art');
   const resetBtn = document.getElementById('reset-window');
-  const openShortcutsBtn = document.getElementById('open-shortcuts');
+  const openSettingsBtn = document.getElementById('open-settings');
   const scopeClearBtn = document.getElementById('scope-clear');
 
   if (searchEl) searchEl.addEventListener('input', scheduleFilterChange);
@@ -50,10 +50,12 @@ export function initializeEventListeners() {
     handleFilterChange();
   });
 
-  if (openShortcutsBtn) {
-    openShortcutsBtn.addEventListener('click', () => {
+  // The gear opens Tab Mission's own settings page (open behaviour, and the
+  // shortcuts with a link to change them).
+  if (openSettingsBtn) {
+    openSettingsBtn.addEventListener('click', () => {
       try {
-        chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+        chrome.runtime.openOptionsPage();
       } finally {
         // Immediately close the overview for a smooth UX
         closeOverview(true);

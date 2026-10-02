@@ -186,5 +186,9 @@
   "optionSaved": {
     "message": "已保存。",
     "description": "Options: confirmation after a change."
+  },
+  "settingsTitle": {
+    "message": "设置",
+    "description": "Tooltip of the gear button that opens the settings page."
   }
 }
