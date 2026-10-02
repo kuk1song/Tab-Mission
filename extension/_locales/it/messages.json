@@ -81,16 +81,6 @@
     "message": "Chiudi scheda (o clic centrale)",
     "description": "Tooltip of the close control on a tile."
   },
-  "siteScopeLabel": {
-    "message": "Solo $host$",
-    "description": "Chip shown while only one site's tabs are listed.",
-    "placeholders": {
-      "host": {
-        "content": "$1",
-        "example": "github.com"
-      }
-    }
-  },
   "siteScopeClear": {
     "message": "Mostra tutte le schede",
     "description": "Button that leaves the site view."
@@ -138,8 +128,8 @@
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
-    "message": "Vista sito ($shortcut$): mostra solo le schede del sito in cui ti trovi.",
-    "description": "Welcome page tip about the site view shortcut.",
+    "message": "Premi $shortcut$ nella casella di ricerca per vedere solo le schede del sito in cui ti trovi.",
+    "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {
         "content": "$1",
@@ -186,5 +176,47 @@
   "optionPreselectNote": {
     "message": "Disattivato (predefinito): nessuna scheda è selezionata e premendo di nuovo la scorciatoia la panoramica si chiude. In entrambi i casi, passa il mouse su una scheda e premi la scorciatoia per andarci, oppure premi Esc per chiudere.",
     "description": "Options: note under the switch."
+  },
+  "searchSitePlaceholder": {
+    "message": "Cerca nelle schede di $host$…",
+    "description": "Search placeholder inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      }
+    }
+  },
+  "siteScopeHint": {
+    "message": "Solo $host$ · $count$",
+    "description": "Hint at the right of the empty search box; Tab or click scopes to the current site.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      },
+      "count": {
+        "content": "$2",
+        "example": "13"
+      }
+    }
+  },
+  "siteScopeHintTitle": {
+    "message": "Mostra solo le schede di questo sito (Tab)",
+    "description": "Tooltip of the site-scope hint."
+  },
+  "searchAllTabs": {
+    "message": "Cerca in tutte le schede",
+    "description": "Button in the empty state of the site scope; leaves the scope and keeps the query."
+  },
+  "emptyNoMatchInSite": {
+    "message": "Nessuna scheda di $host$ corrisponde alla ricerca.",
+    "description": "Empty state inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      }
+    }
   }
 }

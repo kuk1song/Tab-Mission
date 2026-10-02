@@ -78,24 +78,37 @@ html, body {
   backdrop-filter: blur(20px);
 }
 
-/* The search box takes all free width so its placeholder is never cut off. */
-#search {
+/* The search field takes all free width so its placeholder is never cut off.
+   It holds an optional site-scope token, the input and the Tab hint, the way
+   Chrome's address bar shows its "search this site" keyword inside the box. */
+.search-field {
   flex: 1 1 auto;
-  min-width: 180px;
-  padding: 12px 16px;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 12px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
-  outline: none;
   background: rgba(255, 255, 255, 0.05);
-  color: var(--fg);
-  font-size: 14px;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-#search:focus {
+.search-field:focus-within {
   border-color: var(--accent);
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+#search {
+  flex: 1 1 auto;
+  min-width: 80px;
+  padding: 12px 4px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: 14px;
 }
 
 .ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; transition: opacity 0.2s; }
@@ -104,30 +117,70 @@ html, body {
    sleeping tab, so the toggles do not apply; dim them to say so. */
 .toolbar.searching .ctrl { opacity: 0.45; }
 
-.scope-chip {
+.scope-token {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
-  padding: 6px 6px 6px 12px;
-  border-radius: 999px;
-  background: var(--tile-bg-selected);
-  border: 1px solid var(--accent);
+  height: 26px;
+  padding: 0 2px 0 8px;
+  border-radius: 7px;
+  background: rgba(0, 212, 255, 0.14);
   color: var(--fg);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
+  animation: tokenIn 140ms ease-out;
 }
-.scope-chip[hidden] { display: none; }
+.scope-token[hidden] { display: none; }
+.scope-icon { width: 14px; height: 14px; border-radius: 3px; }
+#scope-label { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 .scope-clear {
-  background: transparent;
+  width: 20px;
+  height: 20px;
   border: none;
+  border-radius: 5px;
+  background: transparent;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1;
-  padding: 0 4px;
   cursor: pointer;
 }
-.scope-clear:hover { color: var(--accent); }
+.scope-clear:hover { color: var(--fg); background: rgba(255, 255, 255, 0.1); }
+
+/* Quiet right-aligned hint, shown only while the box is empty. */
+.scope-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s;
+}
+.scope-hint[hidden] { display: none; }
+.scope-hint:hover { opacity: 1; background: rgba(255, 255, 255, 0.06); }
+.scope-hint kbd {
+  padding: 0 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+@keyframes tokenIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
 .hint { color: var(--muted); font-size: 12px; }
 
 .hint-inline { margin-left: 8px; }
@@ -376,8 +429,21 @@ html, body {
   text-align: center;
   color: #9aa0a6;
   font-size: 14px;
+  line-height: 2;
   grid-column: 1 / -1;
 }
+.empty-widen {
+  margin-top: 4px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.empty-widen:hover { border-color: var(--accent); }
 
 @keyframes fadeInUp {
   from { transform: translateY(12px) scale(0.98); opacity: 0; }

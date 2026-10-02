@@ -81,16 +81,6 @@
     "message": "Close tab (or middle-click)",
     "description": "Tooltip of the close control on a tile."
   },
-  "siteScopeLabel": {
-    "message": "Only $host$",
-    "description": "Chip shown while only one site's tabs are listed.",
-    "placeholders": {
-      "host": {
-        "content": "$1",
-        "example": "github.com"
-      }
-    }
-  },
   "siteScopeClear": {
     "message": "Show all tabs",
     "description": "Button that leaves the site view."
@@ -138,8 +128,8 @@
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
-    "message": "Site view ($shortcut$): shows only the tabs from the site you are on.",
-    "description": "Welcome page tip about the site view shortcut.",
+    "message": "Press $shortcut$ in the search box to see only the tabs from the site you are on.",
+    "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {
         "content": "$1",
@@ -186,5 +176,47 @@
   "optionPreselectNote": {
     "message": "Off (default): nothing is selected and pressing the shortcut again closes the overview. Either way, hover a tab and press the shortcut to switch to it, or press Esc to close.",
     "description": "Options: note under the switch."
+  },
+  "searchSitePlaceholder": {
+    "message": "Search $host$ tabs…",
+    "description": "Search placeholder inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      }
+    }
+  },
+  "siteScopeHint": {
+    "message": "Only $host$ · $count$",
+    "description": "Hint at the right of the empty search box; Tab or click scopes to the current site.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      },
+      "count": {
+        "content": "$2",
+        "example": "13"
+      }
+    }
+  },
+  "siteScopeHintTitle": {
+    "message": "Show only tabs from this site (Tab)",
+    "description": "Tooltip of the site-scope hint."
+  },
+  "searchAllTabs": {
+    "message": "Search all tabs",
+    "description": "Button in the empty state of the site scope; leaves the scope and keeps the query."
+  },
+  "emptyNoMatchInSite": {
+    "message": "No $host$ tabs match your search.",
+    "description": "Empty state inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      }
+    }
   }
 }

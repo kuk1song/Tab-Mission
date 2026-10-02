@@ -9,14 +9,20 @@
   <body>
     <div id="root">
       <header class="toolbar">
-        <div id="scope-chip" class="scope-chip" hidden>
-          <span id="scope-label"></span>
-          <button id="scope-clear" class="scope-clear" title="Show all tabs" aria-label="Show all tabs"
-                  data-i18n-title="siteScopeClear" data-i18n-aria-label="siteScopeClear">×</button>
+        <div class="search-field">
+          <span id="scope-token" class="scope-token" hidden>
+            <img id="scope-icon" class="scope-icon" alt="" />
+            <span id="scope-label"></span>
+            <button id="scope-clear" class="scope-clear" type="button" tabindex="-1" title="Show all tabs" aria-label="Show all tabs"
+                    data-i18n-title="siteScopeClear" data-i18n-aria-label="siteScopeClear">×</button>
+          </span>
+          <input id="search" type="text" autocomplete="off" spellcheck="false" autofocus
+                 role="combobox" aria-expanded="true" aria-controls="grid" aria-autocomplete="list"
+                 placeholder="Search tabs (title or URL)…" data-i18n-placeholder="searchPlaceholder" />
+          <button id="scope-hint" class="scope-hint" type="button" tabindex="-1" hidden>
+            <kbd>Tab</kbd><span id="scope-hint-label"></span>
+          </button>
         </div>
-        <input id="search" type="text" autocomplete="off" spellcheck="false" autofocus
-               role="combobox" aria-expanded="true" aria-controls="grid" aria-autocomplete="list"
-               placeholder="Search tabs (title or URL)…" data-i18n-placeholder="searchPlaceholder" />
         <label class="ctrl" title="Search covers all windows and sleeping tabs" data-i18n-title="searchEverywhereHint">
           <input id="toggle-hide-discarded" type="checkbox" />
           <span data-i18n="showSleepingLabel">Show sleeping</span>

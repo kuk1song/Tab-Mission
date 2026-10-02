@@ -24,7 +24,6 @@ async function main() {
     commands = await chrome.commands.getAll();
   } catch {}
   const shortcutOf = (name) => formatShortcut(commands.find((c) => c.name === name)?.shortcut);
-  const notSet = t('shortcutNotSet') || 'not set';
 
   const openShortcut = shortcutOf('open-overview');
   const lead = document.getElementById('lead');
@@ -36,8 +35,8 @@ async function main() {
     document.getElementById('set-shortcut').textContent = t('welcomeSetShortcut') || 'Choose shortcut';
   }
 
-  setWithKbd(document.getElementById('tip-site'), 'welcomeTipSite', shortcutOf('open-overview-site') || notSet,
-    (s) => `Site view (${s}): shows only the tabs from the site you are on.`);
+  setWithKbd(document.getElementById('tip-site'), 'welcomeTipSite', 'Tab',
+    (s) => `Press ${s} in the search box to see only the tabs from the site you are on.`);
 
   try {
     const { isOnToolbar } = await chrome.action.getUserSettings();

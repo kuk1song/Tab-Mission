@@ -81,16 +81,6 @@
     "message": "关闭标签页（也可中键点击）",
     "description": "Tooltip of the close control on a tile."
   },
-  "siteScopeLabel": {
-    "message": "仅 $host$",
-    "description": "Chip shown while only one site's tabs are listed.",
-    "placeholders": {
-      "host": {
-        "content": "$1",
-        "example": "github.com"
-      }
-    }
-  },
   "siteScopeClear": {
     "message": "显示全部标签页",
     "description": "Button that leaves the site view."
@@ -138,8 +128,8 @@
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
-    "message": "网站视图（$shortcut$）：只显示当前网站的标签页。",
-    "description": "Welcome page tip about the site view shortcut.",
+    "message": "在搜索框里按 $shortcut$，只看当前网站的标签页。",
+    "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {
         "content": "$1",
@@ -186,5 +176,47 @@
   "optionPreselectNote": {
     "message": "关闭时（默认）：不选中任何标签，再按一次快捷键会关闭概览。两种情况下，都可以把鼠标悬停在某个标签上再按快捷键切过去，或按 Esc 关闭。",
     "description": "Options: note under the switch."
+  },
+  "searchSitePlaceholder": {
+    "message": "在 $host$ 中搜索…",
+    "description": "Search placeholder inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      }
+    }
+  },
+  "siteScopeHint": {
+    "message": "只看 $host$ · $count$",
+    "description": "Hint at the right of the empty search box; Tab or click scopes to the current site.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      },
+      "count": {
+        "content": "$2",
+        "example": "13"
+      }
+    }
+  },
+  "siteScopeHintTitle": {
+    "message": "只显示当前网站的标签（Tab）",
+    "description": "Tooltip of the site-scope hint."
+  },
+  "searchAllTabs": {
+    "message": "在全部标签中搜索",
+    "description": "Button in the empty state of the site scope; leaves the scope and keeps the query."
+  },
+  "emptyNoMatchInSite": {
+    "message": "$host$ 中没有匹配的标签页。",
+    "description": "Empty state inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      }
+    }
   }
 }

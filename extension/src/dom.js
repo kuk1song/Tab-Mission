@@ -1,6 +1,6 @@
 // dom.js
 import { state } from './state.js';
-import { activateTab, closeTab } from './events.js';
+import { activateTab, closeTab, setSiteScope } from './events.js';
 import { getHostname, isValidIconUrl, isSleeping, generateGradient, createPlaceholderIcon } from './utils.js';
 import { applyArtLayout } from './layout.js';
 import { observeTiles } from './thumbnail.js';
@@ -197,6 +197,18 @@ function createEmptyMessage() {
   emptyMessage.textContent = state.allTabs.length === 0
     ? (t('emptyNoTabs') || 'No tabs found.')
     : (t('emptyNoMatch') || 'No tabs match.');
+  // Inside the site scope, name the scope and offer one click to search
+  // every tab instead.
+  if (state.siteHost && state.allTabs.length > 0) {
+    const site = state.siteHost.replace(/^www\./, '');
+    emptyMessage.textContent = t('emptyNoMatchInSite', [site]) || `No ${site} tabs match.`;
+    const widen = document.createElement('button');
+    widen.className = 'empty-widen';
+    widen.type = 'button';
+    widen.textContent = t('searchAllTabs') || 'Search all tabs';
+    widen.addEventListener('click', () => setSiteScope(false));
+    emptyMessage.append(document.createElement('br'), widen);
+  }
   return emptyMessage;
 }
 

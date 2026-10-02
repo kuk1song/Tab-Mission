@@ -4,6 +4,7 @@ import { render, updateSelection, initializeGridListeners, forgetTile } from './
 import { applyArtLayout } from './layout.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
+import { getHostname, isValidIconUrl, createPlaceholderIcon } from './utils.js';
 
 // Filtering is cheap now that tiles are reused, so the search runs once per
 // animation frame instead of after a 200ms debounce. Enter flushes a pending
@@ -75,6 +76,10 @@ export function initializeEventListeners() {
   if (scopeClearBtn) {
     scopeClearBtn.addEventListener('click', () => setSiteScope(false));
   }
+  const scopeHintBtn = document.getElementById('scope-hint');
+  if (scopeHintBtn) {
+    scopeHintBtn.addEventListener('click', () => setSiteScope(true));
+  }
 
   initializeGridListeners();
 
@@ -131,20 +136,51 @@ export function handleFilterChange({ persist = true } = {}) {
 }
 
 // While searching (or in the site view) the toggles do not narrow results;
-// dim them so their unchecked state does not suggest otherwise.
+// dim them so their unchecked state does not suggest otherwise. Also keeps the
+// site-scope token, the Tab hint and the placeholder in step with the state.
 function updateScopeIndicators(uiState) {
   const toolbar = document.querySelector('.toolbar');
   const findEverywhere = uiState.searchTerm.trim() !== '' || Boolean(state.siteHost);
   toolbar?.classList.toggle('searching', findEverywhere);
 
-  const chip = document.getElementById('scope-chip');
-  const label = document.getElementById('scope-label');
-  if (chip && label) {
-    chip.hidden = !state.siteHost;
-    label.textContent = state.siteHost
-      ? (t('siteScopeLabel', [state.siteHost]) || `Only ${state.siteHost}`)
-      : '';
+  const site = currentSite();
+  const token = document.getElementById('scope-token');
+  const hint = document.getElementById('scope-hint');
+  const searchEl = document.getElementById('search');
+  if (!token || !hint || !searchEl) return;
+
+  token.hidden = !state.siteHost;
+  if (state.siteHost) {
+    document.getElementById('scope-label').textContent = site.label;
+    document.getElementById('scope-icon').src = site.icon;
+    searchEl.placeholder = t('searchSitePlaceholder', [site.label]) || `Search ${site.label} tabs…`;
+  } else {
+    searchEl.placeholder = t('searchPlaceholder') || 'Search tabs (title or URL)…';
   }
+
+  // Offer the scope only when it narrows something: an empty box, a real
+  // site, and at least one other tab from it.
+  const offer = !state.siteHost && uiState.searchTerm === '' && site.count >= 2;
+  hint.hidden = !offer;
+  if (offer) {
+    document.getElementById('scope-hint-label').textContent =
+      t('siteScopeHint', [site.label, String(site.count)]) || `Only ${site.label} · ${site.count}`;
+    hint.title = t('siteScopeHintTitle') || 'Show only tabs from this site';
+  }
+}
+
+// The current tab's site: a short label (no leading "www."), its favicon, and
+// how many open tabs share its hostname.
+function currentSite() {
+  const host = state.siteHost || currentSiteHost();
+  const currentTab = state.allTabs.find((tab) => tab.id === state.currentTabId);
+  const count = host
+    ? state.allTabs.filter((tab) => tab.windowId !== state.selfWindowId && getHostname(tab.url) === host).length
+    : 0;
+  const icon = currentTab?.favIconUrl && isValidIconUrl(currentTab.favIconUrl)
+    ? currentTab.favIconUrl
+    : createPlaceholderIcon(host);
+  return { host, label: host.replace(/^www\./, ''), icon, count };
 }
 
 export function setSiteScope(on) {
@@ -190,7 +226,39 @@ function handleKeydown(e) {
   const searchEl = document.getElementById('search');
   switch (e.key) {
     case 'Escape':
-      closeOverview();
+      // Layered, innermost first: clear the query, then leave the site
+      // scope, then close (as Raycast and Chrome's address bar do).
+      e.preventDefault();
+      if (searchEl && searchEl.value !== '') {
+        searchEl.value = '';
+        handleFilterChange();
+      } else if (state.siteHost) {
+        setSiteScope(false);
+      } else {
+        closeOverview();
+      }
+      break;
+    case 'Tab':
+      // Tab toggles the site scope, like "Tab to search" in Chrome's
+      // address bar; Shift+Tab leaves it. Without a site to scope to, Tab
+      // keeps its usual role.
+      if (document.activeElement !== searchEl || e.metaKey || e.ctrlKey || e.altKey) break;
+      if (state.siteHost) {
+        e.preventDefault();
+        setSiteScope(false);
+      } else if (!e.shiftKey && currentSite().count >= 2) {
+        e.preventDefault();
+        setSiteScope(true);
+      }
+      break;
+    case 'Backspace':
+      // Backspace with the caret at the very start removes the scope token,
+      // keeping any typed text (Chrome and Firefox address bars).
+      if (state.siteHost && searchEl && document.activeElement === searchEl &&
+          searchEl.selectionStart === 0 && searchEl.selectionEnd === 0) {
+        e.preventDefault();
+        setSiteScope(false);
+      }
       break;
     case 'Enter':
       flushFilterChange();
