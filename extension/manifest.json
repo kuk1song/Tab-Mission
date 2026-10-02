@@ -47,11 +47,7 @@
       }
     },
     "open-overview-site": {
-      "description": "__MSG_commandOpenSite__",
-      "suggested_key": {
-        "default": "Ctrl+Shift+E",
-        "mac": "Command+Shift+E"
-      }
+      "description": "__MSG_commandOpenSite__"
     }
   }
 }

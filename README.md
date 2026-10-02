@@ -26,7 +26,7 @@ Tab Mission puts every open tab into one searchable grid, ordered by when you la
 - **Instant Overview:** All your tabs in one grid, one keystroke away.
 - **Most Recent First:** Tabs are ordered by last use, current tab first, the way `Cmd+Tab` / `Alt+Tab` order apps.
 - **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. Search covers all windows and sleeping tabs.
-- **Site View:** A second shortcut (`Cmd/Ctrl + Shift + E`) shows only the tabs from the site you are on, across all windows.
+- **Site View:** An optional second shortcut shows only the tabs from the site you are on, across all windows. It has no default key (so it never clashes with other extensions); assign one at `chrome://extensions/shortcuts`.
 - **Keyboard or Mouse:** `↑↓←→` + `Enter`, click, or hover and press the shortcut again. Middle-click or `×` closes a tab.
 - **Page Previews:** Each tab shows the preview image its page provides, or a clean title card when there is none.
 - **Private by Design:** No server, no analytics. Everything stays in your browser.
