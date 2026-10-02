@@ -11,17 +11,11 @@
       <h1 data-i18n="optionsTitle">Tab Mission settings</h1>
 
       <h2 data-i18n="optionOpenHeading">When the overview opens</h2>
-      <fieldset class="choices">
-        <label>
-          <input type="radio" name="open-selection" value="none" />
-          <span data-i18n="optionOpenNone">Select nothing. Pressing the shortcut again closes the overview.</span>
-        </label>
-        <label>
-          <input type="radio" name="open-selection" value="previous" />
-          <span data-i18n="optionOpenPrevious">Select the previous tab. Pressing the shortcut again goes back to it.</span>
-        </label>
-      </fieldset>
-      <p class="note" data-i18n="optionOpenNote">Either way, hover a tab and press the shortcut to switch to it, or press Esc to close.</p>
+      <label class="switch">
+        <input id="preselect-previous" type="checkbox" />
+        <span data-i18n="optionPreselect">Pre-select the previous tab, so pressing the shortcut twice goes back to it</span>
+      </label>
+      <p class="note" data-i18n="optionPreselectNote">Off (default): nothing is selected and pressing the shortcut again closes the overview. Either way, hover a tab and press the shortcut to switch to it, or press Esc to close.</p>
 
       <h2 data-i18n="optionShortcutsHeading">Keyboard shortcuts</h2>
       <p id="shortcuts" class="lead"></p>

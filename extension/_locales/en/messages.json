@@ -165,19 +165,7 @@
   },
   "optionOpenHeading": {
     "message": "When the overview opens",
-    "description": "Options: heading of the open-selection choice."
-  },
-  "optionOpenNone": {
-    "message": "Select nothing. Pressing the shortcut again closes the overview.",
-    "description": "Options: select nothing on open."
-  },
-  "optionOpenPrevious": {
-    "message": "Select the previous tab. Pressing the shortcut again goes back to it.",
-    "description": "Options: pre-select the previous tab on open."
-  },
-  "optionOpenNote": {
-    "message": "Either way, hover a tab and press the shortcut to switch to it, or press Esc to close.",
-    "description": "Options: note under the open-selection choice."
+    "description": "Options: heading of the open behaviour section."
   },
   "optionShortcutsHeading": {
     "message": "Keyboard shortcuts",
@@ -190,5 +178,13 @@
   "settingsTitle": {
     "message": "Settings",
     "description": "Tooltip of the gear button that opens the settings page."
+  },
+  "optionPreselect": {
+    "message": "Pre-select the previous tab, so pressing the shortcut twice goes back to it",
+    "description": "Options: switch that pre-selects the previous tab on open."
+  },
+  "optionPreselectNote": {
+    "message": "Off (default): nothing is selected and pressing the shortcut again closes the overview. Either way, hover a tab and press the shortcut to switch to it, or press Esc to close.",
+    "description": "Options: note under the switch."
   }
 }

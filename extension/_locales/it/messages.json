@@ -165,19 +165,7 @@
   },
   "optionOpenHeading": {
     "message": "Quando si apre la panoramica",
-    "description": "Options: heading of the open-selection choice."
-  },
-  "optionOpenNone": {
-    "message": "Non selezionare nulla. Premendo di nuovo la scorciatoia la panoramica si chiude.",
-    "description": "Options: select nothing on open."
-  },
-  "optionOpenPrevious": {
-    "message": "Seleziona la scheda precedente. Premendo di nuovo la scorciatoia ci torni.",
-    "description": "Options: pre-select the previous tab on open."
-  },
-  "optionOpenNote": {
-    "message": "In entrambi i casi, passa il mouse su una scheda e premi la scorciatoia per andarci, oppure premi Esc per chiudere.",
-    "description": "Options: note under the open-selection choice."
+    "description": "Options: heading of the open behaviour section."
   },
   "optionShortcutsHeading": {
     "message": "Scorciatoie da tastiera",
@@ -190,5 +178,13 @@
   "settingsTitle": {
     "message": "Impostazioni",
     "description": "Tooltip of the gear button that opens the settings page."
+  },
+  "optionPreselect": {
+    "message": "Preseleziona la scheda precedente: premendo due volte la scorciatoia ci torni",
+    "description": "Options: switch that pre-selects the previous tab on open."
+  },
+  "optionPreselectNote": {
+    "message": "Disattivato (predefinito): nessuna scheda è selezionata e premendo di nuovo la scorciatoia la panoramica si chiude. In entrambi i casi, passa il mouse su una scheda e premi la scorciatoia per andarci, oppure premi Esc per chiudere.",
+    "description": "Options: note under the switch."
   }
 }

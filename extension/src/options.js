@@ -6,14 +6,12 @@ async function main() {
   localizeStaticText();
 
   const settings = await loadSettings();
-  const current = settings.preselectPrevious ? 'previous' : 'none';
-  for (const radio of document.querySelectorAll('input[name="open-selection"]')) {
-    radio.checked = radio.value === current;
-    radio.addEventListener('change', async () => {
-      await saveSettings({ preselectPrevious: radio.value === 'previous' });
-      document.getElementById('saved').hidden = false;
-    });
-  }
+  const preselect = document.getElementById('preselect-previous');
+  preselect.checked = settings.preselectPrevious;
+  preselect.addEventListener('change', async () => {
+    await saveSettings({ preselectPrevious: preselect.checked });
+    document.getElementById('saved').hidden = false;
+  });
 
   let commands = [];
   try {

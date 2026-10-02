@@ -165,19 +165,7 @@
   },
   "optionOpenHeading": {
     "message": "打开概览时",
-    "description": "Options: heading of the open-selection choice."
-  },
-  "optionOpenNone": {
-    "message": "不选中任何标签。再按一次快捷键会关闭概览。",
-    "description": "Options: select nothing on open."
-  },
-  "optionOpenPrevious": {
-    "message": "预选上一个标签。再按一次快捷键会回到它。",
-    "description": "Options: pre-select the previous tab on open."
-  },
-  "optionOpenNote": {
-    "message": "两种方式下，都可以把鼠标悬停在某个标签上再按快捷键切过去，或按 Esc 关闭。",
-    "description": "Options: note under the open-selection choice."
+    "description": "Options: heading of the open behaviour section."
   },
   "optionShortcutsHeading": {
     "message": "快捷键",
@@ -190,5 +178,13 @@
   "settingsTitle": {
     "message": "设置",
     "description": "Tooltip of the gear button that opens the settings page."
+  },
+  "optionPreselect": {
+    "message": "预选上一个标签：连按两次快捷键即可回到上一个标签",
+    "description": "Options: switch that pre-selects the previous tab on open."
+  },
+  "optionPreselectNote": {
+    "message": "关闭时（默认）：不选中任何标签，再按一次快捷键会关闭概览。两种情况下，都可以把鼠标悬停在某个标签上再按快捷键切过去，或按 Esc 关闭。",
+    "description": "Options: note under the switch."
   }
 }
