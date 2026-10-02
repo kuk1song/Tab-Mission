@@ -80,6 +80,8 @@ export function initializeEventListeners() {
   if (scopeHintBtn) {
     scopeHintBtn.addEventListener('click', () => setSiteScope(true));
   }
+  document.getElementById('scope-seg-all')?.addEventListener('click', () => setSiteScope(false));
+  document.getElementById('scope-seg-site')?.addEventListener('click', () => setSiteScope(true));
 
   initializeGridListeners();
 
@@ -149,7 +151,8 @@ function updateScopeIndicators(uiState) {
   const searchEl = document.getElementById('search');
   if (!token || !hint || !searchEl) return;
 
-  token.hidden = !state.siteHost;
+  const useBar = state.scopeStyle === 'bar';
+  token.hidden = useBar || !state.siteHost;
   if (state.siteHost) {
     document.getElementById('scope-label').textContent = site.label;
     document.getElementById('scope-icon').src = site.icon;
@@ -160,8 +163,21 @@ function updateScopeIndicators(uiState) {
 
   // Offer the scope only when it narrows something: an empty box, a real
   // site, and at least one other tab from it.
-  const offer = !state.siteHost && uiState.searchTerm === '' && site.count >= 2;
+  const offer = !useBar && !state.siteHost && uiState.searchTerm === '' && site.count >= 2;
   hint.hidden = !offer;
+
+  // The bar variant shows both scopes side by side whenever there is a choice.
+  const bar = document.getElementById('scope-bar');
+  if (bar) {
+    bar.hidden = !(useBar && (state.siteHost || site.count >= 2));
+    if (!bar.hidden) {
+      document.getElementById('scope-seg-all').setAttribute('aria-pressed', String(!state.siteHost));
+      document.getElementById('scope-seg-site').setAttribute('aria-pressed', String(Boolean(state.siteHost)));
+      document.getElementById('scope-seg-icon').src = site.icon;
+      document.getElementById('scope-seg-label').textContent = site.label;
+      document.getElementById('scope-seg-count').textContent = String(site.count);
+    }
+  }
   if (offer) {
     document.getElementById('scope-hint-label').textContent =
       t('siteScopeHint', [site.label, String(site.count)]) || `Only ${site.label} · ${site.count}`;

@@ -23,6 +23,7 @@
             <kbd>Tab</kbd><span id="scope-hint-label"></span>
           </button>
         </div>
+        <div class="toolbar-controls">
         <label class="ctrl" title="Search covers all windows and sleeping tabs" data-i18n-title="searchEverywhereHint">
           <input id="toggle-hide-discarded" type="checkbox" />
           <span data-i18n="showSleepingLabel">Show sleeping</span>
@@ -44,6 +45,16 @@
           <button id="reset-window" class="icon-btn" title="Reset size &amp; center" aria-label="Reset size &amp; center"
                   data-i18n-title="resetWindowTitle" data-i18n-aria-label="resetWindowTitle">↺</button>
         </div>
+        </div>
+        <!-- Site scope as a segmented bar (alternative presentation, chosen in settings). -->
+        <nav id="scope-bar" class="scope-bar" hidden>
+          <button id="scope-seg-all" class="seg" type="button" tabindex="-1" data-i18n="scopeAllTabs">All tabs</button>
+          <button id="scope-seg-site" class="seg" type="button" tabindex="-1">
+            <img id="scope-seg-icon" class="scope-icon" alt="" />
+            <span id="scope-seg-label"></span>
+            <span id="scope-seg-count" class="seg-count"></span>
+          </button>
+        </nav>
       </header>
       <main id="grid" class="grid" role="listbox" aria-label="Open tabs" data-i18n-aria-label="gridLabel"></main>
     </div>

@@ -67,11 +67,16 @@ html, body {
   animation: rootFadeOut 120ms ease-in both;
 }
 
+/* Layout adapts to the overview's own width (window size and browser zoom
+   both change it), via container queries further down. */
+#root { container: overview / inline-size; }
+
 .toolbar {
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px 12px;
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid var(--border-color);
@@ -82,8 +87,9 @@ html, body {
    It holds an optional site-scope token, the input and the Tab hint, the way
    Chrome's address bar shows its "search this site" keyword inside the box. */
 .search-field {
-  flex: 1 1 auto;
-  min-width: 220px;
+  container: search / inline-size;
+  flex: 1 1 360px;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -111,7 +117,8 @@ html, body {
   font-size: 14px;
 }
 
-.ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; transition: opacity 0.2s; }
+.toolbar-controls { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+.ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; transition: opacity 0.2s; }
 
 /* While searching (or in the site view) results span every window and
    sleeping tab, so the toggles do not apply; dim them to say so. */
@@ -153,7 +160,9 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   padding: 4px 6px;
   border: none;
   border-radius: 7px;
@@ -167,6 +176,7 @@ html, body {
   transition: opacity 0.15s, background 0.15s;
 }
 .scope-hint[hidden] { display: none; }
+#scope-hint-label { overflow: hidden; text-overflow: ellipsis; }
 .scope-hint:hover { opacity: 1; background: rgba(255, 255, 255, 0.06); }
 .scope-hint kbd {
   padding: 0 5px;
@@ -248,9 +258,14 @@ html, body {
 .icon-btn:hover { opacity: 1; color: var(--accent); }
 .icon-btn:active { transform: scale(0.96); }
 
+/* Tiles scale with the overview's width, like Mission Control thumbnails:
+   the minimum tile width is a share of the container (17cqi), clamped so
+   tiles never get unreadably small or absurdly large. min(100%, ...) keeps a
+   single tile from overflowing a very narrow window. */
 .grid {
+  --tile-min: clamp(150px, 17cqi, 300px);
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--tile-min)), 1fr));
   gap: 12px;
   padding: 8px 12px 12px;
   overflow-y: auto; /* Allow vertical scrolling ONLY on the grid */
@@ -282,9 +297,13 @@ html, body {
   cursor: pointer;
   backdrop-filter: blur(20px);
   transition: all 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  min-height: 200px;
   box-shadow: var(--shadow-subtle);
   position: relative; /* anchors the close control */
+  /* A <button> does not inherit these by default. */
+  padding: 6px 6px 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
 }
 
 /* The staggered entrance plays on the first render only; filtering reuses the
@@ -331,6 +350,9 @@ html, body {
 .preview {
   width: 100%;
   aspect-ratio: 16 / 10;
+  /* overflow: hidden makes the automatic minimum height 0, so without this
+     the flex column could squash the preview below its 16:10 shape. */
+  flex-shrink: 0;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f1e 100%);
   overflow: hidden;
   position: relative;
@@ -483,6 +505,7 @@ html, body {
 }
 
 .meta { 
+  flex-shrink: 0;
   padding: 12px 16px 16px; 
   display: flex;
   flex-direction: column;
@@ -520,6 +543,7 @@ html, body {
 }
 
 .url { 
+  padding-left: 24px; /* aligns with the title, past the favicon */
   font-size: 11px; 
   color: var(--muted); 
   white-space: nowrap; 
@@ -542,3 +566,57 @@ html, body {
     transform: none;
   }
 }
+
+/* Site scope as a segmented bar (the alternative to the in-field token). */
+.scope-bar {
+  flex: 1 1 100%;
+  display: flex;
+  gap: 4px;
+}
+.scope-bar[hidden] { display: none; }
+.seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.seg:hover { color: var(--fg); }
+.seg[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-color);
+  color: var(--fg);
+}
+#scope-seg-label { overflow: hidden; text-overflow: ellipsis; }
+.seg-count { opacity: 0.6; }
+
+/* Medium width: the search field takes the whole first row and the
+   controls move to a second row, so nothing has to squeeze or wrap. */
+@container overview (width < 760px) {
+  .search-field { flex-basis: 100%; }
+  .toolbar-controls { flex: 1 1 100%; justify-content: space-between; }
+}
+
+/* Narrow: drop the least important pieces instead of crushing them. */
+@container overview (width < 440px) {
+  .toolbar { padding: 12px; }
+  #shortcut-hint { display: none; }
+  .toolbar-controls { gap: 8px; }
+}
+
+/* A narrow search field keeps the input usable: the hint goes first
+   (Tab still works), the token label is shortened. */
+@container search (width < 360px) {
+  .scope-hint { display: none; }
+  #scope-label { max-width: 96px; }
+}
+

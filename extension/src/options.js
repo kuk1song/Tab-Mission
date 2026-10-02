@@ -13,6 +13,14 @@ async function main() {
     document.getElementById('saved').hidden = false;
   });
 
+  for (const radio of document.querySelectorAll('input[name="scope-style"]')) {
+    radio.checked = radio.value === settings.scopeStyle;
+    radio.addEventListener('change', async () => {
+      await saveSettings({ scopeStyle: radio.value });
+      document.getElementById('saved').hidden = false;
+    });
+  }
+
   let commands = [];
   try {
     commands = await chrome.commands.getAll();

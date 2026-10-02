@@ -11,6 +11,7 @@ export const state = {
   selfWindowId: null, // the overview popup itself; its own tab is never listed
   siteHost: '', // non-empty while showing only one site's tabs
   preselectPrevious: false, // mirrors the setting of the same name
+  scopeStyle: 'inline', // mirrors the setting of the same name
 };
 
 export async function fetchAllTabs() {

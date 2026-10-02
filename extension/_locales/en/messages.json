@@ -218,5 +218,21 @@
         "example": "youtube.com"
       }
     }
+  },
+  "scopeAllTabs": {
+    "message": "All tabs",
+    "description": "Scope bar: segment that shows all tabs."
+  },
+  "optionScopeHeading": {
+    "message": "Site view style (trial)",
+    "description": "Options: heading of the site view style choice."
+  },
+  "optionScopeInline": {
+    "message": "A token inside the search box (press Tab)",
+    "description": "Options: in-field token style."
+  },
+  "optionScopeBar": {
+    "message": "A bar below the search box",
+    "description": "Options: segmented bar style."
   }
 }
