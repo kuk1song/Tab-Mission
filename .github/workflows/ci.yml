@@ -12,12 +12,14 @@ permissions:
   contents: read
 
 # If new commits arrive on the same branch/PR while a run is in flight, cancel
-# the stale run instead of queuing both — saves minutes and gives faster feedback.
+# the stale run instead of queuing both, which saves minutes and gives faster
+# feedback.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # Lint, JSON and permission checks, unit tests.
   check:
     runs-on: ubuntu-latest
     # Hard cap so a hung step (e.g. a stuck network install) can't burn the
@@ -27,8 +29,10 @@ jobs:
       # Actions are pinned to a full-length commit SHA (immutable) with the
       # human-readable version in a trailing comment. Dependabot keeps both in
       # sync. See .github/dependabot.yml.
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
@@ -36,3 +40,28 @@ jobs:
       - run: npm run lint
       - run: npm run validate:json
       - run: npm test
+
+  # The unpacked extension in Playwright's Chromium (new headless mode).
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # --no-shell: extensions need full Chromium; the headless shell is unused.
+      - run: npx playwright install --with-deps --no-shell chromium
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
