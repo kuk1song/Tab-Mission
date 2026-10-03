@@ -309,4 +309,18 @@ describe('applyFilters — preselectPrevious setting', () => {
     applyFilters(ui({ preselectPrevious: true, showSleeping: true }));
     expect(state.selectedIndex).toBe(2);
   });
+
+  it('gives a new view its own default when the site scope changes', () => {
+    state.allTabs = [
+      makeTab(1, { lastAccessed: 9, url: 'https://a.test/1' }),
+      makeTab(2, { lastAccessed: 8, url: 'https://b.test/' }),
+      makeTab(3, { lastAccessed: 7, url: 'https://a.test/2' }),
+    ];
+    applyFilters(ui({ preselectPrevious: true }));
+    state.selectedIndex = 2; // hovered, then the scope changes (setSiteScope)
+    state.selectedIndex = state.defaultIndex;
+    state.siteHost = 'a.test';
+    applyFilters(ui({ preselectPrevious: true }));
+    expect(state.filteredTabs[state.selectedIndex].id).toBe(3);
+  });
 });

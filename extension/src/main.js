@@ -2,7 +2,6 @@
 import { state, fetchAllTabs, currentSiteHost } from './state.js';
 import { initializeEventListeners, handleFilterChange } from './events.js';
 import { loadSettings } from './settings.js';
-import { applyArtLayout } from './layout.js';
 import { localizeStaticText, t } from './i18n.js';
 
 async function main() {
@@ -18,12 +17,10 @@ async function main() {
 
   const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
   const toggleCurrentWindow = document.getElementById('toggle-current-window');
-  const toggleArt = document.getElementById('toggle-art');
 
   // Apply loaded settings to the UI controls
   if (toggleHideDiscarded) toggleHideDiscarded.checked = settings.showSleeping;
   if (toggleCurrentWindow) toggleCurrentWindow.checked = settings.showAllWindows;
-  if (toggleArt) toggleArt.checked = settings.artMode;
   state.preselectPrevious = settings.preselectPrevious;
 
   // Opened by the "current site" shortcut: show only this site's tabs.
@@ -36,13 +33,6 @@ async function main() {
   gridEl?.classList.add('entering');
   handleFilterChange({ persist: false });
   setTimeout(() => gridEl?.classList.remove('entering'), 700);
-
-  // Apply art layout after initial render based on settings
-  if (toggleArt && toggleArt.checked) {
-    requestAnimationFrame(() => {
-      applyArtLayout();
-    });
-  }
 
   updateShortcutHint();
 

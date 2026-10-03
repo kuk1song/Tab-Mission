@@ -1,7 +1,6 @@
 // events.js
 import { state, applyFilters, moveSelection, currentSiteHost, countSiteTabs } from './state.js';
 import { render, updateSelection, initializeGridListeners, forgetTile } from './dom.js';
-import { applyArtLayout } from './layout.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isValidIconUrl, createPlaceholderIcon } from './utils.js';
@@ -31,7 +30,6 @@ export function initializeEventListeners() {
   const searchEl = document.getElementById('search');
   const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
   const toggleCurrentWindow = document.getElementById('toggle-current-window');
-  const toggleArt = document.getElementById('toggle-art');
   const resetBtn = document.getElementById('reset-window');
   const openSettingsBtn = document.getElementById('open-settings');
   const scopeClearBtn = document.getElementById('scope-clear');
@@ -41,15 +39,10 @@ export function initializeEventListeners() {
   for (const toggle of [toggleHideDiscarded, toggleCurrentWindow]) {
     if (!toggle) continue;
     toggle.addEventListener('change', () => {
-      handleFilterChange();
+      handleFilterChange({ persist: true });
       searchEl?.focus();
     });
   }
-  if (toggleArt) toggleArt.addEventListener('change', () => {
-    applyArtLayout();
-    // Persist the artMode setting directly
-    handleFilterChange();
-  });
 
   // The gear opens Tab Mission's own settings page (open behaviour, and the
   // shortcuts with a link to change them).
@@ -84,17 +77,16 @@ export function initializeEventListeners() {
   initializeGridListeners();
 
   window.addEventListener('keydown', handleKeydown);
-  window.addEventListener('beforeunload', () => {
-    document.getElementById('root').classList.add('closing');
-  });
 
-  // Listen for messages from the background script (e.g., from the shortcut)
-  chrome.runtime.onMessage.addListener((request) => {
+  // The shortcut pressed while the overview is open (sent by background.js).
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request?.action !== 'handleShortcut') return;
-    // The other shortcut switches views in place instead of closing.
-    const wantSite = request.scope === 'site';
-    if (wantSite !== Boolean(state.siteHost)) {
-      setSiteScope(wantSite);
+    sendResponse({ ok: true });
+    // The site shortcut narrows the open overview to the current site. Every
+    // other press acts on the selection, so hovering a tile and pressing the
+    // shortcut switches to it in the site view too.
+    if (request.scope === 'site' && !state.siteHost && currentSiteHost()) {
+      setSiteScope(true);
       return;
     }
     flushFilterChange();
@@ -112,26 +104,25 @@ function readUiState() {
   const searchEl = document.getElementById('search');
   const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
   const toggleCurrentWindow = document.getElementById('toggle-current-window');
-  const toggleArt = document.getElementById('toggle-art');
   return {
     searchTerm: searchEl ? searchEl.value : '',
     showSleeping: toggleHideDiscarded ? toggleHideDiscarded.checked : false,
     showAllWindows: toggleCurrentWindow ? toggleCurrentWindow.checked : false,
-    artMode: toggleArt ? toggleArt.checked : false,
     preselectPrevious: state.preselectPrevious,
   };
 }
 
-export function handleFilterChange({ persist = true } = {}) {
+// persist: save the two toggles (only when one of them changed). The search
+// text is never written to disk.
+export function handleFilterChange({ persist = false } = {}) {
   const uiState = readUiState();
   applyFilters(uiState);
   render();
   updateScopeIndicators(uiState);
 
-  // Persist only the toggles; the search text is never written to disk.
   if (persist) {
-    const { showSleeping, showAllWindows, artMode } = uiState;
-    saveSettings({ showSleeping, showAllWindows, artMode });
+    const { showSleeping, showAllWindows } = uiState;
+    saveSettings({ showSleeping, showAllWindows });
   }
 }
 
@@ -182,7 +173,9 @@ function currentSite(uiState = readUiState()) {
 
 export function setSiteScope(on) {
   state.siteHost = on ? currentSiteHost() : '';
-  state.selectedIndex = -1;
+  // Mark the selection as automatic, so the new view gets its own default
+  // (the best match, or the previous tab with preselectPrevious on).
+  state.selectedIndex = state.defaultIndex;
   handleFilterChange();
   document.getElementById('search')?.focus();
 }
@@ -201,10 +194,10 @@ export function activateTab(tab) {
     tile.classList.add('activating');
   }
 
-  // To achieve a "SOTA" silky smooth transition, we remove the timeout.
-  // The tab switch is initiated instantly, and the closing animation runs in parallel.
-  chrome.tabs.update(tab.id, { active: true });
-  chrome.windows.update(tab.windowId, { focused: true });
+  // Switch at once; the closing animation runs in parallel. A tab closed in
+  // the meantime just fails quietly.
+  chrome.tabs.update(tab.id, { active: true }).catch(() => {});
+  chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
   closeOverview(true); // Pass true for a fast close
 }
 
@@ -212,14 +205,19 @@ export async function closeTab(tab) {
   try {
     await chrome.tabs.remove(tab.id);
   } catch {
-    return; // already gone
+    // Already gone: drop its tile all the same.
   }
   state.allTabs = state.allTabs.filter((t) => t.id !== tab.id);
   forgetTile(tab.id);
   handleFilterChange();
+  // Clicking × focused the removed tile; give focus back to the search box.
+  document.getElementById('search')?.focus();
 }
 
 function handleKeydown(e) {
+  // Keys that pick or commit an input method candidate (pinyin, kana) belong
+  // to the input method, not to the overview.
+  if (e.isComposing || e.keyCode === 229) return;
   const searchEl = document.getElementById('search');
   switch (e.key) {
     case 'Escape':
@@ -258,6 +256,8 @@ function handleKeydown(e) {
       }
       break;
     case 'Enter':
+      // Enter on a focused toolbar button presses that button.
+      if (document.activeElement !== searchEl && document.activeElement?.closest('.toolbar')) break;
       flushFilterChange();
       if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
         e.preventDefault();
@@ -275,7 +275,8 @@ function handleKeydown(e) {
       break;
     default:
       // Typing anywhere goes to the search box, even after clicking a toggle.
-      if (searchEl && document.activeElement !== searchEl &&
+      // Space keeps its own role (it toggles a focused checkbox or button).
+      if (searchEl && document.activeElement !== searchEl && e.key !== ' ' &&
           e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
         searchEl.focus();
       }

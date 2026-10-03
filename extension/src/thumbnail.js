@@ -21,6 +21,8 @@ function loadCache() {
 }
 
 function remember(tab, imageUrl) {
+  // Incognito pages are never kept beyond the overview that showed them.
+  if (tab.incognito) return;
   cache[tab.id] = { url: tab.url, img: imageUrl || null, at: Date.now() };
   // Drop entries for tabs that no longer exist so the cache stays small.
   const openIds = new Set(state.allTabs.map((t) => String(t.id)));
@@ -75,9 +77,15 @@ async function loadThumbnail(tab, tile) {
     return;
   }
 
-  const imageUrl = await extractPreviewImage(tab.id);
+  const imageUrl = webImageUrl(await extractPreviewImage(tab.id));
   remember(tab, imageUrl);
   if (imageUrl) showImage(img, tab, imageUrl);
+}
+
+// Accept only an http(s) address of sane length: a page could hand back a
+// huge data: URL, which would fill the session cache.
+function webImageUrl(url) {
+  return typeof url === 'string' && url.length <= 2048 && isCapturableUrl(url) ? url : null;
 }
 
 function showImage(img, tab, src) {

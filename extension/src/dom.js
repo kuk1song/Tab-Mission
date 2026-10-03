@@ -2,7 +2,6 @@
 import { state } from './state.js';
 import { activateTab, closeTab, setSiteScope } from './events.js';
 import { getHostname, isValidIconUrl, isSleeping, generateGradient, createPlaceholderIcon } from './utils.js';
-import { applyArtLayout } from './layout.js';
 import { observeTiles } from './thumbnail.js';
 import { t } from './i18n.js';
 
@@ -66,6 +65,7 @@ export function render() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
 
+  document.getElementById('search')?.setAttribute('aria-expanded', String(state.filteredTabs.length > 0));
   if (state.filteredTabs.length === 0) {
     gridEl.replaceChildren(createEmptyMessage());
     updateSelection();
@@ -84,7 +84,6 @@ export function render() {
   gridEl.replaceChildren(...nodes);
 
   updateSelection();
-  applyArtLayout();
   observeTiles(nodes);
 }
 
@@ -143,6 +142,7 @@ function createPreviewElement(tab) {
   img.className = 'thumbnail';
   img.alt = '';
   img.decoding = 'async';
+  img.referrerPolicy = 'no-referrer';
   preview.appendChild(img);
 
   if (isSleeping(tab)) {
@@ -198,10 +198,13 @@ function createEmptyMessage() {
     ? (t('emptyNoTabs') || 'No tabs found.')
     : (t('emptyNoMatch') || 'No tabs match.');
   // Inside the site scope, name the scope and offer one click to search
-  // every tab instead.
+  // every tab instead. (Without a query, e.g. after closing the site's last
+  // tab, the generic message above stays.)
   if (state.siteHost && state.allTabs.length > 0) {
     const site = state.siteHost.replace(/^www\./, '');
-    emptyMessage.textContent = t('emptyNoMatchInSite', [site]) || `No ${site} tabs match.`;
+    if (document.getElementById('search')?.value.trim()) {
+      emptyMessage.textContent = t('emptyNoMatchInSite', [site]) || `No ${site} tabs match.`;
+    }
     const widen = document.createElement('button');
     widen.className = 'empty-widen';
     widen.type = 'button';
@@ -232,6 +235,7 @@ export function updateSelection(scrollToSelected = false) {
   // Only scroll for keyboard navigation. Scrolling on hover makes the grid
   // drift when the pointer merely grazes a tile near an edge.
   if (scrollToSelected && selectedTile) {
-    selectedTile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    selectedTile.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
   }
 }

@@ -24,12 +24,6 @@ html, body {
   overflow: hidden; /* Prevent body from scrolling */
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
 #root {
   display: flex;
   flex-direction: column;
@@ -122,8 +116,8 @@ html, body {
 .toolbar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; flex: 0 1 auto; min-width: 0; }
 .ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.75rem; white-space: nowrap; transition: opacity 0.2s; }
 
-/* While searching (or in the site view) results span every window and
-   sleeping tab, so the toggles do not apply; dim them to say so. */
+/* While a query is typed, results span every window and sleeping tab, so
+   the toggles do not apply; dim them to say so. */
 .toolbar.searching .ctrl { opacity: 0.45; }
 
 .scope-token {
@@ -199,10 +193,6 @@ html, body {
 
 .hint-bar { display: inline-flex; align-items: center; gap: 6px; }
 
-.hint-bar .hint {
-  margin-right: auto;
-}
-
 #shortcut-hint {
   display: inline-flex;
   align-items: center;
@@ -215,18 +205,6 @@ html, body {
   border-radius: 4px;
   font-family: monospace;
   font-size: 0.6875rem;
-}
-
-#shortcut-hint a {
-  color: var(--muted);
-  text-decoration: none;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-#shortcut-hint a:hover {
-  opacity: 1;
-  color: var(--accent);
 }
 
 .icon-btn {
@@ -276,19 +254,9 @@ html, body {
   flex-grow: 1; /* Allow grid to fill available space */
   min-height: 0; /* Important for flexbox scrolling bug in some browsers */
   align-content: start; /* Prevent vertical stretching */
-}
-
-.grid.art { 
-  position: relative; /* Create a positioning context for absolute tiles */
-  transform-style: preserve-3d;
-  perspective: 1200px;
-}
-
-/* Ensure normal grid has proper auto-sizing */
-/* Rows take their content height. With auto rows, a fixed-height grid
-   shares only its free space among them, and tiles (overflow: hidden, so a
-   minimum height of 0) were squashed once many tabs were open. */
-.grid:not(.art) {
+  /* Rows take their content height. With auto rows, a fixed-height grid
+     shares only its free space among them, and tiles (overflow: hidden, so a
+     minimum height of 0) were squashed once many tabs were open. */
   grid-auto-rows: max-content;
 }
 
@@ -318,24 +286,12 @@ html, body {
   animation-delay: var(--stagger, 0ms);
 }
 
-.grid.art .tile {
-  position: absolute;
-  min-height: 0; /* Reset min-height for treemap */
-  transform-origin: center center; /* Ensure scaling and rotation is centered */
-}
-
 .tile:hover { 
   transform: translateY(-8px) scale(1.03); 
   background: var(--tile-bg-hover);
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: var(--shadow-elevated);
   z-index: 10;
-}
-
-.grid.art .tile:hover {
-  transform: translateZ(50px) scale(1.1);
-  z-index: 100;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
 .tile.selected {
@@ -562,7 +518,8 @@ html, body {
   #root,
   .tile,
   .grid.entering .tile,
-  .thumbnail {
+  .thumbnail,
+  .scope-token {
     animation: none !important;
     transition: none !important;
   }
