@@ -11,7 +11,6 @@ export const state = {
   selfWindowId: null, // the overview popup itself; its own tab is never listed
   siteHost: '', // non-empty while showing only one site's tabs
   preselectPrevious: false, // mirrors the setting of the same name
-  scopeStyle: 'inline', // mirrors the setting of the same name
 };
 
 export async function fetchAllTabs() {
@@ -40,46 +39,65 @@ export function currentSiteHost() {
   return currentTab ? getHostname(currentTab.url) : '';
 }
 
+// The view toggles: by default only the current window and no sleeping tabs.
+function applyViewToggles(tabs, uiState) {
+  let result = tabs;
+  if (!uiState.showAllWindows && state.currentWindowId) {
+    result = result.filter((tab) => tab.windowId === state.currentWindowId);
+  }
+  if (!uiState.showSleeping) {
+    result = result.filter((tab) => !isSleeping(tab));
+  }
+  return result;
+}
+
+function listableTabs() {
+  return state.allTabs.filter((tab) => tab.windowId !== state.selfWindowId);
+}
+
+// How many tabs the site view would show for a host under the current toggles.
+export function countSiteTabs(host, uiState) {
+  if (!host) return 0;
+  return applyViewToggles(listableTabs().filter((tab) => getHostname(tab.url) === host), uiState).length;
+}
+
 export function applyFilters(uiState) {
   const terms = uiState.searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
   const searching = terms.length > 0;
-  // Searching, or the site view, means "find that tab wherever it is": the
-  // window and sleeping toggles only shape the plain browse view and must
-  // never hide a match.
-  const findEverywhere = searching || Boolean(state.siteHost);
 
-  let tabs = state.allTabs.filter((tab) => tab.windowId !== state.selfWindowId);
+  let tabs = listableTabs();
 
   if (state.siteHost) {
     tabs = tabs.filter((tab) => getHostname(tab.url) === state.siteHost);
   }
 
-  // By default only the current window is shown; the checkbox shows all.
-  if (!findEverywhere && !uiState.showAllWindows && state.currentWindowId) {
-    tabs = tabs.filter((tab) => tab.windowId === state.currentWindowId);
-  }
-
-  // By default sleeping tabs are hidden; the checkbox shows them.
-  if (!findEverywhere && !uiState.showSleeping) {
-    tabs = tabs.filter((tab) => !isSleeping(tab));
-  }
-
-  // Every word must appear in the title or URL, so "git mission" finds
-  // "GitHub - Tab-Mission".
+  // Typing means "find that tab wherever it is", so a query ignores the
+  // window and sleeping toggles. Browsing, including the site view, follows
+  // them, so what the checkboxes say is what the grid shows.
   if (searching) {
+    // Every word must appear in the title or URL, so "git mission" finds
+    // "GitHub - Tab-Mission".
     tabs = tabs.filter((tab) => {
       const haystack = `${tab.title || ''} ${tab.url || ''}`.toLowerCase();
       return terms.every((term) => haystack.includes(term));
     });
+  } else {
+    tabs = applyViewToggles(tabs, uiState);
   }
 
-  // Order by most-recently-used (descending lastAccessed). This is how every OS
-  // task switcher (Alt+Tab / Cmd+Tab) behaves, and is the whole reason this
-  // extension exists — Chrome's own Ctrl+Tab walks the static tab-strip order.
-  // The current tab is the most recently accessed, so it naturally sorts first,
-  // matching those switchers (the current item heads the list). lastAccessed is
-  // present on every tab, so no extra permission is needed.
+  // Order by most-recently-used (descending lastAccessed), as OS task
+  // switchers do; Chrome's own Ctrl+Tab walks the static tab-strip order,
+  // which is the reason this extension exists. lastAccessed is present on
+  // every tab, so no extra permission is needed.
   tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+
+  // The current tab goes second: the first, most prominent slot is for the
+  // tab you most likely want (the previous one), while the current tab stays
+  // beside it for orientation. Chrome's Tab Search goes further and moves the
+  // visible tab to the bottom ("not likely users want to click on it").
+  if (tabs.length > 1 && tabs[0].id === state.currentTabId) {
+    [tabs[0], tabs[1]] = [tabs[1], tabs[0]];
+  }
 
   state.filteredTabs = tabs;
 
@@ -108,22 +126,16 @@ function firstOtherIndex(tabs) {
   return index === -1 ? 0 : index;
 }
 
-// Arrow-key movement through the grid. With nothing selected the cursor starts
-// on the current tab (it heads the MRU list), so the first → lands on the
-// previous tab, like the second press of Alt+Tab.
+// Arrow-key movement through the grid. With nothing selected, → and ↓ start
+// at the first tile (the tab you most likely want) and ← and ↑ at the last.
 export function moveSelection(key, columns) {
   const last = state.filteredTabs.length - 1;
   if (last < 0) return;
   const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns }[key];
   if (!step) return;
-
-  let from = state.selectedIndex;
-  if (from === -1) {
-    from = state.filteredTabs.findIndex((tab) => tab.id === state.currentTabId);
-  }
-  if (from === -1) {
+  if (state.selectedIndex === -1) {
     state.selectedIndex = step > 0 ? 0 : last;
     return;
   }
-  state.selectedIndex = Math.min(last, Math.max(0, from + step));
+  state.selectedIndex = Math.min(last, Math.max(0, state.selectedIndex + step));
 }

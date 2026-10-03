@@ -120,7 +120,7 @@
     "description": "Welcome page tip."
   },
   "welcomeTipMru": {
-    "message": "Tabs are ordered by recent use, current tab first. Press → and then Enter to jump back to your previous tab.",
+    "message": "The tab you most likely want (the previous one) comes first, your current tab second. Press → and then Enter to jump back.",
     "description": "Welcome page tip."
   },
   "welcomeTipHover": {
@@ -218,21 +218,5 @@
         "example": "youtube.com"
       }
     }
-  },
-  "scopeAllTabs": {
-    "message": "All tabs",
-    "description": "Scope bar: segment that shows all tabs."
-  },
-  "optionScopeHeading": {
-    "message": "Site view style (trial)",
-    "description": "Options: heading of the site view style choice."
-  },
-  "optionScopeInline": {
-    "message": "A token inside the search box (press Tab)",
-    "description": "Options: in-field token style."
-  },
-  "optionScopeBar": {
-    "message": "A bar below the search box",
-    "description": "Options: segmented bar style."
   }
 }

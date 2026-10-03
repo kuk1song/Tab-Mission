@@ -1,10 +1,10 @@
 // events.js
-import { state, applyFilters, moveSelection, currentSiteHost } from './state.js';
+import { state, applyFilters, moveSelection, currentSiteHost, countSiteTabs } from './state.js';
 import { render, updateSelection, initializeGridListeners, forgetTile } from './dom.js';
 import { applyArtLayout } from './layout.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
-import { getHostname, isValidIconUrl, createPlaceholderIcon } from './utils.js';
+import { isValidIconUrl, createPlaceholderIcon } from './utils.js';
 
 // Filtering is cheap now that tiles are reused, so the search runs once per
 // animation frame instead of after a 200ms debounce. Enter flushes a pending
@@ -80,8 +80,6 @@ export function initializeEventListeners() {
   if (scopeHintBtn) {
     scopeHintBtn.addEventListener('click', () => setSiteScope(true));
   }
-  document.getElementById('scope-seg-all')?.addEventListener('click', () => setSiteScope(false));
-  document.getElementById('scope-seg-site')?.addEventListener('click', () => setSiteScope(true));
 
   initializeGridListeners();
 
@@ -137,22 +135,20 @@ export function handleFilterChange({ persist = true } = {}) {
   }
 }
 
-// While searching (or in the site view) the toggles do not narrow results;
-// dim them so their unchecked state does not suggest otherwise. Also keeps the
-// site-scope token, the Tab hint and the placeholder in step with the state.
+// While a query is typed the toggles do not narrow results; dim them so their
+// unchecked state does not suggest otherwise. Also keeps the site-scope token,
+// the Tab hint and the placeholder in step with the state.
 function updateScopeIndicators(uiState) {
   const toolbar = document.querySelector('.toolbar');
-  const findEverywhere = uiState.searchTerm.trim() !== '' || Boolean(state.siteHost);
-  toolbar?.classList.toggle('searching', findEverywhere);
+  toolbar?.classList.toggle('searching', uiState.searchTerm.trim() !== '');
 
-  const site = currentSite();
+  const site = currentSite(uiState);
   const token = document.getElementById('scope-token');
   const hint = document.getElementById('scope-hint');
   const searchEl = document.getElementById('search');
   if (!token || !hint || !searchEl) return;
 
-  const useBar = state.scopeStyle === 'bar';
-  token.hidden = useBar || !state.siteHost;
+  token.hidden = !state.siteHost;
   if (state.siteHost) {
     document.getElementById('scope-label').textContent = site.label;
     document.getElementById('scope-icon').src = site.icon;
@@ -163,21 +159,8 @@ function updateScopeIndicators(uiState) {
 
   // Offer the scope only when it narrows something: an empty box, a real
   // site, and at least one other tab from it.
-  const offer = !useBar && !state.siteHost && uiState.searchTerm === '' && site.count >= 2;
+  const offer = !state.siteHost && uiState.searchTerm === '' && site.count >= 2;
   hint.hidden = !offer;
-
-  // The bar variant shows both scopes side by side whenever there is a choice.
-  const bar = document.getElementById('scope-bar');
-  if (bar) {
-    bar.hidden = !(useBar && (state.siteHost || site.count >= 2));
-    if (!bar.hidden) {
-      document.getElementById('scope-seg-all').setAttribute('aria-pressed', String(!state.siteHost));
-      document.getElementById('scope-seg-site').setAttribute('aria-pressed', String(Boolean(state.siteHost)));
-      document.getElementById('scope-seg-icon').src = site.icon;
-      document.getElementById('scope-seg-label').textContent = site.label;
-      document.getElementById('scope-seg-count').textContent = String(site.count);
-    }
-  }
   if (offer) {
     document.getElementById('scope-hint-label').textContent =
       t('siteScopeHint', [site.label, String(site.count)]) || `Only ${site.label} · ${site.count}`;
@@ -186,13 +169,11 @@ function updateScopeIndicators(uiState) {
 }
 
 // The current tab's site: a short label (no leading "www."), its favicon, and
-// how many open tabs share its hostname.
-function currentSite() {
+// how many tabs the site view would show under the current toggles.
+function currentSite(uiState = readUiState()) {
   const host = state.siteHost || currentSiteHost();
   const currentTab = state.allTabs.find((tab) => tab.id === state.currentTabId);
-  const count = host
-    ? state.allTabs.filter((tab) => tab.windowId !== state.selfWindowId && getHostname(tab.url) === host).length
-    : 0;
+  const count = countSiteTabs(host, uiState);
   const icon = currentTab?.favIconUrl && isValidIconUrl(currentTab.favIconUrl)
     ? currentTab.favIconUrl
     : createPlaceholderIcon(host);

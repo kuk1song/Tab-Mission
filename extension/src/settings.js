@@ -8,10 +8,6 @@ const DEFAULTS = {
   // twice closes the overview. On (options page): the previous tab is
   // pre-selected, so pressing it twice goes back to it (Alt+Tab style).
   preselectPrevious: false,
-  // How the site scope is shown: 'inline' (a token inside the search box,
-  // Tab to enter) or 'bar' (a segmented bar below it). Kept as a choice
-  // while both are being compared.
-  scopeStyle: 'inline',
   // Add other settings here as needed
 };
 

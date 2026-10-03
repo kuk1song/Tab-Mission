@@ -285,8 +285,11 @@ html, body {
 }
 
 /* Ensure normal grid has proper auto-sizing */
+/* Rows take their content height. With auto rows, a fixed-height grid
+   shares only its free space among them, and tiles (overflow: hidden, so a
+   minimum height of 0) were squashed once many tabs were open. */
 .grid:not(.art) {
-  grid-auto-rows: auto;
+  grid-auto-rows: max-content;
 }
 
 .tile {
@@ -415,8 +418,8 @@ html, body {
 .tile.sleeping .preview { filter: saturate(0.6) brightness(0.85); }
 .badge-sleeping {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  right: 8px;
+  bottom: 8px; /* clear of the placeholder title (top left) and the close button (top right) */
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.55);
@@ -569,37 +572,6 @@ html, body {
   }
 }
 
-/* Site scope as a segmented bar (the alternative to the in-field token). */
-.scope-bar {
-  flex: 1 1 100%;
-  display: flex;
-  gap: 4px;
-}
-.scope-bar[hidden] { display: none; }
-.seg {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 5px 12px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.seg:hover { color: var(--fg); }
-.seg[aria-pressed="true"] {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--border-color);
-  color: var(--fg);
-}
-#scope-seg-label { overflow: hidden; text-overflow: ellipsis; }
-.seg-count { opacity: 0.6; }
 
 /* Medium width: the search field takes the whole first row and the
    controls move to a second row, so nothing has to squeeze or wrap. */

@@ -120,7 +120,7 @@
     "description": "Welcome page tip."
   },
   "welcomeTipMru": {
-    "message": "标签页按最近使用排序，当前标签页排第一。按 → 再按回车，即可回到上一个标签页。",
+    "message": "最可能要切换的标签（上一个）排第一，当前标签排第二。按 → 再按回车即可切回去。",
     "description": "Welcome page tip."
   },
   "welcomeTipHover": {
@@ -218,21 +218,5 @@
         "example": "youtube.com"
       }
     }
-  },
-  "scopeAllTabs": {
-    "message": "全部标签",
-    "description": "Scope bar: segment that shows all tabs."
-  },
-  "optionScopeHeading": {
-    "message": "站点视图样式（试用对比）",
-    "description": "Options: heading of the site view style choice."
-  },
-  "optionScopeInline": {
-    "message": "搜索框里的标记（按 Tab 进入）",
-    "description": "Options: in-field token style."
-  },
-  "optionScopeBar": {
-    "message": "搜索框下方的范围栏",
-    "description": "Options: segmented bar style."
   }
 }

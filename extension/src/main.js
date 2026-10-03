@@ -25,7 +25,6 @@ async function main() {
   if (toggleCurrentWindow) toggleCurrentWindow.checked = settings.showAllWindows;
   if (toggleArt) toggleArt.checked = settings.artMode;
   state.preselectPrevious = settings.preselectPrevious;
-  state.scopeStyle = settings.scopeStyle;
 
   // Opened by the "current site" shortcut: show only this site's tabs.
   if (new URLSearchParams(location.search).get('scope') === 'site') {

@@ -66,5 +66,4 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 
 .switch { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; font-size: 0.9375rem; cursor: pointer; }
 .switch input { margin-top: 4px; }
-.choices { border: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 #shortcuts div { margin: 6px 0; }

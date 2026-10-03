@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { state, applyFilters, moveSelection } from '../extension/src/state.js';
+import { state, applyFilters, moveSelection, countSiteTabs } from '../extension/src/state.js';
 
 function makeTab(id, overrides = {}) {
   return {
@@ -41,15 +41,22 @@ describe('applyFilters — MRU ordering', () => {
     expect(state.filteredTabs.map((t) => t.id)).toEqual([2, 3, 1]);
   });
 
-  it('keeps the current tab first (pure MRU — it is the most recently accessed)', () => {
+  it('puts the previous tab first and the current tab second', () => {
+    state.currentTabId = 1;
     state.allTabs = [
-      makeTab(1, { lastAccessed: 500, active: true }), // current tab — most recent
+      makeTab(1, { lastAccessed: 500, active: true }), // current tab, most recent
       makeTab(2, { lastAccessed: 300 }),
-      makeTab(3, { lastAccessed: 400 }),
+      makeTab(3, { lastAccessed: 400 }), // previous tab
     ];
     applyFilters(ui());
-    expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 3, 2]);
-    expect(state.filteredTabs[0].id).toBe(1); // current tab heads the list
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([3, 1, 2]);
+  });
+
+  it('leaves the order alone when the current tab is not listed', () => {
+    state.currentTabId = 99;
+    state.allTabs = [makeTab(1, { lastAccessed: 2 }), makeTab(2, { lastAccessed: 1 })];
+    applyFilters(ui());
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 2]);
   });
 
   it('does not auto-select on open — nothing is highlighted until hover/arrow', () => {
@@ -167,9 +174,9 @@ describe('applyFilters — search finds a tab wherever it is', () => {
       makeTab(3, { title: 'GitHub repo C', lastAccessed: 1 }),
     ];
     applyFilters(ui({ searchTerm: 'github' }));
-    expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 2, 3]);
-    expect(state.selectedIndex).toBe(1);
-    expect(state.defaultIndex).toBe(1);
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([2, 1, 3]); // current tab second
+    expect(state.selectedIndex).toBe(0);
+    expect(state.defaultIndex).toBe(0);
   });
 
   it('falls back to the current tab when it is the only match', () => {
@@ -198,7 +205,7 @@ describe('applyFilters — search finds a tab wherever it is', () => {
 });
 
 describe('applyFilters — site view', () => {
-  it('lists every tab of the site across windows, sleeping ones included', () => {
+  beforeEach(() => {
     state.siteHost = 'docs.google.com';
     state.allTabs = [
       makeTab(1, { url: 'https://docs.google.com/a', windowId: 1, lastAccessed: 4 }),
@@ -206,9 +213,25 @@ describe('applyFilters — site view', () => {
       makeTab(3, { url: 'https://docs.google.com/c', discarded: true, lastAccessed: 2 }),
       makeTab(4, { url: 'https://mail.google.com/', lastAccessed: 5 }),
     ];
+  });
+
+  it('follows the window and sleeping toggles like the browse view', () => {
     applyFilters(ui());
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([1]);
+    applyFilters(ui({ showAllWindows: true, showSleeping: true }));
     expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 2, 3]);
     expect(state.selectedIndex).toBe(-1); // no query, so nothing pre-selected
+  });
+
+  it('a query inside the site view still searches every window and sleeping tab', () => {
+    applyFilters(ui({ searchTerm: 'docs' }));
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 2, 3]);
+  });
+
+  it('countSiteTabs counts what the site view would show', () => {
+    expect(countSiteTabs('docs.google.com', ui())).toBe(1);
+    expect(countSiteTabs('docs.google.com', ui({ showAllWindows: true, showSleeping: true }))).toBe(3);
+    expect(countSiteTabs('', ui())).toBe(0);
   });
 });
 
@@ -219,12 +242,15 @@ describe('moveSelection', () => {
     applyFilters(ui());
   });
 
-  it('starts from the current tab, so → reaches the previous tab first', () => {
+  it('starts at the first tile, which is the previous tab', () => {
     moveSelection('ArrowRight', 3);
-    expect(state.filteredTabs[state.selectedIndex].id).toBe(2);
+    expect(state.selectedIndex).toBe(0);
+    expect(state.filteredTabs[0].id).toBe(2);
   });
 
   it('moves by a full row with ↓ and clamps at both ends', () => {
+    moveSelection('ArrowDown', 3);
+    expect(state.selectedIndex).toBe(0);
     moveSelection('ArrowDown', 3);
     expect(state.selectedIndex).toBe(3);
     moveSelection('ArrowDown', 3);
@@ -263,7 +289,7 @@ describe('applyFilters — preselectPrevious setting', () => {
   it('rests on the previous tab when the overview opens', () => {
     applyFilters(ui({ preselectPrevious: true }));
     expect(state.filteredTabs[state.selectedIndex].id).toBe(2);
-    expect(state.defaultIndex).toBe(1);
+    expect(state.defaultIndex).toBe(0);
   });
 
   it('keeps nothing selected when the setting is off', () => {

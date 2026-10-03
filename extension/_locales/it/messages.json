@@ -120,7 +120,7 @@
     "description": "Welcome page tip."
   },
   "welcomeTipMru": {
-    "message": "Le schede sono ordinate per uso recente, quella attuale per prima. Premi → e poi Invio per tornare alla scheda precedente.",
+    "message": "La scheda che probabilmente ti serve (la precedente) è la prima, quella attuale la seconda. Premi → e poi Invio per tornarci.",
     "description": "Welcome page tip."
   },
   "welcomeTipHover": {
@@ -218,21 +218,5 @@
         "example": "youtube.com"
       }
     }
-  },
-  "scopeAllTabs": {
-    "message": "Tutte le schede",
-    "description": "Scope bar: segment that shows all tabs."
-  },
-  "optionScopeHeading": {
-    "message": "Stile della vista sito (prova)",
-    "description": "Options: heading of the site view style choice."
-  },
-  "optionScopeInline": {
-    "message": "Un'etichetta nella casella di ricerca (premi Tab)",
-    "description": "Options: in-field token style."
-  },
-  "optionScopeBar": {
-    "message": "Una barra sotto la casella di ricerca",
-    "description": "Options: segmented bar style."
   }
 }
