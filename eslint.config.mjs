@@ -11,7 +11,7 @@ const rules = {
 
 export default [
   {
-    ignores: ['node_modules/**', 'builds/**', 'extension/icons/old/**'],
+    ignores: ['node_modules/**', 'builds/**', 'local/**', 'test-results/**', 'playwright-report/**'],
   },
   {
     // Popup / overview scripts run in a normal browser document.
@@ -44,8 +44,19 @@ export default [
     rules,
   },
   {
+    // Playwright end-to-end tests: node code that passes callbacks to the
+    // browser (page.evaluate, the extension's service worker).
+    files: ['tests/e2e/**/*.mjs', 'playwright.config.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: { ...globals.node, ...globals.browser, ...globals.webextensions },
+    },
+    rules,
+  },
+  {
     // Vitest unit tests (node env). Test helpers are imported from 'vitest'.
-    files: ['tests/**/*.mjs', 'vitest.config.mjs'],
+    files: ['tests/*.mjs', 'vitest.config.mjs'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

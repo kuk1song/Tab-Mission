@@ -1,7 +1,7 @@
 {
   "name": "tab-mission",
   "version": "1.2.0",
-  "description": "Mission control for your browser tabs — a searchable visual grid of every open tab.",
+  "description": "Mission control for your browser tabs: a searchable visual grid of your open tabs.",
   "private": true,
   "license": "MIT",
   "author": "Haokun Song <shk741612898@gmail.com>",
@@ -14,12 +14,14 @@
     "lint": "eslint .",
     "validate:json": "node scripts/validate-json.mjs",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "check": "npm run lint && npm run validate:json && npm run test",
     "package": "node scripts/package.mjs"
   },
   "devDependencies": {
-    "eslint": "^10.4.1",
-    "globals": "^17.6.0",
-    "vitest": "^4.1.8"
+    "@playwright/test": "^1.63.0",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "vitest": "^4.1.11"
   }
 }
