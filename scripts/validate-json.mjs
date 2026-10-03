@@ -20,6 +20,29 @@ for (const file of files) {
   }
 }
 
+// Permissions decide what users are asked to accept and what store review
+// looks at, so a change must be deliberate: update this list along with the
+// manifest (and PRIVACY.md).
+const EXPECTED_PERMISSIONS = {
+  permissions: ['scripting', 'storage', 'system.display', 'tabs'],
+  host_permissions: ['<all_urls>'],
+  optional_permissions: [],
+  optional_host_permissions: [],
+};
+try {
+  const manifest = JSON.parse(readFileSync('extension/manifest.json', 'utf8'));
+  for (const [key, expected] of Object.entries(EXPECTED_PERMISSIONS)) {
+    const actual = [...(manifest[key] || [])].sort();
+    if (JSON.stringify(actual) !== JSON.stringify([...expected].sort())) {
+      failed = true;
+      console.error(`FAIL ${key}: manifest has ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
+    }
+  }
+  if (!failed) console.log('ok   permissions unchanged');
+} catch {
+  // A parse failure was already reported above.
+}
+
 // The store reads the version from manifest.json; keep package.json in step.
 try {
   const manifest = JSON.parse(readFileSync('extension/manifest.json', 'utf8'));
