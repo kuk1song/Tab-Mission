@@ -43,6 +43,20 @@ Tab Mission puts every open tab into one searchable grid, ordered by when you la
 - **No-click switching:** press the shortcut, hover the tab you want, and press the shortcut **again**.
 - **Alt+Tab style (optional):** click the gear in the overview and turn on "Pre-select the previous tab"; then pressing the shortcut twice takes you back to the previous tab.
 
+## 🛠️ Development
+
+Plain JavaScript, no build step: `extension/` is exactly what ships. With Node 24:
+
+```sh
+npm ci
+npm run check      # lint, manifest checks, unit tests
+npx playwright install chromium
+npm run test:e2e   # end-to-end tests in Playwright's Chromium
+npm run package    # builds/tab-mission-<version>.zip
+```
+
+To try your changes, load `extension/` at `chrome://extensions` (Developer mode, then "Load unpacked").
+
 ## 💬 Feedback & Support
 
 Have a question, a bug to report, or a feature request? We would love to hear from you!
