@@ -182,6 +182,10 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
 		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
 	}
+	if (reason === chrome.runtime.OnInstalledReason.UPDATE) {
+		// Versions before 1.2.0 saved the last search text; drop it.
+		chrome.storage.local.remove('searchTerm').catch(() => {});
+	}
 });
 
 async function resetWindowBounds() {
