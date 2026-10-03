@@ -3,6 +3,10 @@
     "message": "Tab Mission",
     "description": "The name of the extension."
   },
+  "lang": {
+    "message": "zh-CN",
+    "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
+  },
   "appDescription": {
     "message": "Chrome 标签页的“调度中心”：所有标签页以可视网格呈现，最近使用的排在前面。输入即搜索，回车即切换。",
     "description": "Store summary and manifest description (max 132 characters)."
@@ -12,7 +16,7 @@
     "description": "Toolbar button tooltip; also the welcome page's open button."
   },
   "commandOpen": {
-    "message": "打开或关闭标签页总览",
+    "message": "打开或关闭标签页概览",
     "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
   },
   "commandOpenSite": {
@@ -32,7 +36,7 @@
     "description": "Tooltip on the toggles: searching ignores them."
   },
   "showSleepingLabel": {
-    "message": "显示休眠标签",
+    "message": "显示休眠标签页",
     "description": "Label for the 'Show sleeping' checkbox."
   },
   "showAllWindowsLabel": {
@@ -41,7 +45,7 @@
   },
   "changeShortcutTitle": {
     "message": "更改快捷键",
-    "description": "Tooltip for the button that opens shortcut settings."
+    "description": "Button that opens chrome://extensions/shortcuts."
   },
   "resetWindowTitle": {
     "message": "重置大小和位置",
@@ -120,7 +124,7 @@
     "description": "Welcome page tip."
   },
   "welcomeTipMru": {
-    "message": "最可能要切换的标签（上一个）排第一，当前标签排第二。按 → 再按回车即可切回去。",
+    "message": "最可能要切换的标签页（上一个）排第一，当前标签页排第二。按 → 再按回车即可切回去。",
     "description": "Welcome page tip."
   },
   "welcomeTipHover": {
@@ -133,7 +137,7 @@
     "placeholders": {
       "shortcut": {
         "content": "$1",
-        "example": "⌘ + E"
+        "example": "Tab"
       }
     }
   },
@@ -170,11 +174,11 @@
     "description": "Tooltip of the gear button that opens the settings page."
   },
   "optionPreselect": {
-    "message": "预选上一个标签：连按两次快捷键即可回到上一个标签",
+    "message": "预选上一个标签页：连按两次快捷键即可回到上一个标签页",
     "description": "Options: switch that pre-selects the previous tab on open."
   },
   "optionPreselectNote": {
-    "message": "关闭时（默认）：不选中任何标签，再按一次快捷键会关闭概览。两种情况下，都可以把鼠标悬停在某个标签上再按快捷键切过去，或按 Esc 关闭。",
+    "message": "关闭时（默认）：不选中任何标签页，再按一次快捷键会关闭概览。两种情况下，都可以把鼠标悬停在某个标签页上再按快捷键切过去，或按 Esc 关闭。",
     "description": "Options: note under the switch."
   },
   "searchSitePlaceholder": {
@@ -202,11 +206,11 @@
     }
   },
   "siteScopeHintTitle": {
-    "message": "只显示当前网站的标签（Tab）",
+    "message": "只显示当前网站的标签页（Tab）",
     "description": "Tooltip of the site-scope hint."
   },
   "searchAllTabs": {
-    "message": "在全部标签中搜索",
+    "message": "在全部标签页中搜索",
     "description": "Button in the empty state of the site scope; leaves the scope and keeps the query."
   },
   "emptyNoMatchInSite": {

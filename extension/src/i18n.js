@@ -18,9 +18,9 @@ export function t(key, substitutions) {
  * (attributes). The English text already in the HTML is the fallback.
  */
 export function localizeStaticText(root = document) {
-	try {
-		document.documentElement.lang = chrome.i18n.getUILanguage();
-	} catch {}
+	// The language of the text actually shown: Chrome falls back to English
+	// for UI languages without a translation.
+	document.documentElement.lang = t('lang') || 'en';
 
 	for (const el of root.querySelectorAll('[data-i18n]')) {
 		const msg = t(el.getAttribute('data-i18n'));

@@ -3,6 +3,10 @@
     "message": "Tab Mission",
     "description": "The name of the extension."
   },
+  "lang": {
+    "message": "en",
+    "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
+  },
   "appDescription": {
     "message": "Mission Control for Chrome tabs: every open tab in one visual grid, most recent first. Type to search, Enter to switch.",
     "description": "Store summary and manifest description (max 132 characters)."
@@ -41,7 +45,7 @@
   },
   "changeShortcutTitle": {
     "message": "Change shortcut",
-    "description": "Tooltip for the button that opens shortcut settings."
+    "description": "Button that opens chrome://extensions/shortcuts."
   },
   "resetWindowTitle": {
     "message": "Reset size & center",
@@ -133,7 +137,7 @@
     "placeholders": {
       "shortcut": {
         "content": "$1",
-        "example": "⌘ + E"
+        "example": "Tab"
       }
     }
   },

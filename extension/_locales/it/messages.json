@@ -3,6 +3,10 @@
     "message": "Tab Mission",
     "description": "The name of the extension."
   },
+  "lang": {
+    "message": "it",
+    "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
+  },
   "appDescription": {
     "message": "Mission Control per le schede di Chrome: tutte le schede in una griglia, le più recenti prima. Digita per cercare, Invio per aprire.",
     "description": "Store summary and manifest description (max 132 characters)."
@@ -41,14 +45,14 @@
   },
   "changeShortcutTitle": {
     "message": "Modifica scorciatoia",
-    "description": "Tooltip for the button that opens shortcut settings."
+    "description": "Button that opens chrome://extensions/shortcuts."
   },
   "resetWindowTitle": {
     "message": "Reimposta dimensioni e centra",
     "description": "Tooltip for the button that resets the window size and position."
   },
   "toggleWithShortcut": {
-    "message": "Attiva con $shortcut$",
+    "message": "Apri o chiudi con $shortcut$",
     "description": "Tooltip/ARIA label for the shortcut hint; includes the active shortcut.",
     "placeholders": {
       "shortcut": {
@@ -133,7 +137,7 @@
     "placeholders": {
       "shortcut": {
         "content": "$1",
-        "example": "⌘ + E"
+        "example": "Tab"
       }
     }
   },

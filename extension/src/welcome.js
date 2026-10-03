@@ -1,4 +1,4 @@
-// welcome.js: first-install page. Shows the assigned shortcuts (or explains
+// welcome.js: first-install page. Shows the overview shortcut (or explains
 // that Chrome could not assign one) and a few usage tips.
 import { localizeStaticText, t } from './i18n.js';
 
@@ -16,24 +16,32 @@ function setWithKbd(el, key, shortcut, fallback) {
   el.replaceChildren(before, kbd, after);
 }
 
-async function main() {
-  localizeStaticText();
-
+// Called again whenever the page becomes visible, so a shortcut chosen at
+// chrome://extensions/shortcuts shows up on return.
+async function showShortcut() {
   let commands = [];
   try {
     commands = await chrome.commands.getAll();
   } catch {}
-  const shortcutOf = (name) => formatShortcut(commands.find((c) => c.name === name)?.shortcut);
+  const openShortcut = formatShortcut(commands.find((c) => c.name === 'open-overview')?.shortcut);
 
-  const openShortcut = shortcutOf('open-overview');
   const lead = document.getElementById('lead');
+  lead.hidden = !openShortcut;
+  document.getElementById('no-shortcut').hidden = Boolean(openShortcut);
+  document.getElementById('set-shortcut').textContent = openShortcut
+    ? (t('changeShortcutTitle') || 'Change shortcut')
+    : (t('welcomeSetShortcut') || 'Choose shortcut');
   if (openShortcut) {
     setWithKbd(lead, 'welcomeLead', openShortcut, (s) => `Press ${s} anywhere in Chrome to see all your tabs.`);
-  } else {
-    lead.hidden = true;
-    document.getElementById('no-shortcut').hidden = false;
-    document.getElementById('set-shortcut').textContent = t('welcomeSetShortcut') || 'Choose shortcut';
   }
+}
+
+async function main() {
+  localizeStaticText();
+  await showShortcut();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) showShortcut();
+  });
 
   setWithKbd(document.getElementById('tip-site'), 'welcomeTipSite', 'Tab',
     (s) => `Press ${s} in the search box to see only the tabs from the site you are on.`);
