@@ -263,12 +263,6 @@ html, body {
   scrollbar-gutter: stable;
 }
 
-/* TEMPORARY A/B (experimentGrid 'dense'): smaller tiles, about six columns
-   on a laptop. With few tabs, dom.js sets fixed columns that fill the grid
-   (.filled) and the block is centered. */
-.grid.dense { --tile-min: clamp(9.375rem, 14cqi, 18.75rem); }
-.grid.filled { justify-content: center; align-content: center; }
-
 .tile {
   display: flex;
   flex-direction: column;

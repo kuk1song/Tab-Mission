@@ -37,15 +37,3 @@ test('the gear in the overview opens the options page', async ({ ext, context })
   await options;
   await ext.expectClosed();
 });
-
-// TEMPORARY A/B: remove with the experiments.
-test('options page: the experiment switches save their choice', async ({ ext, context }) => {
-  const page = await context.newPage();
-  await page.goto(`chrome-extension://${new URL(ext.sw.url()).host}/options.html`);
-  await expect(page.locator('#exp-window')).toHaveValue('display');
-  await expect(page.locator('#exp-grid')).toHaveValue('standard');
-  await page.locator('#exp-window').selectOption('browser');
-  await page.locator('#exp-grid').selectOption('dense');
-  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get(['experimentWindowSizing', 'experimentGrid'])))
-    .toEqual({ experimentWindowSizing: 'browser', experimentGrid: 'dense' });
-});

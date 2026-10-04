@@ -142,21 +142,9 @@ describe('background.js', () => {
     };
     const halfScreenBrowser = () => { chrome._focused = { left: 0, top: 0, width: 800, height: 1000, state: 'normal' }; };
 
-    it('A (default): 88% x 90% of the work area, capped, centered on the display', async () => {
+    it('defaults to 88% x 90% of the work area, capped, centered on the display', async () => {
       halfScreenBrowser();
       expect(await opened()).toEqual({ left: 100, top: 50, width: 1400, height: 900 });
-    });
-
-    it('B: centered on the browser window, kept inside the work area, never below the minimum', async () => {
-      chrome.storage.local.data.experimentWindowSizing = 'browser';
-      halfScreenBrowser();
-      expect(await opened()).toEqual({ left: 0, top: 45, width: 1000, height: 900 });
-    });
-
-    it('B: a maximized browser counts as the whole work area', async () => {
-      chrome.storage.local.data.experimentWindowSizing = 'browser';
-      chrome._focused = { left: 0, top: 0, width: 1600, height: 1000, state: 'maximized' };
-      expect(await opened()).toEqual({ left: 100, top: 45, width: 1400, height: 900 });
     });
 
     it("opens on the browser's display, keeping the saved size but not a position from another display", async () => {

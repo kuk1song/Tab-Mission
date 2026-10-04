@@ -32,54 +32,6 @@ export function initializeGridListeners() {
     const tab = tabForEvent(e);
     if (tab) closeTab(tab);
   });
-  // TEMPORARY A/B: refit the few-tabs layout when the window is resized.
-  let fitFrame = 0;
-  new ResizeObserver(() => {
-    if (fitFrame) return;
-    fitFrame = requestAnimationFrame(() => {
-      fitFrame = 0;
-      fitFewTiles(gridEl);
-    });
-  }).observe(gridEl);
-}
-
-// TEMPORARY A/B (experimentGrid 'dense'). When every tile fits on one screen
-// without a query, grow the tiles (up to 22.5rem wide) so they fill the grid,
-// as Mission Control does, instead of leaving most of it empty. While a query
-// is typed the standard sizes return, so typing never makes tiles jump larger.
-function fitFewTiles(gridEl) {
-  gridEl.style.removeProperty('grid-template-columns');
-  gridEl.classList.remove('filled');
-  const n = state.filteredTabs.length;
-  const tile = gridEl.querySelector('.tile');
-  const query = document.getElementById('search')?.value.trim();
-  if (!gridEl.classList.contains('dense') || !n || !tile || query) return;
-
-  const cs = getComputedStyle(gridEl);
-  const width = gridEl.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-  const height = gridEl.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-  const gap = parseFloat(cs.columnGap) || 0;
-  const preview = tile.querySelector('.preview');
-  const insetX = tile.offsetWidth - preview.offsetWidth; // tile padding
-  const extraY = tile.offsetHeight - preview.offsetHeight; // meta row and padding
-  const maxTile = 22.5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
-
-  let best = 0;
-  let bestCols = 0;
-  for (let cols = 1; cols <= n; cols++) {
-    const rows = Math.ceil(n / cols);
-    const byWidth = (width - gap * (cols - 1)) / cols;
-    const byHeight = ((height - gap * (rows - 1)) / rows - extraY) * 1.6 + insetX; // 16:10 previews
-    const w = Math.min(maxTile, byWidth, byHeight);
-    if (w > best) {
-      best = w;
-      bestCols = cols;
-    }
-  }
-  if (best > tile.offsetWidth + 1) {
-    gridEl.style.gridTemplateColumns = `repeat(${bestCols}, ${Math.floor(best)}px)`;
-    gridEl.classList.add('filled');
-  }
 }
 
 function tabForEvent(e) {
@@ -132,7 +84,6 @@ export function render() {
   gridEl.replaceChildren(...nodes);
 
   updateSelection();
-  fitFewTiles(gridEl);
   observeTiles(nodes);
 }
 

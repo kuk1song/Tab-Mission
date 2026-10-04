@@ -7,9 +7,6 @@ const DEFAULTS = {
   // twice closes the overview. On (options page): the previous tab is
   // pre-selected, so pressing it twice goes back to it (Alt+Tab style).
   preselectPrevious: false,
-  // TEMPORARY A/B experiments (options page); remove once decided.
-  experimentWindowSizing: 'display', // 'display' (A) or 'browser' (B), read by background.js
-  experimentGrid: 'standard', // 'standard' (A) or 'dense' (B)
 };
 
 /**

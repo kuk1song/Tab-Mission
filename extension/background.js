@@ -79,51 +79,13 @@ function displayFor(displays, browser) {
 	return displays.find(d => d.isPrimary) || displays[0];
 }
 
-// TEMPORARY A/B (experimentWindowSizing): 'display' keeps the original rule,
-// 'browser' sizes and centers the overview on the browser window. Remove the
-// losing branch once the maintainer has compared them.
-async function getWindowSizing() {
-	try {
-		const { experimentWindowSizing } = await chrome.storage.local.get({ experimentWindowSizing: 'display' });
-		return experimentWindowSizing === 'browser' ? 'browser' : 'display';
-	} catch {
-		return 'display';
-	}
-}
-
-// A: 88% x 90% of the display's work area (at most 1400 x 1000), centered on
-// the display.
+// Default size: 88% x 90% of the display's work area (at most 1400 x 1000),
+// centered on the display.
 function displayBounds(display) {
 	const a = display.workArea;
 	const width = Math.min(a.width * 0.88, 1400);
 	const height = Math.min(a.height * 0.9, 1000);
 	return { width, height, left: a.left + (a.width - width) / 2, top: a.top + (a.height - height) / 2 };
-}
-
-// B: centered on the browser window, a little smaller than it so the browser
-// stays visible around it; never larger than A, never smaller than a usable
-// minimum. A maximized or fullscreen browser counts as the whole work area.
-function browserBounds(display, browser) {
-	const a = display.workArea;
-	let anchor = a;
-	if (browser && browser.state !== 'maximized' && browser.state !== 'fullscreen') {
-		const left = Math.max(a.left, browser.left);
-		const top = Math.max(a.top, browser.top);
-		const right = Math.min(a.left + a.width, browser.left + browser.width);
-		const bottom = Math.min(a.top + a.height, browser.top + browser.height);
-		if (right > left && bottom > top) anchor = { left, top, width: right - left, height: bottom - top };
-	}
-	const maxW = Math.min(a.width * 0.88, 1400);
-	const maxH = Math.min(a.height * 0.9, 1000);
-	const width = clamp(anchor.width - 48, Math.min(1000, maxW), maxW);
-	const height = clamp(anchor.height - 48, Math.min(600, maxH), maxH);
-	return {
-		width,
-		height,
-		left: anchor.left + (anchor.width - width) / 2,
-		// A little above center, as Windows places owned windows.
-		top: anchor.top + 0.45 * (anchor.height - height),
-	};
 }
 
 // Keep a rectangle inside the work area and in whole pixels.
@@ -141,11 +103,10 @@ function fitInto(display, b) {
 
 // Where the overview opens: on the browser's display, at the size and spot
 // the user last chose when that spot is on this display, otherwise at the
-// default size (A or B) centered as that rule says.
+// default size, centered.
 async function overviewBounds(displays, saved) {
-	const [browser, sizing] = await Promise.all([lastFocusedBrowser(), getWindowSizing()]);
-	const display = displayFor(displays, browser);
-	const bounds = sizing === 'browser' ? browserBounds(display, browser) : displayBounds(display);
+	const display = displayFor(displays, await lastFocusedBrowser());
+	const bounds = displayBounds(display);
 	if (saved?.width && saved?.height) {
 		const c = centerOf(bounds);
 		bounds.width = saved.width;

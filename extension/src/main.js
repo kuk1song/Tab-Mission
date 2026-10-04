@@ -22,8 +22,6 @@ async function main() {
   if (toggleHideDiscarded) toggleHideDiscarded.checked = settings.showSleeping;
   if (toggleCurrentWindow) toggleCurrentWindow.checked = settings.showAllWindows;
   state.preselectPrevious = settings.preselectPrevious;
-  // TEMPORARY A/B: denser grid, few tabs grow to fill.
-  document.getElementById('grid')?.classList.toggle('dense', settings.experimentGrid === 'dense');
 
   // Opened by the "current site" shortcut: show only this site's tabs.
   if (new URLSearchParams(location.search).get('scope') === 'site') {
