@@ -49,32 +49,118 @@ function displayAt(displays, x, y) {
 		x >= a.left && x < a.left + a.width && y >= a.top && y < a.top + a.height);
 }
 
-// Pick the display to open on: where the overview was last placed, else where
-// the user is working (the last focused browser window), else the primary.
-async function chooseDisplay(displays, saved) {
-	if (saved && typeof saved.left === 'number' && typeof saved.top === 'number' && saved.width && saved.height) {
-		const display = displayAt(displays, saved.left + saved.width / 2, saved.top + saved.height / 2);
+function centerOf(r) {
+	return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+function clamp(value, min, max) {
+	return Math.max(min, Math.min(value, max));
+}
+
+// The browser window the user is working in (a minimized one reports its
+// restored bounds), or null.
+async function lastFocusedBrowser() {
+	try {
+		const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+		return typeof win?.left === 'number' ? win : null;
+	} catch {
+		return null;
+	}
+}
+
+// Open on the display of the browser window the user is working in, else on
+// the primary display.
+function displayFor(displays, browser) {
+	if (browser) {
+		const c = centerOf(browser);
+		const display = displayAt(displays, c.x, c.y);
 		if (display) return display;
 	}
-	try {
-		const focused = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
-		if (typeof focused?.left === 'number') {
-			const display = displayAt(displays, focused.left + focused.width / 2, focused.top + focused.height / 2);
-			if (display) return display;
-		}
-	} catch {}
 	return displays.find(d => d.isPrimary) || displays[0];
 }
 
-function defaultBounds(display) {
-	const w = Math.min(display.workArea.width * 0.88, 1400); // 88% of width, capped at 1400px
-	const h = Math.min(display.workArea.height * 0.9, 1000); // 90% of height, capped at 1000px
+// TEMPORARY A/B (experimentWindowSizing): 'display' keeps the original rule,
+// 'browser' sizes and centers the overview on the browser window. Remove the
+// losing branch once the maintainer has compared them.
+async function getWindowSizing() {
+	try {
+		const { experimentWindowSizing } = await chrome.storage.local.get({ experimentWindowSizing: 'display' });
+		return experimentWindowSizing === 'browser' ? 'browser' : 'display';
+	} catch {
+		return 'display';
+	}
+}
+
+// A: 88% x 90% of the display's work area (at most 1400 x 1000), centered on
+// the display.
+function displayBounds(display) {
+	const a = display.workArea;
+	const width = Math.min(a.width * 0.88, 1400);
+	const height = Math.min(a.height * 0.9, 1000);
+	return { width, height, left: a.left + (a.width - width) / 2, top: a.top + (a.height - height) / 2 };
+}
+
+// B: centered on the browser window, a little smaller than it so the browser
+// stays visible around it; never larger than A, never smaller than a usable
+// minimum. A maximized or fullscreen browser counts as the whole work area.
+function browserBounds(display, browser) {
+	const a = display.workArea;
+	let anchor = a;
+	if (browser && browser.state !== 'maximized' && browser.state !== 'fullscreen') {
+		const left = Math.max(a.left, browser.left);
+		const top = Math.max(a.top, browser.top);
+		const right = Math.min(a.left + a.width, browser.left + browser.width);
+		const bottom = Math.min(a.top + a.height, browser.top + browser.height);
+		if (right > left && bottom > top) anchor = { left, top, width: right - left, height: bottom - top };
+	}
+	const maxW = Math.min(a.width * 0.88, 1400);
+	const maxH = Math.min(a.height * 0.9, 1000);
+	const width = clamp(anchor.width - 48, Math.min(1000, maxW), maxW);
+	const height = clamp(anchor.height - 48, Math.min(600, maxH), maxH);
 	return {
-		width: Math.round(w),
-		height: Math.round(h),
-		top: Math.round(display.workArea.top + (display.workArea.height - h) / 2),
-		left: Math.round(display.workArea.left + (display.workArea.width - w) / 2),
+		width,
+		height,
+		left: anchor.left + (anchor.width - width) / 2,
+		// A little above center, as Windows places owned windows.
+		top: anchor.top + 0.45 * (anchor.height - height),
 	};
+}
+
+// Keep a rectangle inside the work area and in whole pixels.
+function fitInto(display, b) {
+	const a = display.workArea;
+	const width = Math.min(b.width, a.width);
+	const height = Math.min(b.height, a.height);
+	return {
+		width: Math.round(width),
+		height: Math.round(height),
+		left: Math.round(clamp(b.left, a.left, a.left + a.width - width)),
+		top: Math.round(clamp(b.top, a.top, a.top + a.height - height)),
+	};
+}
+
+// Where the overview opens: on the browser's display, at the size and spot
+// the user last chose when that spot is on this display, otherwise at the
+// default size (A or B) centered as that rule says.
+async function overviewBounds(displays, saved) {
+	const [browser, sizing] = await Promise.all([lastFocusedBrowser(), getWindowSizing()]);
+	const display = displayFor(displays, browser);
+	const bounds = sizing === 'browser' ? browserBounds(display, browser) : displayBounds(display);
+	if (saved?.width && saved?.height) {
+		const c = centerOf(bounds);
+		bounds.width = saved.width;
+		bounds.height = saved.height;
+		bounds.left = c.x - saved.width / 2;
+		bounds.top = c.y - saved.height / 2;
+		if (typeof saved.left === 'number' && typeof saved.top === 'number') {
+			const s = centerOf(saved);
+			if (displayAt([display], s.x, s.y)) {
+				bounds.left = saved.left;
+				bounds.top = saved.top;
+			}
+		}
+	}
+	return fitInto(display, bounds);
 }
 
 // scope is 'site' for the "current site" shortcut, anything else for all tabs.
@@ -128,34 +214,12 @@ async function createOverviewWindow(scope) {
 			throw new Error('No display information found.');
 		}
 
-		// Restore the saved size and position, kept inside the chosen display's
-		// work area; otherwise use adaptive defaults.
-		const saved = await getSavedOverviewBounds();
-		const display = await chooseDisplay(displays, saved);
-		let w, h, top, left;
-
-		if (saved && saved.width && saved.height) {
-			w = Math.min(saved.width, display.workArea.width);
-			h = Math.min(saved.height, display.workArea.height);
-		} else {
-			({ width: w, height: h } = defaultBounds(display));
-		}
-
-		if (saved && typeof saved.top === 'number' && typeof saved.left === 'number') {
-			top = Math.max(display.workArea.top, Math.min(saved.top, display.workArea.top + display.workArea.height - h));
-			left = Math.max(display.workArea.left, Math.min(saved.left, display.workArea.left + display.workArea.width - w));
-		} else {
-			top = display.workArea.top + (display.workArea.height - h) / 2;
-			left = display.workArea.left + (display.workArea.width - w) / 2;
-		}
+		const bounds = await overviewBounds(displays, await getSavedOverviewBounds());
 
 		const win = await chrome.windows.create({
 			url: chrome.runtime.getURL(scope === 'site' ? 'overview.html?scope=site' : 'overview.html'),
 			type: 'popup',
-			width: Math.round(w),
-			height: Math.round(h),
-			top: Math.round(top),
-			left: Math.round(left),
+			...bounds,
 		});
 		if (win?.id) {
 			overviewWindowId = win.id;
@@ -194,16 +258,18 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 	}
 });
 
+// Reset: forget the saved size and position and move the open overview to
+// where a first open would put it. The move is not saved as the user's
+// choice, so later opens keep following the default rule.
+let ignoreBoundsUntil = 0;
+
 async function resetWindowBounds() {
 	await chrome.storage.local.set({ overviewBounds: null });
-	// Recenter the open overview on the display it is currently on.
 	const storedId = await getStoredOverviewWindowId();
 	if (!storedId) return;
-	const win = await chrome.windows.get(storedId);
 	const displays = await chrome.system.display.getInfo();
-	const display = displayAt(displays, win.left + win.width / 2, win.top + win.height / 2)
-		|| displays.find(d => d.isPrimary) || displays[0];
-	await chrome.windows.update(storedId, defaultBounds(display));
+	ignoreBoundsUntil = Date.now() + 1000;
+	await chrome.windows.update(storedId, await overviewBounds(displays, null));
 }
 
 // Not an async listener: Chrome keeps the response channel open only when the
@@ -225,7 +291,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Remember the overview's size and position whenever they change.
 chrome.windows.onBoundsChanged.addListener(async (win) => {
 	const id = overviewWindowId ?? await getStoredOverviewWindowId();
-	if (win.id !== id) return;
+	if (win.id !== id || Date.now() < ignoreBoundsUntil) return;
 	try {
 		await chrome.storage.local.set({
 			overviewBounds: { width: win.width, height: win.height, top: win.top, left: win.left },

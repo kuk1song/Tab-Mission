@@ -27,7 +27,10 @@ function fakeChrome() {
     commands: { onCommand: event('onCommand') },
     action: { onClicked: event('onClicked') },
     storage: { local: store(), session: store() },
-    system: { display: { getInfo: async () => [{ isPrimary: true, workArea: { left: 0, top: 0, width: 1600, height: 1000 } }] } },
+    // One 1600 x 1000 display; tests may replace _displays and _focused.
+    _displays: [{ isPrimary: true, workArea: { left: 0, top: 0, width: 1600, height: 1000 } }],
+    _focused: { left: 0, top: 0, width: 1600, height: 1000, state: 'normal' },
+    system: { display: { getInfo: async () => chrome._displays } },
     tabs: {
       create: vi.fn(async () => ({})),
       query: vi.fn(async ({ windowId }) => windows.get(windowId)?.tabs ?? []),
@@ -44,7 +47,7 @@ function fakeChrome() {
         if (!windows.has(id)) throw new Error(`No window with id: ${id}.`);
         return windows.get(id);
       }),
-      getLastFocused: vi.fn(async () => ({ left: 0, top: 0, width: 1600, height: 1000 })),
+      getLastFocused: vi.fn(async () => chrome._focused),
       create: vi.fn(async ({ url, type }) => {
         // A little latency, as a real window takes time to open.
         await new Promise((r) => setTimeout(r, 5));
@@ -128,5 +131,60 @@ describe('background.js', () => {
     expect(chrome.storage.local.data.overviewBounds).toEqual({ width: 900, height: 600, top: 20, left: 30 });
     await chrome.listeners.onRemoved(id);
     expect(chrome.storage.session.data.overviewWindowId).toBeNull();
+  });
+
+  describe('where the overview opens', () => {
+    const opened = async () => {
+      chrome.listeners.onCommand('open-overview');
+      await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalled());
+      const { left, top, width, height } = chrome.windows.create.mock.calls.at(-1)[0];
+      return { left, top, width, height };
+    };
+    const halfScreenBrowser = () => { chrome._focused = { left: 0, top: 0, width: 800, height: 1000, state: 'normal' }; };
+
+    it('A (default): 88% x 90% of the work area, capped, centered on the display', async () => {
+      halfScreenBrowser();
+      expect(await opened()).toEqual({ left: 100, top: 50, width: 1400, height: 900 });
+    });
+
+    it('B: centered on the browser window, kept inside the work area, never below the minimum', async () => {
+      chrome.storage.local.data.experimentWindowSizing = 'browser';
+      halfScreenBrowser();
+      expect(await opened()).toEqual({ left: 0, top: 45, width: 1000, height: 900 });
+    });
+
+    it('B: a maximized browser counts as the whole work area', async () => {
+      chrome.storage.local.data.experimentWindowSizing = 'browser';
+      chrome._focused = { left: 0, top: 0, width: 1600, height: 1000, state: 'maximized' };
+      expect(await opened()).toEqual({ left: 100, top: 45, width: 1400, height: 900 });
+    });
+
+    it("opens on the browser's display, keeping the saved size but not a position from another display", async () => {
+      chrome._displays = [
+        { isPrimary: true, workArea: { left: 0, top: 0, width: 1600, height: 1000 } },
+        { isPrimary: false, workArea: { left: 1600, top: 0, width: 1920, height: 1080 } },
+      ];
+      chrome._focused = { left: 1700, top: 50, width: 1700, height: 1000, state: 'normal' };
+      chrome.storage.local.data.overviewBounds = { left: 10, top: 10, width: 1000, height: 700 };
+      const b = await opened();
+      expect(b.left).toBeGreaterThanOrEqual(1600);
+      expect({ width: b.width, height: b.height }).toEqual({ width: 1000, height: 700 });
+    });
+
+    it('reuses the saved position when it is on the same display', async () => {
+      chrome.storage.local.data.overviewBounds = { left: 30, top: 40, width: 900, height: 600 };
+      expect(await opened()).toEqual({ left: 30, top: 40, width: 900, height: 600 });
+    });
+
+    it('reset moves the open overview to the default without saving it as a choice', async () => {
+      await opened();
+      const id = chrome.storage.session.data.overviewWindowId;
+      chrome.storage.local.data.overviewBounds = { left: 30, top: 40, width: 900, height: 600 };
+      const reply = await new Promise((resolve) => chrome.listeners.onMessage({ action: 'resetWindowBounds' }, {}, resolve));
+      expect(reply).toEqual({ ok: true });
+      expect(chrome.windows.update).toHaveBeenCalledWith(id, { left: 100, top: 50, width: 1400, height: 900 });
+      await chrome.listeners.onBoundsChanged({ id, left: 100, top: 50, width: 1400, height: 900 });
+      expect(chrome.storage.local.data.overviewBounds).toBeNull();
+    });
   });
 });
