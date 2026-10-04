@@ -112,8 +112,10 @@ async function extractPreviewImage(tabId) {
           }
         };
 
-        // Special case for YouTube
-        if (window.location.hostname.includes('youtube.com')) {
+        // YouTube watch pages: the video's own thumbnail. Match the domain
+        // exactly, so "notyoutube.com" or "youtube.com.example" never do.
+        const host = window.location.hostname;
+        if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
           const videoId = new URLSearchParams(window.location.search).get('v');
           if (videoId) {
             return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
