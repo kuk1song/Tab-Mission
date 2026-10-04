@@ -258,6 +258,9 @@ html, body {
      shares only its free space among them, and tiles (overflow: hidden, so a
      minimum height of 0) were squashed once many tabs were open. */
   grid-auto-rows: max-content;
+  /* Classic scrollbars (Windows, Linux) take width: reserve it, so a column
+     is not lost the moment the grid starts to scroll. */
+  scrollbar-gutter: stable;
 }
 
 .tile {
