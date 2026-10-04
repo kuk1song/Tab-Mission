@@ -52,6 +52,11 @@ function startSite() {
 }
 
 export const test = base.extend({
+  // Extra Chromium switches (e.g. a simulated screen) and whether to draw
+  // scrollbars (Playwright hides them in headless mode by default).
+  launchArgs: [[], { option: true }],
+  showScrollbars: [false, { option: true }],
+
   // One local web server per worker.
   site: [async ({}, use) => {
     const server = await startSite();
@@ -59,16 +64,18 @@ export const test = base.extend({
     server.close();
   }, { scope: 'worker' }],
 
-  context: async ({}, use) => {
+  context: async ({ launchArgs, showScrollbars }, use) => {
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       // No viewport emulation: windows keep the size the extension gives
       // them (it saves and restores the overview's bounds).
       viewport: null,
+      ignoreDefaultArgs: showScrollbars ? ['--hide-scrollbars'] : [],
       args: [
         `--disable-extensions-except=${EXTENSION}`,
         `--load-extension=${EXTENSION}`,
         '--host-resolver-rules=MAP * 127.0.0.1',
+        ...launchArgs,
       ],
     });
     await use(context);

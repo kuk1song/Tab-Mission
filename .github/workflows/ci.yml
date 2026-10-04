@@ -63,6 +63,15 @@ jobs:
       # --no-shell: extensions need full Chromium; the headless shell is unused.
       - run: npx playwright install --with-deps --no-shell chromium
       - run: npm run test:e2e
+      # Screenshots at 100%, 125% and 150% scaling (tests/e2e/visual.spec.mjs),
+      # to review each OS from a Mac: gh run download <run> -n screens-<os>.
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: screens-${{ matrix.os }}
+          path: screens/
+          if-no-files-found: ignore
+          retention-days: 14
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

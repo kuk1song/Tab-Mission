@@ -11,7 +11,7 @@ const rules = {
 
 export default [
   {
-    ignores: ['node_modules/**', 'builds/**', 'local/**', 'test-results/**', 'playwright-report/**'],
+    ignores: ['node_modules/**', 'builds/**', 'local/**', 'test-results/**', 'playwright-report/**', 'screens/**'],
   },
   {
     // Popup / overview scripts run in a normal browser document.
