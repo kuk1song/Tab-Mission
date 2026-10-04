@@ -22,6 +22,21 @@
       <div class="actions">
         <button id="set-shortcut" data-i18n="changeShortcutTitle">Change shortcut</button>
       </div>
+      <!-- TEMPORARY A/B experiments, for the maintainer to compare; remove once decided. -->
+      <h2>试验（临时）· Experiments</h2>
+      <div class="exp">
+        <label for="exp-window">窗口尺寸 · Window size</label>
+        <select id="exp-window">
+          <option value="display">A 现状：按屏幕比例 · by display</option>
+          <option value="browser">B 跟随当前 Chrome 窗口 · follow the browser window</option>
+        </select>
+        <label for="exp-grid">网格 · Grid</label>
+        <select id="exp-grid">
+          <option value="standard">A 现状：约 5 列 · about 5 columns</option>
+          <option value="dense">B 更密，标签少时放大铺满 · denser, few tabs fill</option>
+        </select>
+      </div>
+      <p class="note">切换窗口尺寸后，在概览里按 ↺ 重置，即可看到首次打开的效果。After switching the window size, press ↺ in the overview to see a first open.</p>
       <p id="saved" class="note" hidden data-i18n="optionSaved">Saved.</p>
     </main>
     <script src="src/options.js" type="module"></script>

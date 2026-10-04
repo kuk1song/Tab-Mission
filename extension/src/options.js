@@ -14,6 +14,16 @@ async function main() {
     document.getElementById('saved').hidden = !saved;
   });
 
+  // TEMPORARY A/B experiments.
+  for (const [id, key] of [['exp-window', 'experimentWindowSizing'], ['exp-grid', 'experimentGrid']]) {
+    const select = document.getElementById(id);
+    select.value = settings[key];
+    select.addEventListener('change', async () => {
+      const saved = await saveSettings({ [key]: select.value });
+      document.getElementById('saved').hidden = !saved;
+    });
+  }
+
   await showShortcuts();
   // Refresh after the user changes a shortcut in the tab opened below.
   document.addEventListener('visibilitychange', () => {

@@ -47,6 +47,9 @@ kbd {
 }
 
 .actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+/* TEMPORARY A/B experiments on the options page. */
+.exp { display: grid; grid-template-columns: max-content 1fr; gap: 10px 14px; align-items: center; }
+.exp select { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.06); color: var(--fg); font: inherit; font-size: 0.875rem; }
 button {
   padding: 10px 16px;
   border-radius: 10px;

@@ -37,3 +37,34 @@ test('the toolbar never overflows at narrow widths', async ({ ext }) => {
     expect(out, `elements past the right edge at ${width}px`).toEqual([]);
   }
 });
+
+// TEMPORARY A/B (experimentGrid): remove with the experiment.
+test('grid B: few tabs grow to fill the grid; typing returns the standard size', async ({ ext }) => {
+  await ext.sw.evaluate(() => chrome.storage.local.set({ experimentGrid: 'dense' }));
+  await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  await page.setViewportSize({ width: 1200, height: 800 });
+  const grid = page.locator('#grid');
+  await expect(grid).toHaveClass(/dense/);
+  await expect(grid).toHaveClass(/filled/);
+  const tiles = () => page.evaluate(() => {
+    const g = document.getElementById('grid').getBoundingClientRect();
+    return [...document.querySelectorAll('.tile')].map((t) => {
+      const r = t.getBoundingClientRect();
+      return { width: Math.round(r.width), inside: r.top >= g.top && r.bottom <= g.bottom + 1 };
+    });
+  });
+  const filled = await tiles();
+  expect(filled.every((t) => t.inside && t.width > 300 && t.width <= 361)).toBe(true);
+  await page.keyboard.type('page');
+  await expect(grid).not.toHaveClass(/filled/);
+  const standard = await tiles();
+  expect(standard[0].width).toBeLessThan(filled[0].width);
+});
+
+test('grid A (default): standard columns, nothing grows', async ({ ext }) => {
+  await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await expect(page.locator('#grid')).not.toHaveClass(/dense|filled/);
+});
