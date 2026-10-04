@@ -1,13 +1,13 @@
 import { test, expect } from './fixtures.mjs';
 
-test('the welcome page opens on install and shows the shortcut, or how to set one', async ({ ext }) => {
+// Chrome only auto-assigns a suggested key that none of its own shortcuts
+// use: Ctrl+E is Chrome's "search" key on Windows, Linux and ChromeOS, so the
+// default there is Ctrl+Shift+E. Runs on every OS in CI.
+test('the default shortcut is assigned on this OS and shown on the welcome page', async ({ ext }) => {
   const shortcut = await ext.sw.evaluate(() => chrome.commands.getAll().then((c) => c.find((x) => x.name === 'open-overview')?.shortcut || ''));
-  if (shortcut) {
-    await expect(ext.welcome.locator('#lead kbd')).toBeVisible();
-    await expect(ext.welcome.locator('#no-shortcut')).toBeHidden();
-  } else {
-    await expect(ext.welcome.locator('#no-shortcut')).toBeVisible();
-  }
+  expect(shortcut).toBe(process.platform === 'darwin' ? '⌘E' : 'Ctrl+Shift+E');
+  await expect(ext.welcome.locator('#lead kbd')).toBeVisible();
+  await expect(ext.welcome.locator('#no-shortcut')).toBeHidden();
   await expect(ext.welcome.locator('#tip-site kbd')).toHaveText('Tab');
 });
 

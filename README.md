@@ -34,7 +34,7 @@ Tab Mission puts every open tab into one searchable grid, ordered by when you la
 ## 🚀 Getting Started
 
 1.  **[Install Tab Mission from the Chrome Web Store](https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca)**.
-2.  Click the extension icon or use the default shortcut **`Cmd/Ctrl + E`** to launch. If another extension already owns that shortcut, pick your own at `chrome://extensions/shortcuts`.
+2.  Click the extension icon or use the default shortcut: **`Cmd + E`** on Mac, **`Ctrl + Shift + E`** on Windows, Linux and ChromeOS. If another extension already owns it, pick your own at `chrome://extensions/shortcuts`.
 3.  Start typing, then press `Enter`.
 
 ## 💡 Pro Tips
