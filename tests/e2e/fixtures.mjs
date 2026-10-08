@@ -137,6 +137,33 @@ export const test = base.extend({
         }, { urls, ids });
       },
 
+      // A real key press that Chrome's own shortcut handling sees, unlike
+      // page.keyboard (Playwright's events skip the browser: "Playwright can
+      // only automate web content, but not the browser UI"). A trusted CDP
+      // client that sets nativeVirtualKeyCode gets its key events pre-handled
+      // by the browser, where extension commands live (Chromium
+      // content/browser/devtools/protocol/input_handler.cc). Mac needs the
+      // real Mac key code, since Chrome builds an NSEvent from it.
+      // modifiers: Alt 1, Ctrl 2, Meta 4, Shift 8.
+      async pressKeys(page, { key, code, keyCode, macKeyCode, modifiers }) {
+        const cdp = await page.context().newCDPSession(page);
+        const event = {
+          key, code, modifiers,
+          windowsVirtualKeyCode: keyCode,
+          nativeVirtualKeyCode: process.platform === 'darwin' ? macKeyCode : keyCode,
+        };
+        await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...event });
+        await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...event });
+        await cdp.detach();
+      },
+
+      // The default overview shortcut of this OS: Command+E on Mac,
+      // Ctrl+Shift+E elsewhere (manifest suggested_key).
+      async pressDefaultShortcut(page) {
+        const mac = process.platform === 'darwin';
+        await ext.pressKeys(page, { key: 'e', code: 'KeyE', keyCode: 69, macKeyCode: 14, modifiers: mac ? 4 : 2 | 8 });
+      },
+
       // The shortcut (scope 'site' for the site command).
       async press(scope) {
         await welcome.evaluate((scope) => chrome.runtime.sendMessage({ action: 'openOverview', scope }).catch(() => {}), scope);

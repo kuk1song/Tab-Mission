@@ -87,3 +87,32 @@ test('after the service worker restarts, the shortcut still acts on the open ove
   const popups = await ext.welcome.evaluate(() => chrome.windows.getAll({ windowTypes: ['popup'] }).then((w) => w.length));
   expect(popups).toBe(0);
 });
+
+// The keyboard path itself: Chrome matches the key against the extension's
+// command and fires chrome.commands.onCommand. (Not covered: the operating
+// system delivering the key to Chrome, which needs a real focused window.)
+test('the real default shortcut opens the overview, and pressed again closes it', async ({ ext, context }) => {
+  await ext.openWindow(['alpha', 'beta']);
+  await ext.sw.evaluate(() => {
+    self.__commands = [];
+    chrome.commands.onCommand.addListener((command) => self.__commands.push(command));
+  });
+  const page = context.pages().find((p) => p.url().includes('/beta.html'));
+
+  // An unassigned combination does nothing.
+  await ext.pressKeys(page, { key: 'y', code: 'KeyY', keyCode: 89, macKeyCode: 16, modifiers: 2 | 8 });
+  await page.waitForTimeout(500);
+  expect(await ext.sw.evaluate(() => self.__commands)).toEqual([]);
+  expect(ext.overviewPages()).toHaveLength(0);
+
+  const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
+  await ext.pressDefaultShortcut(page);
+  const overview = await opened;
+  expect(await ext.sw.evaluate(() => self.__commands)).toEqual(['open-overview']);
+  await overview.locator('#grid .tile').first().waitFor();
+
+  // Pressed in the overview with nothing selected, it closes.
+  await ext.pressDefaultShortcut(overview);
+  await ext.expectClosed();
+  expect(await ext.sw.evaluate(() => self.__commands)).toEqual(['open-overview', 'open-overview']);
+});
