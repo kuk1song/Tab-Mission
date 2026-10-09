@@ -11,11 +11,11 @@ on:
 permissions:
   contents: read
 
-# If new commits arrive on the same branch/PR while a run is in flight, cancel
-# the stale run instead of queuing both, which saves minutes and gives faster
-# feedback.
+# A new push to a PR cancels its stale run, which saves minutes and gives
+# faster feedback. Each push to main gets its own group (by commit), so every
+# commit on main keeps a complete run, screenshots included.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: true
 
 jobs:

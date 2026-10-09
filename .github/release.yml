@@ -1,0 +1,7 @@
+# Notes that GitHub generates for a release (the release workflow calls
+# `gh release create --generate-notes`). Dependency updates change only the
+# tooling, never the extension, so they are left out.
+changelog:
+  exclude:
+    labels:
+      - dependencies
