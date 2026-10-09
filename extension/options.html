@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n="optionsTitle">Tab Mission settings</title>
+    <link rel="stylesheet" href="welcome.css" />
+  </head>
+  <body>
+    <main class="card">
+      <h1 data-i18n="optionsTitle">Tab Mission settings</h1>
+
+      <h2 data-i18n="optionOpenHeading">When the overview opens</h2>
+      <label class="switch">
+        <input id="preselect-previous" type="checkbox" />
+        <span data-i18n="optionPreselect">Pre-select the previous tab, so pressing the shortcut twice goes back to it</span>
+      </label>
+      <p class="note" data-i18n="optionPreselectNote">Off (default): nothing is selected and pressing the shortcut again closes the overview. Either way, hover a tab and press the shortcut to switch to it, or press Esc to close.</p>
+
+      <h2 data-i18n="optionShortcutsHeading">Keyboard shortcuts</h2>
+      <div id="shortcuts" class="lead"></div>
+      <div class="actions">
+        <button id="set-shortcut" data-i18n="changeShortcutTitle">Change shortcut</button>
+      </div>
+      <p id="saved" class="note" hidden data-i18n="optionSaved">Saved.</p>
+    </main>
+    <script src="src/options.js" type="module"></script>
+  </body>
+</html>

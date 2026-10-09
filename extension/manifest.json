@@ -1,8 +1,9 @@
 {
   "name": "__MSG_appName__",
   "description": "__MSG_appDescription__",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "manifest_version": 3,
+  "minimum_chrome_version": "105",
   "author": {
     "name": "Haokun Song",
     "email": "shk741612898@gmail.com"
@@ -16,19 +17,23 @@
   },
   "permissions": [
     "tabs",
-    "windows",
-    "activeTab",
     "scripting",
     "system.display",
     "storage"
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "action": {
-    "default_title": "Open Tab Overview",
+    "default_title": "__MSG_actionTitle__",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"
     }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
   "background": {
     "service_worker": "background.js",
@@ -36,12 +41,14 @@
   },
   "commands": {
     "open-overview": {
-      "description": "Toggle Tab Mission Overview",
+      "description": "__MSG_commandOpen__",
       "suggested_key": {
-        "default": "Ctrl+E",
+        "default": "Ctrl+Shift+E",
         "mac": "Command+E"
       }
+    },
+    "open-overview-site": {
+      "description": "__MSG_commandOpenSite__"
     }
   }
 }
-

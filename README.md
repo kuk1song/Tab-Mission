@@ -19,28 +19,43 @@
 
 ---
 
-Tab Mission transforms your chaotic tabs into a stunning, searchable grid of live previews. Summon it with a single shortcut and glide through your browser at the speed of thought.
+Tab Mission puts every open tab into one searchable grid, ordered by when you last used it. Summon it with a single shortcut, type a few letters, press Enter, and you are there.
 
 ## ✨ Features
 
-- **Instant Overview:** A beautiful grid of all your tabs, available in a keystroke.
-- **Visual Search, Perfected:** Instantly filter tabs by title or URL. No lag, just results.
-- **Intuitive Navigation:** Use your mouse or keyboard (`↑↓←→` + `Enter`) to navigate with precision.
-- **Smart & Elegant:** Gracefully handles sleeping tabs and pages that can't be captured.
-- **Lightweight & Native:** Built for performance, with fluid animations that feel like a part of your OS.
+- **Instant Overview:** All your tabs in one grid, one keystroke away.
+- **Most Likely First:** The tab you most likely want, the previous one, takes the first slot; your current tab sits second; the rest follow by last use.
+- **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. A search covers all windows and sleeping tabs; without one, the grid shows what the two checkboxes say.
+- **Site View:** When the site you are on has two or more tabs, press `Tab` in the search box to see only those (`Tab` again, `Esc`, or `Backspace` at the start of the box to leave). A global shortcut for it can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
+- **Keyboard or Mouse:** `↑↓←→` + `Enter`, click, or hover and press the shortcut again. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
+- **Page Previews:** Each tab shows the preview image its page provides, or a clean title card when there is none.
+- **Private by Design:** No server, no analytics. Everything stays in your browser.
 
 ## 🚀 Getting Started
 
 1.  **[Install Tab Mission from the Chrome Web Store](https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca)**.
-2.  Click the extension icon or use the default shortcut **`Cmd/Ctrl + E`** to launch.
-3.  Enjoy a calmer, more organized browsing experience!
+2.  Click the extension icon or use the default shortcut: **`Cmd + E`** on Mac, **`Ctrl + Shift + E`** on Windows, Linux and ChromeOS. If another extension already owns it, pick your own at `chrome://extensions/shortcuts`.
+3.  Start typing, then press `Enter`.
 
-## 💡 Pro-Tip: The Ultimate Shortcut
+## 💡 Pro Tips
 
-Want to fly through your tabs?
-1. Press your shortcut to open the grid.
-2. Hover your mouse over the tab you want.
-3. Press the shortcut **AGAIN** to jump there instantly—no click required.
+- **Back to the previous tab:** press the shortcut, then `→` and `Enter` (with the default settings).
+- **No-click switching:** press the shortcut, hover the tab you want, and press the shortcut **again**.
+- **Alt+Tab style (optional):** click the gear in the overview and turn on "Pre-select the previous tab"; then pressing the shortcut twice takes you back to the previous tab.
+
+## 🛠️ Development
+
+Plain JavaScript, no build step: `extension/` is exactly what ships. With Node 24:
+
+```sh
+npm ci
+npm run check      # lint, manifest checks, unit tests
+npx playwright install chromium
+npm run test:e2e   # end-to-end tests in Playwright's Chromium
+npm run package    # builds/tab-mission-<version>.zip
+```
+
+To try your changes, load `extension/` at `chrome://extensions` (Developer mode, then "Load unpacked").
 
 ## 💬 Feedback & Support
 
@@ -50,12 +65,7 @@ The best way to get in touch is by **[opening an issue on our GitHub repository]
 
 ## 🛡️ Privacy & Open Source
 
-Tab Mission is **free, open-source, and built with your privacy as its top priority.**
-
--   All of your data is processed and stored **locally** on your machine.
--   We **do not** collect, transmit, or sell any of your browsing data.
-
-We believe in transparency. For more details, please review our [**Privacy Policy**](PRIVACY.md). This project is licensed under the MIT License, and you can view the source code in this repository.
+Tab Mission is free and open source (MIT). Everything it reads stays in your browser; it collects, transmits and sells nothing. Details, including why each permission is needed, are in the [**Privacy Policy**](PRIVACY.md).
 
 ---
 

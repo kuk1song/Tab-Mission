@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n="welcomeTitle">Tab Mission is ready</title>
+    <link rel="stylesheet" href="welcome.css" />
+  </head>
+  <body>
+    <main class="card">
+      <img class="logo" src="icons/icon128.png" alt="" width="64" height="64" />
+      <h1 data-i18n="welcomeTitle">Tab Mission is ready</h1>
+      <p id="lead" class="lead"></p>
+      <p id="no-shortcut" class="warn" hidden data-i18n="welcomeNoShortcut">
+        Chrome could not assign the default shortcut, probably because another extension already uses it.
+        Choose one so you can open Tab Mission from the keyboard.
+      </p>
+      <div class="actions">
+        <button id="try" class="primary" data-i18n="actionTitle">Open Tab Mission</button>
+        <button id="set-shortcut" data-i18n="changeShortcutTitle">Change shortcut</button>
+      </div>
+
+      <h2 data-i18n="welcomeTipsTitle">How it works</h2>
+      <ul class="tips">
+        <li data-i18n="welcomeTipSearch">Just type to filter by title or URL. The best match is highlighted, so Enter switches to it.</li>
+        <li data-i18n="welcomeTipMru">The tab you most likely want (the previous one) comes first, your current tab second. Press → and then Enter to jump back.</li>
+        <li data-i18n="welcomeTipHover">Or hover a tab and press the shortcut again to jump there.</li>
+        <li id="tip-site">Press Tab in the search box to see only the tabs from the site you are on.</li>
+        <li data-i18n="welcomeTipClose">Middle-click a tab, or click its ×, to close it.</li>
+      </ul>
+      <p id="pin" class="note" hidden data-i18n="welcomePin">Tip: pin Tab Mission to the toolbar (puzzle icon, then the pin) to open it with one click.</p>
+      <p class="note" data-i18n="welcomePrivacy">Everything stays in your browser. Tab Mission has no server and collects nothing.</p>
+    </main>
+    <script src="src/welcome.js" type="module"></script>
+  </body>
+</html>

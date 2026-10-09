@@ -1,0 +1,69 @@
+:root {
+  --bg: #1a1a2e;
+  --card: rgba(255, 255, 255, 0.04);
+  --fg: #f0f0f0;
+  --muted: #a0a0aa;
+  --accent: #00d4ff;
+  --border-color: rgba(255, 255, 255, 0.12);
+}
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 50%, #1a1a2e 100%) fixed var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+.card {
+  max-width: 560px;
+  margin: 64px auto;
+  padding: 40px;
+  background: var(--card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+}
+
+.logo { display: block; margin-bottom: 16px; border-radius: 14px; }
+h1 { margin: 0 0 12px; font-size: 1.625rem; }
+h2 { margin: 32px 0 8px; font-size: 0.9375rem; color: var(--muted); font-weight: 600; }
+.lead { font-size: 1rem; line-height: 1.5; margin: 0; }
+.warn {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 176, 32, 0.12);
+  border: 1px solid rgba(255, 176, 32, 0.4);
+  line-height: 1.5;
+}
+
+kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 0.92em;
+}
+
+.actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #0b1020; font-weight: 600; }
+
+.tips { margin: 0; padding-left: 20px; line-height: 1.6; font-size: 0.875rem; }
+.tips li { margin: 6px 0; }
+.note { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; margin: 16px 0 0; }
+
+.switch { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; font-size: 0.9375rem; cursor: pointer; }
+.switch input { margin-top: 4px; }
+#shortcuts div { margin: 6px 0; }

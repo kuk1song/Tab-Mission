@@ -1,7 +1,38 @@
 // background.js
 
-let overviewWindowId = null; // Can be null, 'creating', or a window ID (number)
-let latestBounds = null; // In-memory snapshot for the final save-on-close
+let overviewWindowId = null; // the open overview's window id, or null
+let toggling = null; // the toggle in progress, so overlapping presses never open two windows
+
+// The overview's window id is kept in chrome.storage.session: it survives a
+// service worker restart but not a browser restart. Window ids are unique only
+// within one browser session, so an id saved before a restart could belong to
+// one of the user's own windows by now.
+async function getStoredOverviewWindowId() {
+	try {
+		const { overviewWindowId } = await chrome.storage.session.get({ overviewWindowId: null });
+		return typeof overviewWindowId === 'number' ? overviewWindowId : null;
+	} catch {
+		return null;
+	}
+}
+
+async function setStoredOverviewWindowId(idOrNull) {
+	try {
+		await chrome.storage.session.set({ overviewWindowId: idOrNull ?? null });
+	} catch {}
+}
+
+// True only for an open overview popup, never for one of the user's windows,
+// so a stale id can never make the shortcut close the wrong window.
+async function isOverviewWindow(windowId) {
+	try {
+		const win = await chrome.windows.get(windowId, { populate: true });
+		return win.type === 'popup' &&
+			Boolean(win.tabs?.[0]?.url?.startsWith(chrome.runtime.getURL('overview.html')));
+	} catch {
+		return false;
+	}
+}
 
 async function getSavedOverviewBounds() {
 	try {
@@ -12,127 +43,161 @@ async function getSavedOverviewBounds() {
 	}
 }
 
-async function getStoredOverviewWindowId() {
+// Find the display whose work area contains a point, if any.
+function displayAt(displays, x, y) {
+	return displays.find(({ workArea: a }) =>
+		x >= a.left && x < a.left + a.width && y >= a.top && y < a.top + a.height);
+}
+
+function centerOf(r) {
+	return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+function clamp(value, min, max) {
+	return Math.max(min, Math.min(value, max));
+}
+
+// The browser window the user is working in (a minimized one reports its
+// restored bounds), or null.
+async function lastFocusedBrowser() {
 	try {
-		const { overviewWindowId } = await chrome.storage.local.get({ overviewWindowId: null });
-		return typeof overviewWindowId === 'number' ? overviewWindowId : null;
+		const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+		return typeof win?.left === 'number' ? win : null;
 	} catch {
 		return null;
 	}
 }
 
-async function setStoredOverviewWindowId(idOrNull) {
-	try {
-		await chrome.storage.local.set({ overviewWindowId: idOrNull ?? null });
-	} catch {}
+// Open on the display of the browser window the user is working in, else on
+// the primary display.
+function displayFor(displays, browser) {
+	if (browser) {
+		const c = centerOf(browser);
+		const display = displayAt(displays, c.x, c.y);
+		if (display) return display;
+	}
+	return displays.find(d => d.isPrimary) || displays[0];
 }
 
-async function toggleOverviewWindow() {
-	// If a window is currently in the process of being created, do nothing.
-	if (overviewWindowId === 'creating') {
-		return;
-	}
+// Default size: 88% x 90% of the display's work area (at most 1400 x 1000),
+// centered on the display.
+function displayBounds(display) {
+	const a = display.workArea;
+	const width = Math.min(a.width * 0.88, 1400);
+	const height = Math.min(a.height * 0.9, 1000);
+	return { width, height, left: a.left + (a.width - width) / 2, top: a.top + (a.height - height) / 2 };
+}
 
-	// If service worker restarted, try to recover existing window id from storage
+// Keep a rectangle inside the work area and in whole pixels.
+function fitInto(display, b) {
+	const a = display.workArea;
+	const width = Math.min(b.width, a.width);
+	const height = Math.min(b.height, a.height);
+	return {
+		width: Math.round(width),
+		height: Math.round(height),
+		left: Math.round(clamp(b.left, a.left, a.left + a.width - width)),
+		top: Math.round(clamp(b.top, a.top, a.top + a.height - height)),
+	};
+}
+
+// Where the overview opens: on the browser's display, at the size and spot
+// the user last chose when that spot is on this display, otherwise at the
+// default size, centered.
+async function overviewBounds(displays, saved) {
+	const display = displayFor(displays, await lastFocusedBrowser());
+	const bounds = displayBounds(display);
+	if (saved?.width && saved?.height) {
+		const c = centerOf(bounds);
+		bounds.width = saved.width;
+		bounds.height = saved.height;
+		bounds.left = c.x - saved.width / 2;
+		bounds.top = c.y - saved.height / 2;
+		if (typeof saved.left === 'number' && typeof saved.top === 'number') {
+			const s = centerOf(saved);
+			if (displayAt([display], s.x, s.y)) {
+				bounds.left = saved.left;
+				bounds.top = saved.top;
+			}
+		}
+	}
+	return fitInto(display, bounds);
+}
+
+// scope is 'site' for the "current site" shortcut, anything else for all tabs.
+// A press that arrives while a toggle is still running is dropped, so a double
+// press during a service worker cold start cannot open a second window.
+function toggleOverviewWindow(scope) {
+	toggling ??= runToggle(scope).finally(() => {
+		toggling = null;
+	});
+	return toggling;
+}
+
+async function runToggle(scope) {
+	// After a service worker restart, recover the open overview, if any.
 	if (overviewWindowId === null) {
 		const storedId = await getStoredOverviewWindowId();
-		if (storedId) {
-			try {
-				await chrome.windows.get(storedId);
-				overviewWindowId = storedId;
-			} catch {
-				// Stored id is stale; clear it
-				await setStoredOverviewWindowId(null);
-			}
+		if (storedId !== null && await isOverviewWindow(storedId)) {
+			overviewWindowId = storedId;
+		} else if (storedId !== null) {
+			await setStoredOverviewWindowId(null);
 		}
 	}
 
-	// If a window already exists (its ID is stored), close it.
-	if (typeof overviewWindowId === 'number') {
-		try {
-			// Send a message to the overview window to handle the shortcut
-			const tabs = await chrome.tabs.query({ windowId: overviewWindowId });
-			if (tabs.length > 0) {
-				await chrome.tabs.sendMessage(tabs[0].id, { action: 'handleShortcut' });
-			} else {
-				// If no tabs are in the window (shouldn't happen), just close it.
-				await chrome.windows.remove(overviewWindowId);
-			}
-		} catch (e) {
-			// If messaging fails, it might be because the window is already closed.
-			// We attempt to close it just in case.
-			try {
-				await chrome.windows.remove(overviewWindowId);
-			} catch (closeError) {
-				// Ignore error, window was likely already gone.
-			}
-		}
+	if (overviewWindowId === null) {
+		await createOverviewWindow(scope);
 		return;
 	}
 
-	// If no window exists (ID is null), proceed to create one.
+	// The overview is open: the page acts on the press (switches to the
+	// selected tab, or closes).
+	const windowId = overviewWindowId;
 	try {
-		// Set the state to 'creating' synchronously to act as a lock.
-		overviewWindowId = 'creating';
+		const [tab] = await chrome.tabs.query({ windowId });
+		if (tab) {
+			await chrome.tabs.sendMessage(tab.id, { action: 'handleShortcut', scope });
+			return;
+		}
+	} catch {}
+	// The page could not answer (still loading, or already gone): close it.
+	if (await isOverviewWindow(windowId)) {
+		try {
+			await chrome.windows.remove(windowId);
+		} catch {}
+	}
+}
 
+async function createOverviewWindow(scope) {
+	try {
 		const displays = await chrome.system.display.getInfo();
-		
 		if (!displays || displays.length === 0) {
-			throw new Error("No display information found.");
+			throw new Error('No display information found.');
 		}
 
-		const display = displays.find(d => d.isPrimary) || displays[0];
-
-		// Try to restore saved bounds; otherwise fallback to adaptive defaults with caps
-		const saved = await getSavedOverviewBounds();
-		let w, h, top, left;
-		
-		// Restore size (width/height)
-		if (saved && saved.width && saved.height) {
-			w = Math.min(saved.width, display.workArea.width);
-			h = Math.min(saved.height, display.workArea.height);
-		} else {
-			w = Math.min(display.workArea.width * 0.88, 1400); // 88% of width, capped at 1400px
-			h = Math.min(display.workArea.height * 0.9, 1000); // 90% of height, capped at 1000px
-		}
-		
-		// Restore position (top/left) - can be independent of size
-		if (saved && typeof saved.top === 'number' && typeof saved.left === 'number') {
-			top = Math.max(display.workArea.top, Math.min(saved.top, display.workArea.top + display.workArea.height - h));
-			left = Math.max(display.workArea.left, Math.min(saved.left, display.workArea.left + display.workArea.width - w));
-		} else {
-			// Default to center if no saved position
-			top = display.workArea.top + (display.workArea.height - h) / 2;
-			left = display.workArea.left + (display.workArea.width - w) / 2;
-		}
+		const bounds = await overviewBounds(displays, await getSavedOverviewBounds());
 
 		const win = await chrome.windows.create({
-			url: chrome.runtime.getURL('overview.html'),
+			url: chrome.runtime.getURL(scope === 'site' ? 'overview.html?scope=site' : 'overview.html'),
 			type: 'popup',
-			width: Math.round(w),
-			height: Math.round(h),
-			top: Math.round(top),
-			left: Math.round(left),
+			...bounds,
 		});
-
-		// Important: After creation, only update the ID if we are still in the 'creating' state.
-		// This handles a rare edge case where the window might be closed before creation completes.
-		if (overviewWindowId === 'creating' && win?.id) {
+		if (win?.id) {
 			overviewWindowId = win.id;
 			await setStoredOverviewWindowId(win.id);
 		}
-
 	} catch (error) {
-		console.error("Tab Mission: Could not create window.", error);
-		// If any error occurs, reset the state to allow future attempts.
+		console.error('Tab Mission: Could not create window.', error);
 		overviewWindowId = null;
 	}
 }
 
-// Listen for the command to open/toggle the overview.
+// Listen for the commands to open/toggle the overview.
 chrome.commands.onCommand.addListener((command) => {
 	if (command === 'open-overview') {
 		toggleOverviewWindow();
+	} else if (command === 'open-overview-site') {
+		toggleOverviewWindow('site');
 	}
 });
 
@@ -141,62 +206,63 @@ chrome.action.onClicked.addListener(() => {
 	toggleOverviewWindow();
 });
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-	if (request?.action === 'resetWindowBounds') {
-		try {
-			await chrome.storage.local.set({ overviewBounds: null });
-			// Recenter current window to defaults
-			const displays = await chrome.system.display.getInfo();
-			const display = displays.find(d => d.isPrimary) || displays[0];
-			const w = Math.min(display.workArea.width * 0.88, 1400);
-			const h = Math.min(display.workArea.height * 0.9, 1000);
-			const top = Math.round(display.workArea.top + (display.workArea.height - h) / 2);
-			const left = Math.round(display.workArea.left + (display.workArea.width - w) / 2);
-			const storedId = await getStoredOverviewWindowId();
-			if (storedId) {
-				await chrome.windows.update(storedId, { width: Math.round(w), height: Math.round(h), top, left });
-			}
-			sendResponse({ ok: true });
-		} catch (e) {
-			sendResponse({ ok: false, error: e?.message || String(e) });
-		}
-		return true; // async response
+// First install: open a short welcome page that shows the shortcut (or says
+// that none could be assigned) so new users are not left guessing.
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
+		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
+	}
+	if (reason === chrome.runtime.OnInstalledReason.UPDATE) {
+		// Drop keys that older versions saved: the last search text, the window
+		// id (now kept in session storage) and the unused art mode switch.
+		chrome.storage.local.remove(['searchTerm', 'overviewWindowId', 'artMode']).catch(() => {});
 	}
 });
 
-// Primary listener for any size or position change.
-chrome.windows.onBoundsChanged.addListener(async (window) => {
-	const storedId = await getStoredOverviewWindowId();
-	if (!storedId || window.id !== storedId) return;
+// Reset: forget the saved size and position and move the open overview to
+// where a first open would put it. The move is not saved as the user's
+// choice, so later opens keep following the default rule.
+let ignoreBoundsUntil = 0;
 
-	// Update the in-memory snapshot immediately
-	latestBounds = {
-		width: window.width,
-		height: window.height,
-		top: window.top,
-		left: window.left,
-	};
-	// Asynchronously save to storage
+async function resetWindowBounds() {
+	await chrome.storage.local.set({ overviewBounds: null });
+	const storedId = await getStoredOverviewWindowId();
+	if (!storedId) return;
+	const displays = await chrome.system.display.getInfo();
+	ignoreBoundsUntil = Date.now() + 1000;
+	await chrome.windows.update(storedId, await overviewBounds(displays, null));
+}
+
+// Not an async listener: Chrome keeps the response channel open only when the
+// listener synchronously returns true.
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	if (request?.action === 'resetWindowBounds') {
+		resetWindowBounds().then(
+			() => sendResponse({ ok: true }),
+			(e) => sendResponse({ ok: false, error: e?.message || String(e) }),
+		);
+		return true; // async response
+	}
+	if (request?.action === 'openOverview') {
+		toggleOverviewWindow(request.scope);
+	}
+	return false;
+});
+
+// Remember the overview's size and position whenever they change.
+chrome.windows.onBoundsChanged.addListener(async (win) => {
+	const id = overviewWindowId ?? await getStoredOverviewWindowId();
+	if (win.id !== id || Date.now() < ignoreBoundsUntil) return;
 	try {
-		await chrome.storage.local.set({ overviewBounds: latestBounds });
+		await chrome.storage.local.set({
+			overviewBounds: { width: win.width, height: win.height, top: win.top, left: win.left },
+		});
 	} catch {}
 });
 
-// Final safeguard listener for when the window is closed by any means.
 chrome.windows.onRemoved.addListener(async (windowId) => {
-	const storedId = await getStoredOverviewWindowId();
-	if (windowId === overviewWindowId || windowId === storedId) {
-		// Before clearing the ID, perform one final, definitive save
-		// using the most recent in-memory data.
-		if (latestBounds) {
-			try {
-				await chrome.storage.local.set({ overviewBounds: latestBounds });
-			} catch {}
-		}
-		overviewWindowId = null;
-		latestBounds = null; // Clear snapshot
-		await setStoredOverviewWindowId(null);
-	}
+	const id = overviewWindowId ?? await getStoredOverviewWindowId();
+	if (windowId !== id) return;
+	overviewWindowId = null;
+	await setStoredOverviewWindowId(null);
 });
-
-

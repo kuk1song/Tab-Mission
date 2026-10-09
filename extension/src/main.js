@@ -1,54 +1,43 @@
 // main.js
-import { fetchAllTabs, applyFilters } from './state.js';
-import { render } from './dom.js';
-import { initializeEventListeners } from './events.js';
-import { startThumbnailCapture } from './thumbnail.js';
+import { state, fetchAllTabs, currentSiteHost } from './state.js';
+import { initializeEventListeners, handleFilterChange } from './events.js';
 import { loadSettings } from './settings.js';
-import { applyArtLayout } from './layout.js';
-import { localizeStaticText } from './i18n.js';
+import { localizeStaticText, t } from './i18n.js';
 
 async function main() {
   // Apply localization for any static text before interacting with the UI
   localizeStaticText();
 
-  await fetchAllTabs();
-  
-  const settings = await loadSettings();
-
   const searchEl = document.getElementById('search');
+  // Focus first: keystrokes typed while the window is still loading land in
+  // the search box instead of being lost.
+  searchEl?.focus();
+
+  const [settings] = await Promise.all([loadSettings(), fetchAllTabs()]);
+
   const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
   const toggleCurrentWindow = document.getElementById('toggle-current-window');
-  const toggleArt = document.getElementById('toggle-art');
-  
+
   // Apply loaded settings to the UI controls
   if (toggleHideDiscarded) toggleHideDiscarded.checked = settings.showSleeping;
   if (toggleCurrentWindow) toggleCurrentWindow.checked = settings.showAllWindows;
-  if (toggleArt) toggleArt.checked = settings.artMode;
+  state.preselectPrevious = settings.preselectPrevious;
 
-  const uiState = {
-    searchTerm: searchEl ? searchEl.value : '',
-    showSleeping: settings.showSleeping,
-    showAllWindows: settings.showAllWindows,
-  };
-  applyFilters(uiState);
-  
-  render();
-
-  // Apply art layout after initial render based on settings
-  if (toggleArt && toggleArt.checked) {
-    requestAnimationFrame(() => {
-      applyArtLayout();
-    });
+  // Opened by the "current site" shortcut: show only this site's tabs.
+  if (new URLSearchParams(location.search).get('scope') === 'site') {
+    state.siteHost = currentSiteHost();
   }
+
+  // The staggered entrance animation plays for the first render only.
+  const gridEl = document.getElementById('grid');
+  gridEl?.classList.add('entering');
+  handleFilterChange({ persist: false });
+  setTimeout(() => gridEl?.classList.remove('entering'), 700);
 
   updateShortcutHint();
 
-  // Thumbnails are now a default feature, so we always start the capture.
-  requestAnimationFrame(() => {
-    startThumbnailCapture();
-  });
-
   initializeEventListeners();
+  searchEl?.focus();
 }
 
 async function updateShortcutHint() {
@@ -64,13 +53,7 @@ async function updateShortcutHint() {
       kbd.textContent = rawShortcut;
 
       // Localize tooltip text: "Toggle with $shortcut$"
-      let tooltip = '';
-      try {
-        tooltip = chrome.i18n.getMessage('toggleWithShortcut', [rawShortcut]);
-      } catch {}
-      if (!tooltip) {
-        tooltip = `Toggle with ${rawShortcut}`;
-      }
+      const tooltip = t('toggleWithShortcut', [rawShortcut]) || `Toggle with ${rawShortcut}`;
 
       kbd.title = tooltip; // full hint on hover
       kbd.setAttribute('aria-label', tooltip);

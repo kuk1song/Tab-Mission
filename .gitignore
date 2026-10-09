@@ -14,3 +14,9 @@ pnpm-debug.log*
 /builds
 /extension_build_tmp
 *.zip
+
+# Playwright
+/test-results
+/playwright-report
+/blob-report
+/screens

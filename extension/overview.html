@@ -3,38 +3,45 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>__MSG_pageTitle__</title>
+    <title data-i18n="pageTitle">Tab Mission</title>
     <link rel="stylesheet" href="overview.css" />
   </head>
   <body>
     <div id="root">
       <header class="toolbar">
-        <input id="search" type="text" placeholder="__MSG_searchPlaceholder__" autocomplete="off" />
-        <div class="spacer"></div>
-        <label class="ctrl">
+        <div class="search-field">
+          <span id="scope-token" class="scope-token" hidden>
+            <img id="scope-icon" class="scope-icon" alt="" />
+            <span id="scope-label"></span>
+            <button id="scope-clear" class="scope-clear" type="button" tabindex="-1" title="Show all tabs" aria-label="Show all tabs"
+                    data-i18n-title="siteScopeClear" data-i18n-aria-label="siteScopeClear">×</button>
+          </span>
+          <input id="search" type="text" autocomplete="off" spellcheck="false" autofocus
+                 role="combobox" aria-expanded="true" aria-controls="grid" aria-autocomplete="list"
+                 placeholder="Search tabs (title or URL)…" data-i18n-placeholder="searchPlaceholder" />
+          <button id="scope-hint" class="scope-hint" type="button" tabindex="-1" hidden>
+            <kbd>Tab</kbd><span id="scope-hint-label"></span>
+          </button>
+        </div>
+        <div class="toolbar-controls">
+        <label class="ctrl" title="Search covers all windows and sleeping tabs" data-i18n-title="searchEverywhereHint">
           <input id="toggle-hide-discarded" type="checkbox" />
-          <span>__MSG_showSleepingLabel__</span>
+          <span data-i18n="showSleepingLabel">Show sleeping</span>
         </label>
-        <label class="ctrl">
+        <label class="ctrl" title="Search covers all windows and sleeping tabs" data-i18n-title="searchEverywhereHint">
           <input id="toggle-current-window" type="checkbox" />
-          <span>__MSG_showAllWindowsLabel__</span>
+          <span data-i18n="showAllWindowsLabel">Show all windows</span>
         </label>
-        <!--
-        <label class="ctrl">
-          <input id="toggle-art" type="checkbox" />
-          <span>Art mode</span>
-        </label>
-        -->
         <div id="shortcut-hint" class="hint hint-inline"></div>
         <div class="hint-bar">
-          <button id="open-shortcuts" class="icon-btn" title="__MSG_changeShortcutTitle__" aria-label="__MSG_changeShortcutTitle__">⚙️</button>
-          <button id="reset-window" class="icon-btn" title="__MSG_resetWindowTitle__" aria-label="__MSG_resetWindowTitle__">↺</button>
+          <button id="open-settings" class="icon-btn" title="Settings" aria-label="Settings"
+                  data-i18n-title="settingsTitle" data-i18n-aria-label="settingsTitle">⚙️</button>
+          <button id="reset-window" class="icon-btn" title="Reset size &amp; center" aria-label="Reset size &amp; center"
+                  data-i18n-title="resetWindowTitle" data-i18n-aria-label="resetWindowTitle">↺</button>
+        </div>
         </div>
       </header>
-      <main id="grid" class="grid" aria-label="All tabs"></main>
-      <template id="tile-template">
-        <button class="tile" data-span="20"></button>
-      </template>
+      <div id="grid" class="grid" role="listbox" aria-label="Open tabs" data-i18n-aria-label="gridLabel"></div>
     </div>
     <script src="src/main.js" type="module"></script>
   </body>

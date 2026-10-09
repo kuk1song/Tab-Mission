@@ -3,9 +3,25 @@
     "message": "Tab Mission",
     "description": "The name of the extension."
   },
+  "lang": {
+    "message": "en",
+    "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
+  },
   "appDescription": {
-    "message": "Mission Control for your Chrome tabs. Instantly search and switch between visual tab previews.",
-    "description": "A short description of the extension."
+    "message": "Mission Control for Chrome tabs: every open tab in one visual grid, most recent first. Type to search, Enter to switch.",
+    "description": "Store summary and manifest description (max 132 characters)."
+  },
+  "actionTitle": {
+    "message": "Open Tab Mission",
+    "description": "Toolbar button tooltip; also the welcome page's open button."
+  },
+  "commandOpen": {
+    "message": "Open or close the tab overview",
+    "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
+  },
+  "commandOpenSite": {
+    "message": "Show only tabs from the current site",
+    "description": "Description of the site-view keyboard shortcut."
   },
   "pageTitle": {
     "message": "Tab Mission",
@@ -14,6 +30,10 @@
   "searchPlaceholder": {
     "message": "Search tabs (title or URL)…",
     "description": "Placeholder text for the search input field."
+  },
+  "searchEverywhereHint": {
+    "message": "Search covers all windows and sleeping tabs",
+    "description": "Tooltip on the toggles: searching ignores them."
   },
   "showSleepingLabel": {
     "message": "Show sleeping",
@@ -25,7 +45,7 @@
   },
   "changeShortcutTitle": {
     "message": "Change shortcut",
-    "description": "Tooltip for the button that opens shortcut settings."
+    "description": "Button that opens chrome://extensions/shortcuts."
   },
   "resetWindowTitle": {
     "message": "Reset size & center",
@@ -37,7 +57,169 @@
     "placeholders": {
       "shortcut": {
         "content": "$1",
-        "example": "Cmd + E"
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "gridLabel": {
+    "message": "Open tabs",
+    "description": "Accessible name of the tab grid."
+  },
+  "emptyNoTabs": {
+    "message": "No tabs found.",
+    "description": "Shown when no tabs could be read."
+  },
+  "emptyNoMatch": {
+    "message": "No tabs match your search.",
+    "description": "Shown when the search or filters match nothing."
+  },
+  "untitled": {
+    "message": "Untitled",
+    "description": "Fallback title for a tab without one."
+  },
+  "sleepingBadge": {
+    "message": "Sleeping",
+    "description": "Badge on tabs Chrome has put to sleep."
+  },
+  "closeTabTitle": {
+    "message": "Close tab (or middle-click)",
+    "description": "Tooltip of the close control on a tile."
+  },
+  "siteScopeClear": {
+    "message": "Show all tabs",
+    "description": "Button that leaves the site view."
+  },
+  "shortcutNotSet": {
+    "message": "not set",
+    "description": "Shown in place of a shortcut that is not assigned."
+  },
+  "welcomeTitle": {
+    "message": "Tab Mission is ready",
+    "description": "Welcome page heading."
+  },
+  "welcomeLead": {
+    "message": "Press $shortcut$ anywhere in Chrome to see all your tabs.",
+    "description": "Welcome page: how to open the overview.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "welcomeNoShortcut": {
+    "message": "Chrome could not assign the default shortcut, probably because another extension already uses it. Choose one so you can open Tab Mission from the keyboard.",
+    "description": "Welcome page: the default shortcut could not be assigned."
+  },
+  "welcomeSetShortcut": {
+    "message": "Choose shortcut",
+    "description": "Welcome page button that opens chrome://extensions/shortcuts."
+  },
+  "welcomeTipsTitle": {
+    "message": "How it works",
+    "description": "Welcome page: tips heading."
+  },
+  "welcomeTipSearch": {
+    "message": "Just type to filter by title or URL. The best match is highlighted, so Enter switches to it.",
+    "description": "Welcome page tip."
+  },
+  "welcomeTipMru": {
+    "message": "The tab you most likely want (the previous one) comes first, your current tab second. Press → and then Enter to jump back.",
+    "description": "Welcome page tip."
+  },
+  "welcomeTipHover": {
+    "message": "Or hover a tab and press the shortcut again to jump there.",
+    "description": "Welcome page tip."
+  },
+  "welcomeTipSite": {
+    "message": "Press $shortcut$ in the search box to see only the tabs from the site you are on.",
+    "description": "Welcome page tip about the site scope (Tab in the search box).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "Tab"
+      }
+    }
+  },
+  "welcomeTipClose": {
+    "message": "Middle-click a tab, or click its ×, to close it.",
+    "description": "Welcome page tip."
+  },
+  "welcomePin": {
+    "message": "Tip: pin Tab Mission to the toolbar (puzzle icon, then the pin) to open it with one click.",
+    "description": "Welcome page tip shown when the toolbar button is not pinned."
+  },
+  "welcomePrivacy": {
+    "message": "Everything stays in your browser. Tab Mission has no server and collects nothing.",
+    "description": "Welcome page privacy note."
+  },
+  "optionsTitle": {
+    "message": "Tab Mission settings",
+    "description": "Options page title."
+  },
+  "optionOpenHeading": {
+    "message": "When the overview opens",
+    "description": "Options: heading of the open behaviour section."
+  },
+  "optionShortcutsHeading": {
+    "message": "Keyboard shortcuts",
+    "description": "Options: shortcuts heading."
+  },
+  "optionSaved": {
+    "message": "Saved.",
+    "description": "Options: confirmation after a change."
+  },
+  "settingsTitle": {
+    "message": "Settings",
+    "description": "Tooltip of the gear button that opens the settings page."
+  },
+  "optionPreselect": {
+    "message": "Pre-select the previous tab, so pressing the shortcut twice goes back to it",
+    "description": "Options: switch that pre-selects the previous tab on open."
+  },
+  "optionPreselectNote": {
+    "message": "Off (default): nothing is selected and pressing the shortcut again closes the overview. Either way, hover a tab and press the shortcut to switch to it, or press Esc to close.",
+    "description": "Options: note under the switch."
+  },
+  "searchSitePlaceholder": {
+    "message": "Search $host$ tabs…",
+    "description": "Search placeholder inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      }
+    }
+  },
+  "siteScopeHint": {
+    "message": "Only $host$ · $count$",
+    "description": "Hint at the right of the empty search box; Tab or click scopes to the current site.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      },
+      "count": {
+        "content": "$2",
+        "example": "13"
+      }
+    }
+  },
+  "siteScopeHintTitle": {
+    "message": "Show only tabs from this site (Tab)",
+    "description": "Tooltip of the site-scope hint."
+  },
+  "searchAllTabs": {
+    "message": "Search all tabs",
+    "description": "Button in the empty state of the site scope; leaves the scope and keeps the query."
+  },
+  "emptyNoMatchInSite": {
+    "message": "No $host$ tabs match your search.",
+    "description": "Empty state inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
       }
     }
   }

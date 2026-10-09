@@ -1,43 +1,225 @@
 {
   "appName": {
     "message": "Tab Mission",
-    "description": "Il nome dell'estensione."
+    "description": "The name of the extension."
+  },
+  "lang": {
+    "message": "it",
+    "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Il tuo centro di comando per le schede. Panoramica istantanea, ricerca immediata, cambio fulmineo.",
-    "description": "Una breve descrizione dell'estensione."
+    "message": "Mission Control per le schede di Chrome: tutte le schede in una griglia, le più recenti prima. Digita per cercare, Invio per aprire.",
+    "description": "Store summary and manifest description (max 132 characters)."
+  },
+  "actionTitle": {
+    "message": "Apri Tab Mission",
+    "description": "Toolbar button tooltip; also the welcome page's open button."
+  },
+  "commandOpen": {
+    "message": "Apri o chiudi la panoramica delle schede",
+    "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
+  },
+  "commandOpenSite": {
+    "message": "Mostra solo le schede del sito corrente",
+    "description": "Description of the site-view keyboard shortcut."
   },
   "pageTitle": {
     "message": "Tab Mission",
-    "description": "Il titolo della pagina HTML principale dell'estensione."
+    "description": "The title of the extension's main HTML page."
   },
   "searchPlaceholder": {
-    "message": "Cerca schede (titolo o URL)...",
-    "description": "Testo segnaposto per il campo di input di ricerca."
+    "message": "Cerca schede (titolo o URL)…",
+    "description": "Placeholder text for the search input field."
+  },
+  "searchEverywhereHint": {
+    "message": "La ricerca include tutte le finestre e le schede inattive",
+    "description": "Tooltip on the toggles: searching ignores them."
   },
   "showSleepingLabel": {
     "message": "Mostra inattive",
-    "description": "Etichetta per la casella di controllo 'Mostra schede inattive'."
+    "description": "Label for the 'Show sleeping' checkbox."
   },
   "showAllWindowsLabel": {
     "message": "Mostra tutte le finestre",
-    "description": "Etichetta per la casella di controllo 'Mostra tutte le finestre'."
+    "description": "Label for the 'Show all windows' checkbox."
   },
   "changeShortcutTitle": {
     "message": "Modifica scorciatoia",
-    "description": "Tooltip per il pulsante che apre le impostazioni delle scorciatoie."
+    "description": "Button that opens chrome://extensions/shortcuts."
   },
   "resetWindowTitle": {
     "message": "Reimposta dimensioni e centra",
-    "description": "Tooltip per il pulsante che reimposta le dimensioni e la posizione della finestra."
+    "description": "Tooltip for the button that resets the window size and position."
   },
   "toggleWithShortcut": {
-    "message": "Attiva con $shortcut$",
-    "description": "Tooltip/etichetta ARIA per l'indicazione della scorciatoia attiva.",
+    "message": "Apri o chiudi con $shortcut$",
+    "description": "Tooltip/ARIA label for the shortcut hint; includes the active shortcut.",
     "placeholders": {
       "shortcut": {
         "content": "$1",
-        "example": "Cmd + E"
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "gridLabel": {
+    "message": "Schede aperte",
+    "description": "Accessible name of the tab grid."
+  },
+  "emptyNoTabs": {
+    "message": "Nessuna scheda trovata.",
+    "description": "Shown when no tabs could be read."
+  },
+  "emptyNoMatch": {
+    "message": "Nessuna scheda corrisponde alla ricerca.",
+    "description": "Shown when the search or filters match nothing."
+  },
+  "untitled": {
+    "message": "Senza titolo",
+    "description": "Fallback title for a tab without one."
+  },
+  "sleepingBadge": {
+    "message": "Inattiva",
+    "description": "Badge on tabs Chrome has put to sleep."
+  },
+  "closeTabTitle": {
+    "message": "Chiudi scheda (o clic centrale)",
+    "description": "Tooltip of the close control on a tile."
+  },
+  "siteScopeClear": {
+    "message": "Mostra tutte le schede",
+    "description": "Button that leaves the site view."
+  },
+  "shortcutNotSet": {
+    "message": "non impostata",
+    "description": "Shown in place of a shortcut that is not assigned."
+  },
+  "welcomeTitle": {
+    "message": "Tab Mission è pronto",
+    "description": "Welcome page heading."
+  },
+  "welcomeLead": {
+    "message": "Premi $shortcut$ ovunque in Chrome per vedere tutte le tue schede.",
+    "description": "Welcome page: how to open the overview.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "welcomeNoShortcut": {
+    "message": "Chrome non ha potuto assegnare la scorciatoia predefinita, probabilmente perché un'altra estensione la usa già. Scegline una per aprire Tab Mission dalla tastiera.",
+    "description": "Welcome page: the default shortcut could not be assigned."
+  },
+  "welcomeSetShortcut": {
+    "message": "Scegli scorciatoia",
+    "description": "Welcome page button that opens chrome://extensions/shortcuts."
+  },
+  "welcomeTipsTitle": {
+    "message": "Come funziona",
+    "description": "Welcome page: tips heading."
+  },
+  "welcomeTipSearch": {
+    "message": "Digita per filtrare per titolo o URL. Il risultato migliore è evidenziato: premi Invio per passarci.",
+    "description": "Welcome page tip."
+  },
+  "welcomeTipMru": {
+    "message": "La scheda che probabilmente ti serve (la precedente) è la prima, quella attuale la seconda. Premi → e poi Invio per tornarci.",
+    "description": "Welcome page tip."
+  },
+  "welcomeTipHover": {
+    "message": "Oppure passa il mouse su una scheda e premi di nuovo la scorciatoia per andarci.",
+    "description": "Welcome page tip."
+  },
+  "welcomeTipSite": {
+    "message": "Premi $shortcut$ nella casella di ricerca per vedere solo le schede del sito in cui ti trovi.",
+    "description": "Welcome page tip about the site scope (Tab in the search box).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "Tab"
+      }
+    }
+  },
+  "welcomeTipClose": {
+    "message": "Fai clic con il tasto centrale su una scheda, o sulla sua ×, per chiuderla.",
+    "description": "Welcome page tip."
+  },
+  "welcomePin": {
+    "message": "Suggerimento: fissa Tab Mission alla barra degli strumenti (icona del puzzle, poi la puntina) per aprirlo con un clic.",
+    "description": "Welcome page tip shown when the toolbar button is not pinned."
+  },
+  "welcomePrivacy": {
+    "message": "Tutto resta nel tuo browser. Tab Mission non ha server e non raccoglie nulla.",
+    "description": "Welcome page privacy note."
+  },
+  "optionsTitle": {
+    "message": "Impostazioni di Tab Mission",
+    "description": "Options page title."
+  },
+  "optionOpenHeading": {
+    "message": "Quando si apre la panoramica",
+    "description": "Options: heading of the open behaviour section."
+  },
+  "optionShortcutsHeading": {
+    "message": "Scorciatoie da tastiera",
+    "description": "Options: shortcuts heading."
+  },
+  "optionSaved": {
+    "message": "Salvato.",
+    "description": "Options: confirmation after a change."
+  },
+  "settingsTitle": {
+    "message": "Impostazioni",
+    "description": "Tooltip of the gear button that opens the settings page."
+  },
+  "optionPreselect": {
+    "message": "Preseleziona la scheda precedente: premendo due volte la scorciatoia ci torni",
+    "description": "Options: switch that pre-selects the previous tab on open."
+  },
+  "optionPreselectNote": {
+    "message": "Disattivato (predefinito): nessuna scheda è selezionata e premendo di nuovo la scorciatoia la panoramica si chiude. In entrambi i casi, passa il mouse su una scheda e premi la scorciatoia per andarci, oppure premi Esc per chiudere.",
+    "description": "Options: note under the switch."
+  },
+  "searchSitePlaceholder": {
+    "message": "Cerca nelle schede di $host$…",
+    "description": "Search placeholder inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      }
+    }
+  },
+  "siteScopeHint": {
+    "message": "Solo $host$ · $count$",
+    "description": "Hint at the right of the empty search box; Tab or click scopes to the current site.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
+      },
+      "count": {
+        "content": "$2",
+        "example": "13"
+      }
+    }
+  },
+  "siteScopeHintTitle": {
+    "message": "Mostra solo le schede di questo sito (Tab)",
+    "description": "Tooltip of the site-scope hint."
+  },
+  "searchAllTabs": {
+    "message": "Cerca in tutte le schede",
+    "description": "Button in the empty state of the site scope; leaves the scope and keeps the query."
+  },
+  "emptyNoMatchInSite": {
+    "message": "Nessuna scheda di $host$ corrisponde alla ricerca.",
+    "description": "Empty state inside the site scope.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "youtube.com"
       }
     }
   }

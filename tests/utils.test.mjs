@@ -3,6 +3,7 @@ import {
   getHostname,
   isValidIconUrl,
   isCapturableUrl,
+  isSleeping,
   generateGradient,
   createPlaceholderIcon,
 } from '../extension/src/utils.js';
@@ -40,6 +41,14 @@ describe('isCapturableUrl', () => {
     expect(isCapturableUrl('about:blank')).toBe(false);
     expect(isCapturableUrl('')).toBe(false);
     expect(isCapturableUrl(undefined)).toBe(false);
+  });
+});
+
+describe('isSleeping', () => {
+  it('treats discarded and unloaded tabs as sleeping', () => {
+    expect(isSleeping({ discarded: true, status: 'complete' })).toBe(true);
+    expect(isSleeping({ discarded: false, status: 'unloaded' })).toBe(true);
+    expect(isSleeping({ discarded: false, status: 'complete' })).toBe(false);
   });
 });
 

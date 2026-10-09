@@ -24,12 +24,6 @@ html, body {
   overflow: hidden; /* Prevent body from scrolling */
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
 #root {
   display: flex;
   flex-direction: column;
@@ -67,46 +61,137 @@ html, body {
   animation: rootFadeOut 120ms ease-in both;
 }
 
+/* Layout adapts to the overview's own width (window size and browser zoom
+   both change it), via container queries further down. Font sizes and
+   breakpoints are in rem, so a larger default font size in Chrome's settings
+   scales the text and moves the breakpoints with it (px would ignore it). */
+#root { container: overview / inline-size; }
+
 .toolbar {
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px 12px;
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid var(--border-color);
   backdrop-filter: blur(20px);
 }
 
-#search {
-  flex: 1;
-  padding: 12px 16px;
+/* The search field takes all free width so its placeholder is never cut off.
+   It holds an optional site-scope token, the input and the Tab hint, the way
+   Chrome's address bar shows its "search this site" keyword inside the box. */
+.search-field {
+  container: search / inline-size;
+  flex: 1 1 22.5rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 12px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
-  outline: none;
   background: rgba(255, 255, 255, 0.05);
-  color: var(--fg);
-  font-size: 14px;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-#search:focus {
+.search-field:focus-within {
   border-color: var(--accent);
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-.spacer { flex: 1; }
-.ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
-.hint { color: var(--muted); font-size: 12px; }
+#search {
+  flex: 1 1 auto;
+  min-width: 80px;
+  padding: 12px 4px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: 0.875rem;
+}
+
+.toolbar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; flex: 0 1 auto; min-width: 0; }
+.ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.75rem; white-space: nowrap; transition: opacity 0.2s; }
+
+/* While a query is typed, results span every window and sleeping tab, so
+   the toggles do not apply; dim them to say so. */
+.toolbar.searching .ctrl { opacity: 0.45; }
+
+.scope-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 2px 0 8px;
+  border-radius: 7px;
+  background: rgba(0, 212, 255, 0.14);
+  color: var(--fg);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  animation: tokenIn 140ms ease-out;
+}
+.scope-token[hidden] { display: none; }
+.scope-icon { width: 14px; height: 14px; border-radius: 3px; }
+#scope-label { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.scope-clear {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.scope-clear:hover { color: var(--fg); background: rgba(255, 255, 255, 0.1); }
+
+/* Quiet right-aligned hint, shown only while the box is empty. */
+.scope-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s;
+}
+.scope-hint[hidden] { display: none; }
+#scope-hint-label { overflow: hidden; text-overflow: ellipsis; }
+.scope-hint:hover { opacity: 1; background: rgba(255, 255, 255, 0.06); }
+.scope-hint kbd {
+  padding: 0 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  line-height: 16px;
+}
+
+@keyframes tokenIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+.hint { color: var(--muted); font-size: 0.75rem; }
 
 .hint-inline { margin-left: 8px; }
 
 .hint-bar { display: inline-flex; align-items: center; gap: 6px; }
-
-.hint-bar .hint {
-  margin-right: auto;
-}
 
 #shortcut-hint {
   display: inline-flex;
@@ -119,19 +204,7 @@ html, body {
   padding: 2px 6px;
   border-radius: 4px;
   font-family: monospace;
-  font-size: 11px;
-}
-
-#shortcut-hint a {
-  color: var(--muted);
-  text-decoration: none;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-#shortcut-hint a:hover {
-  opacity: 1;
-  color: var(--accent);
+  font-size: 0.6875rem;
 }
 
 .icon-btn {
@@ -139,7 +212,7 @@ html, body {
   border: none;
   color: var(--muted);
   padding: 6px;
-  font-size: 16px; /* default icon size */
+  font-size: 1rem; /* default icon size */
   line-height: 1;
   cursor: pointer;
   opacity: 0.7;
@@ -147,15 +220,15 @@ html, body {
 }
 
 /* Fine-tune individual sizes without affecting layout or hit area */
-#open-shortcuts { font-size: 13.5px; }
-#reset-window { font-size: 20px; }
+#open-settings { font-size: 0.8438rem; }
+#reset-window { font-size: 1.25rem; }
 
 #reset-window {
   position: relative;
   top: -0.31px; 
 }
 
-#open-shortcuts {
+#open-settings {
   position: relative;
   top: 1.5px; 
 }
@@ -165,9 +238,14 @@ html, body {
 .icon-btn:hover { opacity: 1; color: var(--accent); }
 .icon-btn:active { transform: scale(0.96); }
 
+/* Tiles scale with the overview's width, like Mission Control thumbnails:
+   the minimum tile width is a share of the container (17cqi), clamped so
+   tiles never get unreadably small or absurdly large. min(100%, ...) keeps a
+   single tile from overflowing a very narrow window. */
 .grid {
+  --tile-min: clamp(9.375rem, 17cqi, 18.75rem);
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--tile-min)), 1fr));
   gap: 12px;
   padding: 8px 12px 12px;
   overflow-y: auto; /* Allow vertical scrolling ONLY on the grid */
@@ -176,17 +254,13 @@ html, body {
   flex-grow: 1; /* Allow grid to fill available space */
   min-height: 0; /* Important for flexbox scrolling bug in some browsers */
   align-content: start; /* Prevent vertical stretching */
-}
-
-.grid.art { 
-  position: relative; /* Create a positioning context for absolute tiles */
-  transform-style: preserve-3d;
-  perspective: 1200px;
-}
-
-/* Ensure normal grid has proper auto-sizing */
-.grid:not(.art) {
-  grid-auto-rows: auto;
+  /* Rows take their content height. With auto rows, a fixed-height grid
+     shares only its free space among them, and tiles (overflow: hidden, so a
+     minimum height of 0) were squashed once many tabs were open. */
+  grid-auto-rows: max-content;
+  /* Classic scrollbars (Windows, Linux) take width: reserve it, so a column
+     is not lost the moment the grid starts to scroll. */
+  scrollbar-gutter: stable;
 }
 
 .tile {
@@ -199,16 +273,20 @@ html, body {
   cursor: pointer;
   backdrop-filter: blur(20px);
   transition: all 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  animation: fadeInUp 320ms ease both;
-  animation-delay: var(--stagger, 0ms);
-  min-height: 200px;
   box-shadow: var(--shadow-subtle);
+  position: relative; /* anchors the close control */
+  /* A <button> does not inherit these by default. */
+  padding: 6px 6px 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
 }
 
-.grid.art .tile {
-  position: absolute;
-  min-height: 0; /* Reset min-height for treemap */
-  transform-origin: center center; /* Ensure scaling and rotation is centered */
+/* The staggered entrance plays on the first render only; filtering reuses the
+   same tiles and must not replay it on every keystroke. */
+.grid.entering .tile {
+  animation: fadeInUp 320ms ease both;
+  animation-delay: var(--stagger, 0ms);
 }
 
 .tile:hover { 
@@ -217,12 +295,6 @@ html, body {
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: var(--shadow-elevated);
   z-index: 10;
-}
-
-.grid.art .tile:hover {
-  transform: translateZ(50px) scale(1.1);
-  z-index: 100;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
 .tile.selected {
@@ -242,6 +314,9 @@ html, body {
 .preview {
   width: 100%;
   aspect-ratio: 16 / 10;
+  /* overflow: hidden makes the automatic minimum height 0, so without this
+     the flex column could squash the preview below its 16:10 shape. */
+  flex-shrink: 0;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f1e 100%);
   overflow: hidden;
   position: relative;
@@ -250,14 +325,14 @@ html, body {
 }
 
 .thumbnail {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: opacity 0.3s ease-out;
-  /* Hide the img content itself, we use it for loading but display the background */
-  opacity: 0; 
-  background-size: cover;
-  background-position: center;
+  /* Invisible until loaded; the placeholder text underneath shows meanwhile. */
+  opacity: 0;
 }
 
 .thumbnail.loaded {
@@ -265,35 +340,96 @@ html, body {
 }
 
 .text-preview {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 16px;
-  text-align: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 16px;
+  text-align: left;
 }
 
 .preview-title {
-  color: var(--fg);
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  line-height: 1.3;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  word-break: break-word;
 }
 
 .preview-url {
-  color: var(--muted);
-  font-size: 12px;
-  opacity: 0.8;
+  color: #a0aec0;
+  font-family: monospace;
+  font-size: 0.625rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* Sleeping (discarded) tabs: muted, with a small badge. */
+.tile.sleeping .preview { filter: saturate(0.6) brightness(0.85); }
+.badge-sleeping {
+  position: absolute;
+  right: 8px;
+  bottom: 8px; /* clear of the placeholder title (top left) and the close button (top right) */
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.02em;
+}
+
+/* Close control: shown on hover or keyboard selection. */
+.tile-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--fg);
+  font-size: 0.9375rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  z-index: 2;
+}
+.tile:hover .tile-close,
+.tile.selected .tile-close { opacity: 0.85; }
+.tile-close:hover { opacity: 1; background: #e5484d; }
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: #9aa0a6;
+  font-size: 0.875rem;
+  line-height: 2;
+  grid-column: 1 / -1;
+}
+.empty-widen {
+  margin-top: 4px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.empty-widen:hover { border-color: var(--accent); }
 
 @keyframes fadeInUp {
   from { transform: translateY(12px) scale(0.98); opacity: 0; }
@@ -333,6 +469,7 @@ html, body {
 }
 
 .meta { 
+  flex-shrink: 0;
   padding: 12px 16px 16px; 
   display: flex;
   flex-direction: column;
@@ -358,7 +495,7 @@ html, body {
 
 .title {
   color: var(--fg);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.4;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -370,11 +507,50 @@ html, body {
 }
 
 .url { 
-  font-size: 11px; 
+  padding-left: 24px; /* aligns with the title, past the favicon */
+  font-size: 0.6875rem; 
   color: var(--muted); 
   white-space: nowrap; 
   overflow: hidden; 
   text-overflow: ellipsis; 
 }
 
+/* Respect the OS "reduce motion" setting: no entrance, hover or exit motion.
+   (closeOverview() also skips its exit delay in this mode.) */
+@media (prefers-reduced-motion: reduce) {
+  #root,
+  .tile,
+  .grid.entering .tile,
+  .thumbnail,
+  .scope-token {
+    animation: none !important;
+    transition: none !important;
+  }
+  .tile:hover,
+  .tile.selected {
+    transform: none;
+  }
+}
+
+
+/* Medium width: the search field takes the whole first row and the
+   controls move to a second row, so nothing has to squeeze or wrap. */
+@container overview (width < 47.5rem) {
+  .search-field { flex-basis: 100%; }
+  .toolbar-controls { flex: 1 1 100%; justify-content: space-between; }
+}
+
+/* Narrow: drop the least important pieces instead of crushing them. */
+@container overview (width < 27.5rem) {
+  .toolbar { padding: 12px; }
+  #shortcut-hint { display: none; }
+  .toolbar-controls { gap: 8px; }
+}
+
+/* A narrow search field keeps the input usable: the hint goes first
+   (Tab still works), the token label is shortened. */
+@container search (width < 22.5rem) {
+  .scope-hint { display: none; }
+  #scope-label { max-width: 96px; }
+}
 

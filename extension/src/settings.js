@@ -3,8 +3,10 @@
 const DEFAULTS = {
   showSleeping: false,
   showAllWindows: false,
-  artMode: false,
-  // Add other settings here as needed
+  // Off by default: nothing is selected on open, so pressing the shortcut
+  // twice closes the overview. On (options page): the previous tab is
+  // pre-selected, so pressing it twice goes back to it (Alt+Tab style).
+  preselectPrevious: false,
 };
 
 /**
@@ -30,16 +32,18 @@ export async function loadSettings() {
 /**
  * Saves a settings object to chrome.storage.local.
  * @param {Object} settings The settings object to save.
- * @returns {Promise<void>} A promise that resolves when saving is complete.
+ * @returns {Promise<boolean>} Whether the settings were saved.
  */
 export async function saveSettings(settings) {
   // Defensive check for environments where chrome APIs are not available
   if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
-    return; // Silently fail if storage is not available
+    return false;
   }
   try {
     await chrome.storage.local.set(settings);
+    return true;
   } catch (error) {
     console.warn('Could not save settings.', error);
+    return false;
   }
 }
