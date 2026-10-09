@@ -83,7 +83,7 @@ describe('applyFilters — MRU ordering', () => {
   it('orders across windows purely by recency when showing all windows', () => {
     state.currentWindowId = 1;
     state.allTabs = [
-      makeTab(1, { lastAccessed: 600, active: true, windowId: 1 }), // focused current — most recent
+      makeTab(1, { lastAccessed: 600, active: true, windowId: 1 }), // most recent
       makeTab(2, { lastAccessed: 500, active: true, windowId: 2 }),
       makeTab(3, { lastAccessed: 400, windowId: 1 }),
     ];

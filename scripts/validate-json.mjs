@@ -43,6 +43,29 @@ try {
   // A parse failure was already reported above.
 }
 
+// The store rejects a name over 75 characters or a description over 132, in
+// any language.
+const STORE_LIMITS = { name: 75, description: 132 };
+try {
+  const manifest = JSON.parse(readFileSync('extension/manifest.json', 'utf8'));
+  let tooLong = false;
+  for (const file of files.filter((f) => f.includes('_locales'))) {
+    const messages = JSON.parse(readFileSync(file, 'utf8'));
+    for (const [field, max] of Object.entries(STORE_LIMITS)) {
+      const key = /^__MSG_(\w+)__$/.exec(manifest[field])?.[1];
+      const length = [...((key ? messages[key]?.message : manifest[field]) ?? '')].length;
+      if (length > max) {
+        tooLong = true;
+        console.error(`FAIL ${file}: ${field} has ${length} characters, the store allows ${max}`);
+      }
+    }
+  }
+  if (tooLong) failed = true;
+  else console.log('ok   name and description lengths');
+} catch {
+  // A parse failure was already reported above.
+}
+
 // The store reads the version from manifest.json; keep package.json in step.
 try {
   const manifest = JSON.parse(readFileSync('extension/manifest.json', 'utf8'));

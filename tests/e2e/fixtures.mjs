@@ -1,7 +1,8 @@
 // Playwright fixtures: the unpacked extension in Playwright's Chromium, fake
 // websites served locally, and helpers that drive the overview the way a user
-// does. The shortcut is sent through background.js (the openOverview message),
-// the same path as chrome.commands, which Playwright cannot press.
+// does. Most presses are sent through background.js (the openOverview
+// message, the same path as chrome.commands); pressDefaultShortcut presses the
+// real key through Chrome's own key handling.
 import { test as base, expect, chromium } from '@playwright/test';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';

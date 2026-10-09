@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Mission Control for Chrome tabs: every open tab in one visual grid, most recent first. Type to search, Enter to switch.",
+    "message": "Mission Control for Chrome tabs: your tabs in one visual grid, most recent first. Type to search them all, Enter to switch.",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {
@@ -70,7 +70,7 @@
     "description": "Shown when no tabs could be read."
   },
   "emptyNoMatch": {
-    "message": "No tabs match your search.",
+    "message": "No matching tabs.",
     "description": "Shown when the search or filters match nothing."
   },
   "untitled": {
@@ -98,7 +98,7 @@
     "description": "Welcome page heading."
   },
   "welcomeLead": {
-    "message": "Press $shortcut$ anywhere in Chrome to see all your tabs.",
+    "message": "Press $shortcut$ anywhere in Chrome to see your tabs.",
     "description": "Welcome page: how to open the overview.",
     "placeholders": {
       "shortcut": {

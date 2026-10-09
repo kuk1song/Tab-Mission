@@ -20,8 +20,8 @@ updates:
       actions:
         patterns: ["*"]
 
-  # npm dev dependencies (eslint, globals, vitest). The extension itself ships
-  # no runtime npm packages, so these are tooling-only.
+  # npm dev dependencies (ESLint, Playwright, Vitest, globals). The extension
+  # itself ships no runtime npm packages, so these are tooling-only.
   - package-ecosystem: npm
     directory: /
     schedule:

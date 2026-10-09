@@ -87,8 +87,8 @@ export function applyFilters(uiState) {
 
   // Order by most-recently-used (descending lastAccessed), as OS task
   // switchers do; Chrome's own Ctrl+Tab walks the static tab-strip order,
-  // which is the reason this extension exists. lastAccessed is present on
-  // every tab, so no extra permission is needed.
+  // which is the reason this extension exists. lastAccessed is on every tab
+  // since Chrome 121 (the manifest's minimum) and needs no extra permission.
   tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
 
   // The current tab goes second: the first, most prominent slot is for the

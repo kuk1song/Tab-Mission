@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Mission Control per le schede di Chrome: tutte le schede in una griglia, le più recenti prima. Digita per cercare, Invio per aprire.",
+    "message": "Mission Control per le schede di Chrome: le tue schede in una griglia, le più recenti prima. Cerca in tutte, Invio per aprire.",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {
@@ -70,7 +70,7 @@
     "description": "Shown when no tabs could be read."
   },
   "emptyNoMatch": {
-    "message": "Nessuna scheda corrisponde alla ricerca.",
+    "message": "Nessuna scheda corrispondente.",
     "description": "Shown when the search or filters match nothing."
   },
   "untitled": {
@@ -98,7 +98,7 @@
     "description": "Welcome page heading."
   },
   "welcomeLead": {
-    "message": "Premi $shortcut$ ovunque in Chrome per vedere tutte le tue schede.",
+    "message": "Premi $shortcut$ ovunque in Chrome per vedere le tue schede.",
     "description": "Welcome page: how to open the overview.",
     "placeholders": {
       "shortcut": {
