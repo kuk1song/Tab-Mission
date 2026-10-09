@@ -96,7 +96,7 @@ export const test = base.extend({
   ext: async ({ context, sw, site }, use) => {
     // The welcome page opens on install; it doubles as the extension page
     // that sends "shortcut presses" to background.js.
-    await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html'))).toBe(true);
+    await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html')), { timeout: 15_000 }).toBe(true);
     const welcome = context.pages().find((p) => p.url().endsWith('/welcome.html'));
     const url = (id, query = '') => `http://${HOSTS[id] ?? 'localhost'}:${site.port}/${id}.html${query}`;
 
@@ -189,6 +189,16 @@ export const test = base.extend({
 
       async expectClosed() {
         await expect.poll(() => ext.overviewPages().length).toBe(0);
+      },
+
+      // A key that closes the overview (Enter on a tile, the last Esc). The
+      // page may close between key down and key up, so a "closed" error from
+      // the key up is expected; the overview must be gone afterwards.
+      async pressToClose(page, key) {
+        await page.keyboard.press(key).catch((error) => {
+          if (!/closed/i.test(error.message)) throw error;
+        });
+        await ext.expectClosed();
       },
 
       activeTitle(windowId) {

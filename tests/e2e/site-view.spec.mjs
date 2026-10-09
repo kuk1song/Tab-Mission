@@ -79,8 +79,7 @@ test('leaving: Backspace at the start keeps the text, Shift+Tab, the ×, then Es
   await expect(token).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(token).toBeHidden();
-  await page.keyboard.press('Escape');
-  await ext.expectClosed();
+  await ext.pressToClose(page, 'Escape');
 });
 
 test('no match in the site view offers to search all tabs, keeping the query', async ({ ext }) => {

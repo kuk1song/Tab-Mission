@@ -32,8 +32,9 @@ test('options page: the switch saves and confirms, and every shortcut is listed'
 test('the gear in the overview opens the options page', async ({ ext, context }) => {
   await ext.openWindow(['alpha', 'beta']);
   const page = await ext.open();
-  const options = context.waitForEvent('page', (p) => p.url().endsWith('/options.html'));
+  const opened = context.waitForEvent('page', (p) => p.url().endsWith('/options.html'));
   await page.locator('#open-settings').click();
-  await options;
+  const options = await opened;
   await ext.expectClosed();
+  await options.close();
 });

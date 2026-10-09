@@ -64,8 +64,7 @@ test('the overview remembers its size and position', async ({ ext }) => {
   const popup = () => ext.sw.evaluate(() => chrome.windows.getAll({ windowTypes: ['popup'] }).then((w) => w[0]));
   await ext.sw.evaluate(({ id, b }) => chrome.windows.update(id, b), { id: (await popup()).id, b: target });
   await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('overviewBounds').then((r) => r.overviewBounds?.width))).toBe(target.width);
-  await page.keyboard.press('Escape');
-  await ext.expectClosed();
+  await ext.pressToClose(page, 'Escape');
   await ext.open();
   const { width, height } = await popup();
   expect({ width, height }).toEqual({ width: target.width, height: target.height });

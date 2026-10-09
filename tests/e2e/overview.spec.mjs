@@ -18,8 +18,7 @@ test('→ selects the previous tab; typing pre-selects the best match; Enter swi
   await page.keyboard.type('alp');
   await expect(page.locator('#search')).toHaveValue('alp');
   await expect.poll(() => selectedTitle(page)).toBe(alpha.title);
-  await page.keyboard.press('Enter');
-  await ext.expectClosed();
+  await ext.pressToClose(page, 'Enter');
   expect(await ext.activeTitle(windowId)).toBe(alpha.title);
 });
 
@@ -27,8 +26,7 @@ test('loads a relative og:image and serves it from the session cache on reopen',
   await ext.openWindow(['alpha', 'beta', 'gamma']);
   let page = await ext.open();
   await expect(page.locator('img.thumbnail.loaded[src$="/img/alpha.svg"]')).toHaveCount(1);
-  await page.keyboard.press('Escape');
-  await ext.expectClosed();
+  await ext.pressToClose(page, 'Escape');
   const cached = await ext.sw.evaluate(() => chrome.storage.session.get('previewCache').then(({ previewCache }) =>
     Object.values(previewCache || {}).some((e) => e.img?.endsWith('/img/alpha.svg'))));
   expect(cached).toBe(true);
@@ -82,7 +80,6 @@ test('Esc clears the query first, then closes without switching', async ({ ext }
   await page.keyboard.press('Escape');
   await expect(page.locator('#search')).toHaveValue('');
   expect(ext.overviewPages()).toHaveLength(1);
-  await page.keyboard.press('Escape');
-  await ext.expectClosed();
+  await ext.pressToClose(page, 'Escape');
   expect(await ext.activeTitle(windowId)).toBe(gamma.title);
 });
