@@ -56,7 +56,7 @@ test('a window id left from an earlier browser session never closes a user windo
 test('the overview remembers its size and position', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta']);
   const page = await ext.open();
-  // Bounds inside the (headless) display's work area, which the restore clamps to.
+  // Bounds inside the display's work area, which the restore clamps to.
   const target = await ext.sw.evaluate(async () => {
     const [{ workArea: a }] = await chrome.system.display.getInfo();
     return { width: Math.round(a.width * 0.7), height: Math.round(a.height * 0.7), left: a.left + 10, top: a.top + 10 };

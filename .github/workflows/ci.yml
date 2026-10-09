@@ -41,9 +41,9 @@ jobs:
       - run: npm run validate:json
       - run: npm test
 
-  # The unpacked extension in Playwright's Chromium (new headless mode), on
-  # each desktop OS: the shortcut table, window frames and scrollbars differ
-  # on Windows and Linux.
+  # The unpacked extension in Playwright's Chromium (headless; headed on
+  # Windows, see tests/e2e/fixtures.mjs), on each desktop OS: the shortcut
+  # table, window frames and scrollbars differ on Windows and Linux.
   e2e:
     strategy:
       fail-fast: false

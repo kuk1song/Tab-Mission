@@ -458,7 +458,7 @@ html, body {
   }
 }
 
-/* This rule applies the animation when the body has the .closing class */
+/* Exit animation: closeOverview adds .closing to #root */
 #root.closing .tile {
   /* Use our new animation - using ease-in matches the feel of being "sucked back" */
   animation: fadeOutUp 320ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;

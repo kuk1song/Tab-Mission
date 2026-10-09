@@ -101,9 +101,9 @@ function fitInto(display, b) {
 	};
 }
 
-// Where the overview opens: on the browser's display, at the size and spot
-// the user last chose when that spot is on this display, otherwise at the
-// default size, centered.
+// Where the overview opens: on the browser's display, at the size the user
+// last chose (else the default size), centered, or at the spot the user last
+// chose when that spot is on this display.
 async function overviewBounds(displays, saved) {
 	const display = displayFor(displays, await lastFocusedBrowser());
 	const bounds = displayBounds(display);
