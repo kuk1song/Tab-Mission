@@ -1,6 +1,6 @@
 // Screenshots for review, not pixel assertions. CI uploads screens/ for each
-// OS, so the overview can be checked on Windows and Linux from a Mac (also by
-// a coding agent: gh run download <run> -n screens-windows-latest).
+// OS, so the overview can be checked on Windows and Linux from a Mac
+// (gh run download <run> -n screens-windows-latest).
 // Screens: a 1920 x 1080 laptop with a 48 px (scaled) taskbar at 100%, 125% and 150%
 // display scaling, scrollbars drawn as the OS draws them.
 import { mkdirSync, writeFileSync } from 'node:fs';

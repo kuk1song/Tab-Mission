@@ -42,8 +42,8 @@ jobs:
       - run: npm test
 
   # The unpacked extension in Playwright's Chromium (new headless mode), on
-  # each desktop OS: the maintainer works on a Mac, and the shortcut table,
-  # window frames and scrollbars differ on Windows and Linux.
+  # each desktop OS: the shortcut table, window frames and scrollbars differ
+  # on Windows and Linux.
   e2e:
     strategy:
       fail-fast: false
