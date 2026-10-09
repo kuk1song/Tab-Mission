@@ -67,6 +67,11 @@ export const test = base.extend({
   context: async ({ launchArgs, showScrollbars }, use) => {
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
+      // Headless Chromium on Windows closes itself on the first
+      // chrome.system.display.getInfo() call (seen on windows-latest, where
+      // the headed browser returns the real display), so Windows runs
+      // headed. The extension calls it before opening the overview.
+      headless: process.platform !== 'win32',
       // No viewport emulation: windows keep the size the extension gives
       // them (it saves and restores the overview's bounds).
       viewport: null,
