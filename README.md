@@ -19,14 +19,14 @@
 
 ---
 
-Tab Mission puts every open tab into one searchable grid, ordered by when you last used it. Summon it with a single shortcut, type a few letters, press Enter, and you are there.
+Tab Mission puts your tabs into one searchable grid, ordered by when you last used them. Summon it with a single shortcut, type a few letters, press Enter, and you are there.
 
 ## ✨ Features
 
-- **Instant Overview:** All your tabs in one grid, one keystroke away.
+- **Instant Overview:** Your tabs in one grid, one keystroke away.
 - **Most Likely First:** The tab you most likely want, the previous one, takes the first slot; your current tab sits second; the rest follow by last use.
 - **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. A search covers all windows and sleeping tabs; without one, the grid shows what the two checkboxes say.
-- **Site View:** When the site you are on has two or more tabs, press `Tab` in the search box to see only those (`Tab` again, `Esc`, or `Backspace` at the start of the box to leave). A global shortcut for it can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
+- **Site View:** When the grid holds two or more tabs from the site you are on, press `Tab` in the search box to see only those (`Tab` again, `Esc`, or `Backspace` at the start of the box to leave). A global shortcut for it can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
 - **Keyboard or Mouse:** `↑↓←→` + `Enter`, click, or hover and press the shortcut again. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
 - **Page Previews:** Each tab shows the preview image its page provides, or a clean title card when there is none.
 - **Private by Design:** No server, no analytics. Everything stays in your browser.
