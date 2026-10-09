@@ -3,7 +3,7 @@
   "description": "__MSG_appDescription__",
   "version": "1.2.0",
   "manifest_version": 3,
-  "minimum_chrome_version": "105",
+  "minimum_chrome_version": "121",
   "author": {
     "name": "Haokun Song",
     "email": "shk741612898@gmail.com"
