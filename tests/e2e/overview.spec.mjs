@@ -1,20 +1,20 @@
-import { test, expect, PAGES, tileTitles, selectedTitle } from './fixtures.mjs';
+import { test, expect, PAGES, tileTitles, selectedTitle, pointAt } from './fixtures.mjs';
 
 const { alpha, beta, gamma } = PAGES;
 
-test('opens with the search focused, the previous tab first and nothing selected', async ({ ext }) => {
+test('opens with the search focused and the previous tab first and selected', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
   await expect(page.locator('#search')).toBeFocused();
   expect(await tileTitles(page)).toEqual([beta.title, gamma.title, alpha.title]);
-  expect(await selectedTitle(page)).toBeNull();
+  expect(await selectedTitle(page)).toBe(beta.title);
 });
 
-test('→ selects the previous tab; typing pre-selects the best match; Enter switches', async ({ ext }) => {
+test('→ moves the selection; typing pre-selects the best match; Enter switches', async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
   await page.keyboard.press('ArrowRight');
-  expect(await selectedTitle(page)).toBe(beta.title);
+  expect(await selectedTitle(page)).toBe(gamma.title);
   await page.keyboard.type('alp');
   await expect(page.locator('#search')).toHaveValue('alp');
   await expect.poll(() => selectedTitle(page)).toBe(alpha.title);
@@ -47,13 +47,13 @@ test('a query searches other windows and dims the toggles', async ({ ext }) => {
   await expect(page.locator('.toolbar')).toHaveClass(/searching/);
 });
 
-test('all windows never lists the overview; erasing the query drops the selection', async ({ ext }) => {
+test('all windows never lists the overview; erasing the query returns to the previous tab', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
-  await page.keyboard.type('page');
-  await expect.poll(() => selectedTitle(page)).not.toBeNull();
+  await page.keyboard.type('alp');
+  await expect.poll(() => selectedTitle(page)).toBe(alpha.title);
   await page.locator('#search').fill('');
-  await expect.poll(() => selectedTitle(page)).toBeNull();
+  await expect.poll(() => selectedTitle(page)).toBe(beta.title);
   await page.locator('#toggle-current-window').click();
   await expect(page.locator('#search')).toBeFocused();
   const overviewTabId = await ext.sw.evaluate(() =>
@@ -64,7 +64,7 @@ test('all windows never lists the overview; erasing the query drops the selectio
 test('× and middle-click close tabs', async ({ ext }) => {
   const { tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
-  await page.locator(`.tile[data-tab-id="${tabIds.alpha}"]`).hover();
+  await pointAt(page, page.locator(`.tile[data-tab-id="${tabIds.alpha}"]`));
   await page.locator(`.tile[data-tab-id="${tabIds.alpha}"] .tile-close`).click();
   await expect(page.locator('.tile')).toHaveCount(2);
   await page.locator(`.tile[data-tab-id="${tabIds.beta}"]`).click({ button: 'middle' });

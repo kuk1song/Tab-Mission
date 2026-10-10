@@ -16,7 +16,7 @@ export function initializeGridListeners() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
   gridEl.addEventListener('mousemove', handleGridMouseMove);
-  gridEl.addEventListener('mouseleave', restDefaultSelection);
+  gridEl.addEventListener('mouseleave', handleGridMouseLeave);
   gridEl.addEventListener('click', (e) => {
     const tab = tabForEvent(e);
     if (!tab) return;
@@ -40,25 +40,42 @@ function tabForEvent(e) {
   return state.filteredTabs[parseInt(tile.dataset.index, 10)] || null;
 }
 
-function restDefaultSelection() {
-  if (state.selectedIndex !== state.defaultIndex) {
-    state.selectedIndex = state.defaultIndex;
+// The pointer takes over the selection only once it has really moved. The
+// overview opens under a resting pointer, and a twitch must not move the
+// pre-selected tile away from the next press of the shortcut. Once it has
+// taken over, the selection is the tile under the pointer, or none over a gap
+// or outside the grid. Any key hands the selection back to the keyboard.
+const POINTER_TAKEOVER_PX = 8;
+let pointerAnchor = null;
+let pointerSelects = false;
+
+export function releasePointerSelection() {
+  pointerAnchor = null;
+  pointerSelects = false;
+}
+
+function select(index) {
+  if (state.selectedIndex !== index) {
+    state.selectedIndex = index;
     updateSelection();
   }
 }
 
 function handleGridMouseMove(e) {
+  if (!pointerSelects) {
+    if (!pointerAnchor) {
+      pointerAnchor = { x: e.clientX, y: e.clientY };
+      return;
+    }
+    if (Math.hypot(e.clientX - pointerAnchor.x, e.clientY - pointerAnchor.y) < POINTER_TAKEOVER_PX) return;
+    pointerSelects = true;
+  }
   const tile = e.target.closest('.tile');
-  if (!tile) {
-    // In a grid gap: fall back to the default (the best search match, or none).
-    restDefaultSelection();
-    return;
-  }
-  const index = parseInt(tile.dataset.index, 10);
-  if (state.selectedIndex !== index) {
-    state.selectedIndex = index;
-    updateSelection();
-  }
+  select(tile ? parseInt(tile.dataset.index, 10) : -1);
+}
+
+function handleGridMouseLeave() {
+  if (pointerSelects) select(-1);
 }
 
 export function render() {

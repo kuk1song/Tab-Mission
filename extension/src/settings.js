@@ -3,10 +3,10 @@
 const DEFAULTS = {
   showSleeping: false,
   showAllWindows: false,
-  // Off by default: nothing is selected on open, so pressing the shortcut
-  // twice closes the overview. On (options page): the previous tab is
-  // pre-selected, so pressing it twice goes back to it (Alt+Tab style).
-  preselectPrevious: false,
+  // On by default: the previous tab is pre-selected, so pressing the
+  // shortcut twice goes back to it (Alt+Tab style). Off (options page):
+  // nothing is selected on open, so pressing it twice closes the overview.
+  preselectPrevious: true,
 };
 
 /**

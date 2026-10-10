@@ -221,6 +221,16 @@ export function tileTitles(page) {
   return page.locator('.tile .title').allTextContents();
 }
 
+// Point at a tile the way a hand does: several mousemove events inside it,
+// so the overview's pointer takeover (8 px) sees a real movement.
+export async function pointAt(page, target) {
+  const box = await target.boundingBox();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x - 40, y);
+  await page.mouse.move(x, y, { steps: 4 });
+}
+
 export function selectedTitle(page) {
   return page.evaluate(() => document.querySelector('.tile.selected .title')?.textContent ?? null);
 }

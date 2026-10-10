@@ -124,11 +124,11 @@
     "description": "Welcome page tip."
   },
   "welcomeTipMru": {
-    "message": "The tab you most likely want (the previous one) comes first, your current tab second. Press → and then Enter to jump back.",
+    "message": "The tab you most likely want (the previous one) comes first and is already selected, your current tab second. Press the shortcut again to jump back.",
     "description": "Welcome page tip."
   },
   "welcomeTipHover": {
-    "message": "Or hover a tab and press the shortcut again to jump there.",
+    "message": "Or move the mouse onto a tab and press the shortcut again to jump there.",
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
@@ -178,7 +178,7 @@
     "description": "Options: switch that pre-selects the previous tab on open."
   },
   "optionPreselectNote": {
-    "message": "Off (default): nothing is selected and pressing the shortcut again closes the overview. Either way, hover a tab and press the shortcut to switch to it, or press Esc to close.",
+    "message": "On (default): the previous tab is selected, so pressing the shortcut again goes back to it. Off: nothing is selected and pressing the shortcut again closes the overview. Either way, move the mouse onto a tab and press the shortcut to switch to it, or press Esc to close.",
     "description": "Options: note under the switch."
   },
   "searchSitePlaceholder": {

@@ -27,7 +27,7 @@ Tab Mission puts your tabs into one searchable grid, ordered by when you last us
 - **Most Likely First:** The tab you most likely want, the previous one, takes the first slot; your current tab sits second; the rest follow by last use.
 - **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. A search covers all windows and sleeping tabs; without one, the grid shows what the two checkboxes say.
 - **Site View:** When the grid holds two or more tabs from the site you are on, press `Tab` in the search box to see only those (`Tab` again, `Esc`, or `Backspace` at the start of the box to leave). A global shortcut for it can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
-- **Keyboard or Mouse:** `↑↓←→` + `Enter`, click, or hover and press the shortcut again. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
+- **Keyboard or Mouse:** `↑↓←→` + `Enter`, click, or point at a tab and press the shortcut again. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
 - **Page Previews:** Each tab shows the preview image its page provides, or a clean title card when there is none.
 - **Private by Design:** No server, no analytics. Everything stays in your browser.
 
@@ -39,9 +39,9 @@ Tab Mission puts your tabs into one searchable grid, ordered by when you last us
 
 ## 💡 Pro Tips
 
-- **Back to the previous tab:** press the shortcut, then `→` and `Enter` (with the default settings).
-- **No-click switching:** press the shortcut, hover the tab you want, and press the shortcut **again**.
-- **Alt+Tab style (optional):** click the gear in the overview and turn on "Pre-select the previous tab"; then pressing the shortcut twice takes you back to the previous tab.
+- **Back to the previous tab:** press the shortcut twice (the previous tab is selected when the overview opens).
+- **No-click switching:** press the shortcut, move the mouse onto the tab you want, and press the shortcut **again**.
+- **Toggle style (optional):** click the gear in the overview and turn off "Pre-select the previous tab"; then nothing is selected on open, and pressing the shortcut again closes the overview.
 
 ## 🛠️ Development
 
