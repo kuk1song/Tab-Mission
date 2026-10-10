@@ -1,6 +1,6 @@
 // events.js
 import { state, applyFilters, moveSelection, currentSiteHost, countSiteTabs } from './state.js';
-import { render, updateSelection, initializeGridListeners, forgetTile } from './dom.js';
+import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection } from './dom.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isValidIconUrl, createPlaceholderIcon } from './utils.js';
@@ -215,6 +215,7 @@ export async function closeTab(tab) {
 }
 
 function handleKeydown(e) {
+  releasePointerSelection();
   // Keys that pick or commit an input method candidate (pinyin, kana) belong
   // to the input method, not to the overview.
   if (e.isComposing || e.keyCode === 229) return;

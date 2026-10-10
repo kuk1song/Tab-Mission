@@ -96,10 +96,12 @@ html, body {
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* The search box holds focus the whole time, so the caret is the focus
+   indicator (WCAG 2.4.7 counts it) and the accent stays for the selected
+   tile, the one thing Enter and the shortcut act on. */
 .search-field:focus-within {
-  border-color: var(--accent);
+  border-color: rgba(255, 255, 255, 0.22);
   background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 #search {
@@ -275,6 +277,7 @@ html, body {
   transition: all 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: var(--shadow-subtle);
   position: relative; /* anchors the close control */
+  --tile-scale: 1; /* the resting scale; the entrance animation ends on it */
   /* A <button> does not inherit these by default. */
   padding: 6px 6px 0;
   font: inherit;
@@ -289,16 +292,13 @@ html, body {
   animation-delay: var(--stagger, 0ms);
 }
 
-.tile:hover { 
-  transform: translateY(-8px) scale(1.03); 
-  background: var(--tile-bg-hover);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: var(--shadow-elevated);
-  z-index: 10;
-}
+/* No :hover style: the pointer moves the selection once it really moves
+   (dom.js), so the one highlighted tile is always the one Enter and the
+   shortcut act on. */
 
 .tile.selected {
-  transform: scale(1.05);
+  --tile-scale: 1.05;
+  transform: scale(var(--tile-scale));
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent), 0 0 30px var(--accent-glow);
   background: var(--tile-bg-selected);
@@ -406,7 +406,6 @@ html, body {
   transition: opacity 0.15s, background 0.15s;
   z-index: 2;
 }
-.tile:hover .tile-close,
 .tile.selected .tile-close { opacity: 0.85; }
 .tile-close:hover { opacity: 1; background: #e5484d; }
 
@@ -432,8 +431,8 @@ html, body {
 .empty-widen:hover { border-color: var(--accent); }
 
 @keyframes fadeInUp {
-  from { transform: translateY(12px) scale(0.98); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
+  from { transform: translateY(12px) scale(calc(var(--tile-scale) * 0.98)); opacity: 0; }
+  to { transform: translateY(0) scale(var(--tile-scale)); opacity: 1; }
 }
 
 @keyframes rootFadeIn {
@@ -449,7 +448,7 @@ html, body {
 /* Add this new animation for tiles when closing */
 @keyframes fadeOutUp {
   from {
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(var(--tile-scale));
     opacity: 1;
   }
   to {
@@ -526,7 +525,6 @@ html, body {
     animation: none !important;
     transition: none !important;
   }
-  .tile:hover,
   .tile.selected {
     transform: none;
   }

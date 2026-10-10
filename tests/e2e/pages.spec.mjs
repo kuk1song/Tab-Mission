@@ -23,10 +23,11 @@ test('options page: the switch saves and confirms, and every shortcut is listed'
   const page = await context.newPage();
   await page.goto(`chrome-extension://${new URL(ext.sw.url()).host}/options.html`);
   await expect(page.locator('#shortcuts > div')).toHaveCount(2);
-  await page.locator('#preselect-previous').check();
+  await expect(page.locator('#preselect-previous')).toBeChecked();
+  await page.locator('#preselect-previous').uncheck();
   await expect(page.locator('#saved')).toBeVisible();
   const saved = await ext.sw.evaluate(() => chrome.storage.local.get('preselectPrevious'));
-  expect(saved.preselectPrevious).toBe(true);
+  expect(saved.preselectPrevious).toBe(false);
 });
 
 test('the gear in the overview opens the options page', async ({ ext, context }) => {

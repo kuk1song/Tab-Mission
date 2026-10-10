@@ -1,6 +1,16 @@
-import { test, expect, PAGES, selectedTitle } from './fixtures.mjs';
+import { test, expect, PAGES, selectedTitle, pointAt } from './fixtures.mjs';
 
-test('by default nothing is selected and the shortcut pressed twice closes', async ({ ext }) => {
+test('by default the previous tab is selected, and the shortcut pressed twice goes back to it', async ({ ext }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  expect(await selectedTitle(page)).toBe(PAGES.beta.title);
+  await ext.press();
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.beta.title);
+});
+
+test('with "pre-select the previous tab" off, nothing is selected and the shortcut pressed twice closes', async ({ ext }) => {
+  await ext.sw.evaluate(() => chrome.storage.local.set({ preselectPrevious: false }));
   const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
   expect(await selectedTitle(page)).toBeNull();
@@ -9,24 +19,64 @@ test('by default nothing is selected and the shortcut pressed twice closes', asy
   expect(await ext.activeTitle(windowId)).toBe(PAGES.gamma.title);
 });
 
-test('hover a tile and press the shortcut to switch to it', async ({ ext }) => {
+test('the pre-selected tile enters at its selected size, so it does not grow afterwards', async ({ ext }) => {
+  await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  const sizes = await page.evaluate(() => {
+    const tile = document.querySelector('.tile.selected');
+    tile.getAnimations().forEach((a) => a.finish());
+    const entered = getComputedStyle(tile).transform;
+    document.getElementById('grid').classList.remove('entering');
+    return { entered, resting: getComputedStyle(tile).transform };
+  });
+  expect(sizes.entered).toBe(sizes.resting);
+  expect(sizes.resting).not.toBe('none');
+});
+
+test('point at a tile and press the shortcut to switch to it', async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
-  await page.locator('.tile').nth(2).hover();
+  await pointAt(page, page.locator('.tile').nth(2));
   expect(await selectedTitle(page)).toBe(PAGES.alpha.title);
+  await expect(page.locator('.tile.selected')).toHaveCount(1);
   await ext.press();
   await ext.expectClosed();
   expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
 });
 
-test('with "pre-select the previous tab" on, pressing the shortcut twice goes back', async ({ ext }) => {
-  await ext.sw.evaluate(() => chrome.storage.local.set({ preselectPrevious: true }));
+test('a pointer resting on a tile, or twitching, leaves the pre-selection alone', async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
+  const box = await page.locator('.tile').nth(2).boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.move(box.x + box.width / 2 + 3, box.y + box.height / 2 + 2);
   expect(await selectedTitle(page)).toBe(PAGES.beta.title);
   await ext.press();
   await ext.expectClosed();
   expect(await ext.activeTitle(windowId)).toBe(PAGES.beta.title);
+});
+
+test('once the pointer has moved, leaving the tiles selects nothing and the shortcut closes', async ({ ext }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  await pointAt(page, page.locator('.tile').nth(2));
+  await pointAt(page, page.locator('#search'));
+  expect(await selectedTitle(page)).toBeNull();
+  await ext.press();
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.gamma.title);
+});
+
+test('a key hands the selection back to the keyboard', async ({ ext }) => {
+  await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  const tile = page.locator('.tile').nth(2);
+  await pointAt(page, tile);
+  await page.keyboard.press('ArrowLeft');
+  expect(await selectedTitle(page)).toBe(PAGES.gamma.title);
+  const box = await tile.boundingBox();
+  await page.mouse.move(box.x + box.width / 2 + 3, box.y + box.height / 2);
+  expect(await selectedTitle(page)).toBe(PAGES.gamma.title);
 });
 
 test('two presses in a row open exactly one overview', async ({ ext }) => {
@@ -90,8 +140,8 @@ test('after the service worker restarts, the shortcut still acts on the open ove
 // The keyboard path itself: Chrome matches the key against the extension's
 // command and fires chrome.commands.onCommand. (Not covered: the operating
 // system delivering the key to Chrome, which needs a real focused window.)
-test('the real default shortcut opens the overview, and pressed again closes it', async ({ ext, context }) => {
-  await ext.openWindow(['alpha', 'beta']);
+test('the real default shortcut opens the overview, and pressed again goes back to the previous tab', async ({ ext, context }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta']);
   await ext.sw.evaluate(() => {
     self.__commands = [];
     chrome.commands.onCommand.addListener((command) => self.__commands.push(command));
@@ -110,8 +160,9 @@ test('the real default shortcut opens the overview, and pressed again closes it'
   expect(await ext.sw.evaluate(() => self.__commands)).toEqual(['open-overview']);
   await overview.locator('#grid .tile').first().waitFor();
 
-  // Pressed in the overview with nothing selected, it closes.
+  // Pressed in the overview, it switches to the pre-selected previous tab.
   await ext.pressDefaultShortcut(overview);
   await ext.expectClosed();
   expect(await ext.sw.evaluate(() => self.__commands)).toEqual(['open-overview', 'open-overview']);
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
 });

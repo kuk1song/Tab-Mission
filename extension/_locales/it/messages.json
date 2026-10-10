@@ -124,11 +124,11 @@
     "description": "Welcome page tip."
   },
   "welcomeTipMru": {
-    "message": "La scheda che probabilmente ti serve (la precedente) è la prima, quella attuale la seconda. Premi → e poi Invio per tornarci.",
+    "message": "La scheda che probabilmente ti serve (la precedente) è la prima ed è già selezionata, quella attuale la seconda. Premi di nuovo la scorciatoia per tornarci.",
     "description": "Welcome page tip."
   },
   "welcomeTipHover": {
-    "message": "Oppure passa il mouse su una scheda e premi di nuovo la scorciatoia per andarci.",
+    "message": "Oppure sposta il mouse su una scheda e premi di nuovo la scorciatoia per andarci.",
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
@@ -178,7 +178,7 @@
     "description": "Options: switch that pre-selects the previous tab on open."
   },
   "optionPreselectNote": {
-    "message": "Disattivato (predefinito): nessuna scheda è selezionata e premendo di nuovo la scorciatoia la panoramica si chiude. In entrambi i casi, passa il mouse su una scheda e premi la scorciatoia per andarci, oppure premi Esc per chiudere.",
+    "message": "Attivato (predefinito): la scheda precedente è selezionata, quindi premendo di nuovo la scorciatoia ci torni. Disattivato: nessuna scheda è selezionata e premendo di nuovo la scorciatoia la panoramica si chiude. In entrambi i casi, sposta il mouse su una scheda e premi la scorciatoia per andarci, oppure premi Esc per chiudere.",
     "description": "Options: note under the switch."
   },
   "searchSitePlaceholder": {

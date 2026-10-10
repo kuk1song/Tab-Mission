@@ -10,7 +10,7 @@ export const state = {
   currentTabId: null,
   selfWindowId: null, // the overview popup itself; its own tab is never listed
   siteHost: '', // non-empty while showing only one site's tabs
-  preselectPrevious: false, // mirrors the setting of the same name
+  preselectPrevious: true, // mirrors the setting of the same name
 };
 
 export async function fetchAllTabs() {

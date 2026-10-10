@@ -1,4 +1,4 @@
-import { test, expect, PAGES, tileTitles, selectedTitle } from './fixtures.mjs';
+import { test, expect, PAGES, tileTitles, selectedTitle, pointAt } from './fixtures.mjs';
 
 // Current tab tube2, previous tube1, both on www.tube.test.
 const WINDOW = ['notes1', 'doc1', 'code1', 'code2', 'notes2', 'tube1', 'tube2'];
@@ -17,31 +17,33 @@ test('the shortcut inside the site view switches to the selected tab', async ({ 
   const { windowId } = await ext.openWindow(WINDOW);
   const page = await ext.open();
   await page.keyboard.press('Tab');
-  await page.keyboard.press('ArrowRight');
   expect(await selectedTitle(page)).toBe(PAGES.tube1.title);
-  await ext.press();
-  await ext.expectClosed();
-  expect(await ext.activeTitle(windowId)).toBe(PAGES.tube1.title);
-});
-
-test('hovering a tile in the site view and pressing the shortcut switches to it', async ({ ext }) => {
-  const { windowId } = await ext.openWindow(WINDOW);
-  const page = await ext.open();
-  await page.keyboard.press('Tab');
-  await page.locator('.tile').nth(1).hover();
+  await page.keyboard.press('ArrowRight');
+  expect(await selectedTitle(page)).toBe(PAGES.tube2.title);
   await ext.press();
   await ext.expectClosed();
   expect(await ext.activeTitle(windowId)).toBe(PAGES.tube2.title);
 });
 
-test('the site shortcut narrows an open overview in place; pressed again it closes', async ({ ext }) => {
-  await ext.openWindow(WINDOW);
+test('pointing at a tile in the site view and pressing the shortcut switches to it', async ({ ext }) => {
+  const { windowId } = await ext.openWindow(WINDOW);
+  const page = await ext.open();
+  await page.keyboard.press('Tab');
+  await pointAt(page, page.locator('.tile').nth(1));
+  await ext.press();
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.tube2.title);
+});
+
+test('the site shortcut narrows an open overview in place; pressed again it goes to the site\'s previous tab', async ({ ext }) => {
+  const { windowId } = await ext.openWindow(WINDOW);
   const page = await ext.open();
   await ext.press('site');
   await expect(page.locator('#scope-token')).toBeVisible();
   expect(ext.overviewPages()).toHaveLength(1);
   await ext.press('site');
   await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.tube1.title);
 });
 
 test('the site shortcut opens straight into the site view', async ({ ext }) => {

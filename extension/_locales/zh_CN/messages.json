@@ -124,11 +124,11 @@
     "description": "Welcome page tip."
   },
   "welcomeTipMru": {
-    "message": "最可能要切换的标签页（上一个）排第一，当前标签页排第二。按 → 再按回车即可切回去。",
+    "message": "最可能要切换的标签页（上一个）排第一并已选中，当前标签页排第二。再按一次快捷键即可切回去。",
     "description": "Welcome page tip."
   },
   "welcomeTipHover": {
-    "message": "也可以把鼠标悬停在某个标签页上，再按一次快捷键直接跳转。",
+    "message": "也可以把鼠标移到某个标签页上，再按一次快捷键直接跳转。",
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
@@ -178,7 +178,7 @@
     "description": "Options: switch that pre-selects the previous tab on open."
   },
   "optionPreselectNote": {
-    "message": "关闭时（默认）：不选中任何标签页，再按一次快捷键会关闭概览。两种情况下，都可以把鼠标悬停在某个标签页上再按快捷键切过去，或按 Esc 关闭。",
+    "message": "开启时（默认）：上一个标签页已选中，再按一次快捷键即可回去。关闭时：不选中任何标签页，再按一次快捷键会关闭概览。两种情况下，都可以把鼠标移到某个标签页上再按快捷键切过去，或按 Esc 关闭。",
     "description": "Options: note under the switch."
   },
   "searchSitePlaceholder": {
