@@ -16,7 +16,7 @@
     "description": "Toolbar button tooltip; also the welcome page's open button."
   },
   "commandOpen": {
-    "message": "Apri o chiudi la panoramica delle schede",
+    "message": "Apri la panoramica delle schede o passa alla scheda selezionata",
     "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
   },
   "commandOpenSite": {
@@ -51,9 +51,9 @@
     "message": "Reimposta dimensioni e centra",
     "description": "Tooltip for the button that resets the window size and position."
   },
-  "toggleWithShortcut": {
-    "message": "Apri o chiudi con $shortcut$",
-    "description": "Tooltip/ARIA label for the shortcut hint; includes the active shortcut.",
+  "shortcutHintTitle": {
+    "message": "Premi di nuovo $shortcut$ per andare alla scheda selezionata (o chiudere se non ce n'è una)",
+    "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
     "placeholders": {
       "shortcut": {
         "content": "$1",

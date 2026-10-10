@@ -28,15 +28,15 @@ function flushFilterChange() {
 
 export function initializeEventListeners() {
   const searchEl = document.getElementById('search');
-  const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
-  const toggleCurrentWindow = document.getElementById('toggle-current-window');
+  const toggleSleeping = document.getElementById('toggle-sleeping');
+  const toggleAllWindows = document.getElementById('toggle-all-windows');
   const resetBtn = document.getElementById('reset-window');
   const openSettingsBtn = document.getElementById('open-settings');
   const scopeClearBtn = document.getElementById('scope-clear');
 
   if (searchEl) searchEl.addEventListener('input', scheduleFilterChange);
   // After a checkbox click, hand focus back to the search box so typing works.
-  for (const toggle of [toggleHideDiscarded, toggleCurrentWindow]) {
+  for (const toggle of [toggleSleeping, toggleAllWindows]) {
     if (!toggle) continue;
     toggle.addEventListener('change', () => {
       handleFilterChange({ persist: true });
@@ -102,12 +102,12 @@ export function initializeEventListeners() {
 
 function readUiState() {
   const searchEl = document.getElementById('search');
-  const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
-  const toggleCurrentWindow = document.getElementById('toggle-current-window');
+  const toggleSleeping = document.getElementById('toggle-sleeping');
+  const toggleAllWindows = document.getElementById('toggle-all-windows');
   return {
     searchTerm: searchEl ? searchEl.value : '',
-    showSleeping: toggleHideDiscarded ? toggleHideDiscarded.checked : false,
-    showAllWindows: toggleCurrentWindow ? toggleCurrentWindow.checked : false,
+    showSleeping: toggleSleeping ? toggleSleeping.checked : false,
+    showAllWindows: toggleAllWindows ? toggleAllWindows.checked : false,
     preselectPrevious: state.preselectPrevious,
   };
 }

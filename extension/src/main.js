@@ -15,12 +15,12 @@ async function main() {
 
   const [settings] = await Promise.all([loadSettings(), fetchAllTabs()]);
 
-  const toggleHideDiscarded = document.getElementById('toggle-hide-discarded');
-  const toggleCurrentWindow = document.getElementById('toggle-current-window');
+  const toggleSleeping = document.getElementById('toggle-sleeping');
+  const toggleAllWindows = document.getElementById('toggle-all-windows');
 
   // Apply loaded settings to the UI controls
-  if (toggleHideDiscarded) toggleHideDiscarded.checked = settings.showSleeping;
-  if (toggleCurrentWindow) toggleCurrentWindow.checked = settings.showAllWindows;
+  if (toggleSleeping) toggleSleeping.checked = settings.showSleeping;
+  if (toggleAllWindows) toggleAllWindows.checked = settings.showAllWindows;
   state.preselectPrevious = settings.preselectPrevious;
 
   // Opened by the "current site" shortcut: show only this site's tabs.
@@ -52,8 +52,8 @@ async function updateShortcutHint() {
       const kbd = document.createElement('kbd');
       kbd.textContent = rawShortcut;
 
-      // Localize tooltip text: "Toggle with $shortcut$"
-      const tooltip = t('toggleWithShortcut', [rawShortcut]) || `Toggle with ${rawShortcut}`;
+      // The overview is open, so the badge says what pressing it again does.
+      const tooltip = t('shortcutHintTitle', [rawShortcut]) || `Press ${rawShortcut} again to go to the selected tab (or close when none is selected)`;
 
       kbd.title = tooltip; // full hint on hover
       kbd.setAttribute('aria-label', tooltip);

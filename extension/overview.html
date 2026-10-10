@@ -24,21 +24,23 @@
           </button>
         </div>
         <div class="toolbar-controls">
-        <label class="ctrl" title="Search covers all windows and sleeping tabs" data-i18n-title="searchEverywhereHint">
-          <input id="toggle-hide-discarded" type="checkbox" />
-          <span data-i18n="showSleepingLabel">Show sleeping</span>
-        </label>
-        <label class="ctrl" title="Search covers all windows and sleeping tabs" data-i18n-title="searchEverywhereHint">
-          <input id="toggle-current-window" type="checkbox" />
-          <span data-i18n="showAllWindowsLabel">Show all windows</span>
-        </label>
-        <div id="shortcut-hint" class="hint hint-inline"></div>
-        <div class="hint-bar">
-          <button id="open-settings" class="icon-btn" title="Settings" aria-label="Settings"
-                  data-i18n-title="settingsTitle" data-i18n-aria-label="settingsTitle">⚙️</button>
-          <button id="reset-window" class="icon-btn" title="Reset size &amp; center" aria-label="Reset size &amp; center"
-                  data-i18n-title="resetWindowTitle" data-i18n-aria-label="resetWindowTitle">↺</button>
-        </div>
+          <div class="toolbar-toggles">
+            <label class="ctrl" title="Search covers all windows and sleeping tabs" data-i18n-title="searchEverywhereHint">
+              <input id="toggle-all-windows" type="checkbox" />
+              <span data-i18n="showAllWindowsLabel">Show all windows</span>
+            </label>
+            <label class="ctrl" title="Search covers all windows and sleeping tabs" data-i18n-title="searchEverywhereHint">
+              <input id="toggle-sleeping" type="checkbox" />
+              <span data-i18n="showSleepingLabel">Show sleeping</span>
+            </label>
+          </div>
+          <div class="toolbar-actions">
+            <div id="shortcut-hint" class="hint"></div>
+            <button id="open-settings" class="icon-btn" title="Settings" aria-label="Settings"
+                    data-i18n-title="settingsTitle" data-i18n-aria-label="settingsTitle">⚙️</button>
+            <button id="reset-window" class="icon-btn" title="Reset size &amp; center" aria-label="Reset size &amp; center"
+                    data-i18n-title="resetWindowTitle" data-i18n-aria-label="resetWindowTitle">↺</button>
+          </div>
         </div>
       </header>
       <div id="grid" class="grid" role="listbox" aria-label="Open tabs" data-i18n-aria-label="gridLabel"></div>

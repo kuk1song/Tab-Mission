@@ -5,7 +5,7 @@ export const state = {
   allTabs: [],
   filteredTabs: [],
   selectedIndex: -1, // -1 means no selection
-  defaultIndex: -1, // where the selection rests when nothing is hovered
+  defaultIndex: -1, // the automatic selection, until the pointer or a key moves it
   currentWindowId: null,
   currentTabId: null,
   selfWindowId: null, // the overview popup itself; its own tab is never listed
@@ -103,12 +103,12 @@ export function applyFilters(uiState) {
 
   // A search pre-selects its best match so Enter switches straight away: the
   // most recent match that is not the tab you are already on (Chrome's Tab
-  // Search makes the same choice). The plain browse view keeps nothing
-  // selected, so pressing the shortcut again still closes the overview; an
-  // automatic selection left over from an erased query is dropped too.
+  // Search makes the same choice). Without a query the previous tab is
+  // pre-selected (preselectPrevious, on by default), so the shortcut pressed
+  // twice goes back to it; with the setting off nothing is selected, a second
+  // press closes the overview, and an automatic selection left over from an
+  // erased query is dropped.
   const selectionWasAutomatic = state.selectedIndex === state.defaultIndex;
-  // With the preselectPrevious setting the browse view rests on the previous
-  // tab as well, so the shortcut pressed twice goes back to it.
   const preselect = searching || Boolean(uiState.preselectPrevious);
   state.defaultIndex = preselect ? firstOtherIndex(tabs) : -1;
   if (preselect && (searching || selectionWasAutomatic)) {
