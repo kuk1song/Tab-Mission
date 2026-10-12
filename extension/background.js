@@ -2,6 +2,7 @@
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
+let overviewOpenedAt = 0; // when this worker last opened the overview
 
 // The overview's window id is kept in chrome.storage.session: it survives a
 // service worker restart but not a browser restart. Window ids are unique only
@@ -31,6 +32,16 @@ async function isOverviewWindow(windowId) {
 			Boolean(win.tabs?.[0]?.url?.startsWith(chrome.runtime.getURL('overview.html')));
 	} catch {
 		return false;
+	}
+}
+
+// False only when Chrome reports the window as not focused; when that cannot
+// be read, the press goes to the open overview as before.
+async function hasFocus(windowId) {
+	try {
+		return (await chrome.windows.get(windowId)).focused !== false;
+	} catch {
+		return true;
 	}
 }
 
@@ -150,9 +161,24 @@ async function runToggle(scope) {
 		return;
 	}
 
-	// The overview is open: the page acts on the press (switches to the
-	// selected tab, or closes).
+	// The overview is open. Pressed in the overview, the page acts on the
+	// press (switches to the selected tab, or closes). Pressed in another
+	// window while the overview sits behind it, the page would act on its old
+	// window's tabs and pull you back there, so open a fresh overview for the
+	// window you are in instead. Within a second of opening, the overview may
+	// not report focus yet, so a quick second press always goes to it.
 	const windowId = overviewWindowId;
+	if (Date.now() - overviewOpenedAt > 1000 && !(await hasFocus(windowId))) {
+		overviewWindowId = null;
+		await setStoredOverviewWindowId(null);
+		if (await isOverviewWindow(windowId)) {
+			try {
+				await chrome.windows.remove(windowId);
+			} catch {}
+		}
+		await createOverviewWindow(scope);
+		return;
+	}
 	try {
 		const [tab] = await chrome.tabs.query({ windowId });
 		if (tab) {
@@ -184,6 +210,7 @@ async function createOverviewWindow(scope) {
 		});
 		if (win?.id) {
 			overviewWindowId = win.id;
+			overviewOpenedAt = Date.now();
 			await setStoredOverviewWindowId(win.id);
 		}
 	} catch (error) {
