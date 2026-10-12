@@ -6,7 +6,6 @@
   --accent: #00d4ff;
   --accent-glow: rgba(0, 212, 255, 0.3);
   --tile-bg: rgba(255, 255, 255, 0.05);
-  --tile-bg-hover: rgba(255, 255, 255, 0.08);
   --tile-bg-selected: rgba(0, 212, 255, 0.1);
   --border-color: rgba(255, 255, 255, 0.12);
   --shadow-subtle: 0 2px 20px rgba(0, 0, 0, 0.3);
@@ -79,12 +78,13 @@ html, body {
   backdrop-filter: blur(20px);
 }
 
-/* The search field takes all free width so its placeholder is never cut off.
+/* The search field takes all free width so its placeholder is never cut off
+   (its large flex-grow leaves the controls next to it only their own width).
    It holds an optional site-scope token, the input and the Tab hint, the way
    Chrome's address bar shows its "search this site" keyword inside the box. */
 .search-field {
   container: search / inline-size;
-  flex: 1 1 22.5rem;
+  flex: 999 1 22.5rem;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -115,7 +115,13 @@ html, body {
   font-size: 0.875rem;
 }
 
-.toolbar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; flex: 0 1 auto; min-width: 0; }
+/* Two groups: the view toggles, and the actions (shortcut, settings, reset),
+   which stay together at the right edge at every width. On a row of their own
+   the controls take the whole row, so the toggles start at the left; when
+   space runs out, the toggles wrap and the actions keep their place. */
+.toolbar-controls { display: flex; align-items: center; gap: 8px 20px; flex: 1 1 auto; min-width: 0; }
+.toolbar-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; min-width: 0; }
+.toolbar-actions { display: flex; align-items: center; gap: 2px; flex: none; margin-left: auto; }
 .ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.75rem; white-space: nowrap; transition: opacity 0.2s; }
 
 /* While a query is typed, results span every window and sleeping tab, so
@@ -191,14 +197,11 @@ html, body {
 }
 .hint { color: var(--muted); font-size: 0.75rem; }
 
-.hint-inline { margin-left: 8px; }
-
-.hint-bar { display: inline-flex; align-items: center; gap: 6px; }
-
 #shortcut-hint {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin-right: 6px;
 }
 
 #shortcut-hint kbd {
@@ -386,8 +389,11 @@ html, body {
   font-size: 0.625rem;
   letter-spacing: 0.02em;
 }
+/* Keep the placeholder's hostname clear of the badge. */
+.tile.sleeping .preview-url { max-width: calc(100% - 4.5rem); }
 
-/* Close control: shown on hover or keyboard selection. */
+/* Close control: shown on the selected tile (the pointer selects the tile
+   under it). */
 .tile-close {
   position: absolute;
   top: 8px;
@@ -514,7 +520,7 @@ html, body {
   text-overflow: ellipsis; 
 }
 
-/* Respect the OS "reduce motion" setting: no entrance, hover or exit motion.
+/* Respect the OS "reduce motion" setting: no entrance, selection or exit motion.
    (closeOverview() also skips its exit delay in this mode.) */
 @media (prefers-reduced-motion: reduce) {
   #root,
@@ -532,10 +538,9 @@ html, body {
 
 
 /* Medium width: the search field takes the whole first row and the
-   controls move to a second row, so nothing has to squeeze or wrap. */
+   controls the second, toggles on the left and actions on the right. */
 @container overview (width < 47.5rem) {
   .search-field { flex-basis: 100%; }
-  .toolbar-controls { flex: 1 1 100%; justify-content: space-between; }
 }
 
 /* Narrow: drop the least important pieces instead of crushing them. */

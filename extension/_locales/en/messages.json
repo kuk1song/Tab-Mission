@@ -16,7 +16,7 @@
     "description": "Toolbar button tooltip; also the welcome page's open button."
   },
   "commandOpen": {
-    "message": "Open or close the tab overview",
+    "message": "Open the tab overview, or switch to the selected tab",
     "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
   },
   "commandOpenSite": {
@@ -51,9 +51,9 @@
     "message": "Reset size & center",
     "description": "Tooltip for the button that resets the window size and position."
   },
-  "toggleWithShortcut": {
-    "message": "Toggle with $shortcut$",
-    "description": "Tooltip/ARIA label for the shortcut hint; includes the active shortcut.",
+  "shortcutHintTitle": {
+    "message": "Press $shortcut$ again to go to the selected tab (or close when none is selected)",
+    "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
     "placeholders": {
       "shortcut": {
         "content": "$1",

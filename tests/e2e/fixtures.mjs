@@ -159,8 +159,11 @@ export const test = base.extend({
           nativeVirtualKeyCode: process.platform === 'darwin' ? macKeyCode : keyCode,
         };
         await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...event });
-        await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...event });
-        await cdp.detach();
+        // The key can close the page it was pressed in (the shortcut in the
+        // overview switches tabs), which ends the session too, so the rest is
+        // best effort; callers check what the key did.
+        await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...event }).catch(() => {});
+        await cdp.detach().catch(() => {});
       },
 
       // The default overview shortcut of this OS: Command+E on Mac,

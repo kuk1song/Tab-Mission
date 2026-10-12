@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect } from './fixtures.mjs';
 
 // Tile geometry for every tile: preview aspect ratio, and whether the title
@@ -35,5 +36,36 @@ test('the toolbar never overflows at narrow widths', async ({ ext }) => {
       .filter((el) => el.getClientRects().length && el.getBoundingClientRect().right > document.documentElement.clientWidth + 0.5)
       .map((el) => el.id || el.className));
     expect(out, `elements past the right edge at ${width}px`).toEqual([]);
+  }
+});
+
+// The shortcut, settings and reset stay together at the right edge at every
+// width, clear of the toggles. Italian labels and the Windows shortcut are
+// the longest, so the test uses them whatever the browser's language.
+test('the toolbar actions stay together at the right edge', async ({ ext }) => {
+  await ext.openWindow(['alpha', 'beta']);
+  const page = await ext.open();
+  await expect(page.locator('#shortcut-hint kbd')).toHaveCount(1);
+  const it = JSON.parse(readFileSync('extension/_locales/it/messages.json', 'utf8'));
+  await page.evaluate(([windows, sleeping]) => {
+    document.querySelector('[data-i18n="showAllWindowsLabel"]').textContent = windows;
+    document.querySelector('[data-i18n="showSleepingLabel"]').textContent = sleeping;
+    document.querySelector('#shortcut-hint kbd').textContent = 'Ctrl + Shift + E';
+  }, [it.showAllWindowsLabel.message, it.showSleepingLabel.message]);
+  for (const width of [320, 400, 520, 683, 800, 1000]) {
+    await page.setViewportSize({ width, height: 600 });
+    const layout = await page.evaluate(() => {
+      const box = (selector) => document.querySelector(selector).getBoundingClientRect();
+      const sameRow = (a, b) => a.top < b.bottom && b.top < a.bottom;
+      const toolbar = box('.toolbar');
+      const edge = toolbar.right - parseFloat(getComputedStyle(document.querySelector('.toolbar')).paddingRight);
+      const [gear, reset, shortcut] = [box('#open-settings'), box('#reset-window'), box('#shortcut-hint')];
+      return {
+        atRightEdge: Math.abs(reset.right - edge) < 1,
+        oneRow: sameRow(gear, reset) && (shortcut.width === 0 || sameRow(shortcut, gear)),
+        clearOfToggles: box('.toolbar-toggles').right <= box('.toolbar-actions').left + 0.5,
+      };
+    });
+    expect(layout, `at ${width}px`).toEqual({ atRightEdge: true, oneRow: true, clearOfToggles: true });
   }
 });

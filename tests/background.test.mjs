@@ -109,6 +109,50 @@ describe('background.js', () => {
     expect(chrome.windows.create).toHaveBeenCalledTimes(1);
   });
 
+  it('a press in another window opens a fresh overview there instead of acting on the old one', async () => {
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    const oldId = chrome.storage.session.data.overviewWindowId;
+    // Later, with the overview left behind another window.
+    const later = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    try {
+      chrome.windows._all.get(oldId).focused = false;
+      chrome.listeners.onCommand('open-overview');
+      await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(2));
+      expect(chrome.windows.remove).toHaveBeenCalledWith(oldId);
+      expect(chrome.tabs.sendMessage).not.toHaveBeenCalled();
+      await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).not.toBe(oldId));
+      expect(chrome.windows._all.has(chrome.storage.session.data.overviewWindowId)).toBe(true);
+    } finally {
+      later.mockRestore();
+    }
+  });
+
+  it('a quick second press goes to the new overview even before it reports focus', async () => {
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    chrome.windows._all.get(chrome.storage.session.data.overviewWindowId).focused = false;
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1));
+    expect(chrome.windows.remove).not.toHaveBeenCalled();
+    expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('a later press in the focused overview goes to it', async () => {
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    const later = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+    try {
+      chrome.windows._all.get(chrome.storage.session.data.overviewWindowId).focused = true;
+      chrome.listeners.onCommand('open-overview');
+      await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1));
+      expect(chrome.windows.remove).not.toHaveBeenCalled();
+      expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+    } finally {
+      later.mockRestore();
+    }
+  });
+
   it('opens the welcome page on install', () => {
     chrome.listeners.onInstalled({ reason: 'install' });
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://test/welcome.html' });

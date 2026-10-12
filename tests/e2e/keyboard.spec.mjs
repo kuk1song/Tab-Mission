@@ -12,7 +12,7 @@ test('typing never writes to storage; changing a toggle does', async ({ ext }) =
   await page.keyboard.type('page alpha');
   await expect(page.locator('.tile')).toHaveCount(1);
   expect(await page.evaluate(() => window.__writes)).toEqual([]);
-  await page.locator('#toggle-current-window').click();
+  await page.locator('#toggle-all-windows').click();
   await expect.poll(() => page.evaluate(() => window.__writes)).toContain('showAllWindows');
 });
 
@@ -42,7 +42,7 @@ test('Enter on a focused toolbar button presses the button, not the selected til
 test('Space toggles a focused checkbox; letters still go to the search box', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
-  const toggle = page.locator('#toggle-hide-discarded');
+  const toggle = page.locator('#toggle-sleeping');
   await toggle.focus();
   await page.keyboard.press('Space');
   await expect(toggle).toBeChecked();

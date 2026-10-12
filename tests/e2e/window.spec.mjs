@@ -1,4 +1,4 @@
-import { test, expect, PAGES, selectedTitle, pointAt } from './fixtures.mjs';
+import { test, expect, PAGES, tileTitles, selectedTitle, pointAt } from './fixtures.mjs';
 
 test('by default the previous tab is selected, and the shortcut pressed twice goes back to it', async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
@@ -135,6 +135,27 @@ test('after the service worker restarts, the shortcut still acts on the open ove
   await ext.expectClosed();
   const popups = await ext.welcome.evaluate(() => chrome.windows.getAll({ windowTypes: ['popup'] }).then((w) => w.length));
   expect(popups).toBe(0);
+});
+
+// Left open behind another window, the overview would act on a press made
+// in that window with its old window's tabs and pull you back; instead the
+// press opens a fresh overview for the window in front. Only headed Chromium
+// (Windows here) has real window focus: headless, every window reports focused.
+test('the shortcut pressed in another window opens that window\'s overview instead of pulling you back', async ({ ext }) => {
+  test.skip(process.platform !== 'win32', 'needs real window focus (headed Chromium on Windows)');
+  const first = await ext.openWindow(['alpha', 'beta']);
+  const second = await ext.openWindow(['gamma', 'doc1']);
+  const old = await ext.open();
+  expect(await tileTitles(old)).toContain(PAGES.gamma.title);
+  await old.waitForTimeout(1100); // past the quick second press
+  await ext.sw.evaluate((id) => chrome.windows.update(id, { focused: true }), first.windowId);
+  await expect.poll(() => ext.sw.evaluate(() => chrome.windows.getLastFocused().then((w) => w.type))).toBe('normal');
+  const fresh = await ext.open();
+  await expect.poll(() => old.isClosed()).toBe(true);
+  expect(await tileTitles(fresh)).toContain(PAGES.alpha.title);
+  expect(await tileTitles(fresh)).not.toContain(PAGES.gamma.title);
+  expect(await ext.activeTitle(second.windowId)).toBe(PAGES.doc1.title);
+  expect(ext.overviewPages()).toHaveLength(1);
 });
 
 // The keyboard path itself: Chrome matches the key against the extension's

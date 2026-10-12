@@ -54,7 +54,7 @@ test('all windows never lists the overview; erasing the query returns to the pre
   await expect.poll(() => selectedTitle(page)).toBe(alpha.title);
   await page.locator('#search').fill('');
   await expect.poll(() => selectedTitle(page)).toBe(beta.title);
-  await page.locator('#toggle-current-window').click();
+  await page.locator('#toggle-all-windows').click();
   await expect(page.locator('#search')).toBeFocused();
   const overviewTabId = await ext.sw.evaluate(() =>
     chrome.tabs.query({ url: chrome.runtime.getURL('overview.html') + '*' }).then((t) => t[0].id));
