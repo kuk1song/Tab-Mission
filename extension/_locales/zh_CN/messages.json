@@ -16,11 +16,11 @@
     "description": "Toolbar button tooltip; also the welcome page's open button."
   },
   "commandOpen": {
-    "message": "打开标签页概览，或切换到选中的标签页",
+    "message": "打开 Tab Mission，或切换到选中的标签页",
     "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
   },
   "commandOpenSite": {
-    "message": "仅显示当前网站的标签页",
+    "message": "打开 Tab Mission，只显示当前网站的标签页",
     "description": "Description of the site-view keyboard shortcut."
   },
   "pageTitle": {
@@ -91,7 +91,15 @@
   },
   "shortcutNotSet": {
     "message": "未设置",
-    "description": "Shown in place of a shortcut that is not assigned."
+    "description": "Settings page: shown instead of the keys of a shortcut that is not set."
+  },
+  "shortcutChange": {
+    "message": "更改",
+    "description": "Settings page: button next to an assigned shortcut; opens Chrome's shortcuts page in a new tab."
+  },
+  "shortcutSet": {
+    "message": "添加",
+    "description": "Settings page: button next to a shortcut that is not set; opens Chrome's shortcuts page in a new tab."
   },
   "welcomeTitle": {
     "message": "Tab Mission 已就绪",
@@ -158,28 +166,58 @@
     "description": "Options page title."
   },
   "optionOpenHeading": {
-    "message": "打开概览时",
+    "message": "打开 Tab Mission 时",
     "description": "Options: heading of the open behaviour section."
   },
   "optionShortcutsHeading": {
     "message": "快捷键",
     "description": "Options: shortcuts heading."
   },
+  "optionShortcutsNote": {
+    "message": "快捷键由 Chrome 管理，需要在 Chrome 的快捷键页面里修改。",
+    "description": "Settings page: note under the shortcut; only Chrome can change extension shortcuts."
+  },
   "optionSaved": {
     "message": "已保存。",
-    "description": "Options: confirmation after a change."
+    "description": "Settings page: announced to screen readers after a setting is saved (not shown)."
   },
   "settingsTitle": {
     "message": "设置",
     "description": "Tooltip of the gear button that opens the settings page."
   },
   "optionPreselect": {
-    "message": "预选上一个标签页：连按两次快捷键即可回到上一个标签页",
-    "description": "Options: switch that pre-selects the previous tab on open."
+    "message": "预选上一个标签页",
+    "description": "Settings page: label of the pre-select switch."
   },
   "optionPreselectNote": {
-    "message": "开启时（默认）：上一个标签页已选中，再按一次快捷键即可回去。关闭时：不选中任何标签页，再按一次快捷键会关闭概览。两种情况下，都可以把鼠标移到某个标签页上再按快捷键切过去，或按 Esc 关闭。",
-    "description": "Options: note under the switch."
+    "message": "连按两次快捷键即可回去。关闭后不预选，再按一次会关闭 Tab Mission。",
+    "description": "Settings page: one line under the pre-select switch."
+  },
+  "optionAboutHeading": {
+    "message": "关于",
+    "description": "Settings page: hidden heading, read by screen readers, of the closing line with the version and links."
+  },
+  "optionVersion": {
+    "message": "版本 $version$",
+    "description": "Settings page: version under the title.",
+    "placeholders": {
+      "version": {
+        "content": "$1",
+        "example": "1.3.1"
+      }
+    }
+  },
+  "linkPrivacy": {
+    "message": "隐私政策",
+    "description": "Settings page: link to the privacy policy."
+  },
+  "linkReview": {
+    "message": "去商店评价",
+    "description": "Settings page: link to Tab Mission's reviews on the Chrome Web Store."
+  },
+  "linkFeedback": {
+    "message": "在 GitHub 反馈问题",
+    "description": "Settings page: link to the issue tracker."
   },
   "searchSitePlaceholder": {
     "message": "在 $host$ 中搜索…",

@@ -3,26 +3,45 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title data-i18n="optionsTitle">Tab Mission settings</title>
-    <link rel="stylesheet" href="welcome.css" />
+    <link rel="stylesheet" href="options.css" />
   </head>
   <body>
-    <main class="card">
-      <h1 data-i18n="optionsTitle">Tab Mission settings</h1>
+    <main>
+      <header class="masthead">
+        <img src="icons/icon128.png" alt="" width="44" height="44" />
+        <h1 data-i18n="optionsTitle">Tab Mission settings</h1>
+      </header>
 
-      <h2 data-i18n="optionOpenHeading">When the overview opens</h2>
-      <label class="switch">
-        <input id="preselect-previous" type="checkbox" />
-        <span data-i18n="optionPreselect">Pre-select the previous tab, so pressing the shortcut twice goes back to it</span>
-      </label>
-      <p class="note" data-i18n="optionPreselectNote">On (default): the previous tab is selected, so pressing the shortcut again goes back to it. Off: nothing is selected and pressing the shortcut again closes the overview. Either way, move the mouse onto a tab and press the shortcut to switch to it, or press Esc to close.</p>
+      <section aria-labelledby="shortcuts-heading">
+        <h2 id="shortcuts-heading" data-i18n="optionShortcutsHeading">Keyboard shortcuts</h2>
+        <div id="shortcuts" class="group"></div>
+        <p class="foot" data-i18n="optionShortcutsNote">Chrome manages extension shortcuts; you change them on its shortcuts page.</p>
+      </section>
 
-      <h2 data-i18n="optionShortcutsHeading">Keyboard shortcuts</h2>
-      <div id="shortcuts" class="lead"></div>
-      <div class="actions">
-        <button id="set-shortcut" data-i18n="changeShortcutTitle">Change shortcut</button>
-      </div>
-      <p id="saved" class="note" hidden data-i18n="optionSaved">Saved.</p>
+      <section aria-labelledby="open-heading">
+        <h2 id="open-heading" data-i18n="optionOpenHeading">When Tab Mission opens</h2>
+        <div class="group">
+          <div class="row">
+            <div class="text">
+              <label class="title" for="preselect-previous" data-i18n="optionPreselect">Pre-select the previous tab</label>
+              <p id="preselect-note" class="desc" data-i18n="optionPreselectNote">Press the shortcut twice to go back. When off, nothing is selected, so a second press closes Tab Mission.</p>
+            </div>
+            <input id="preselect-previous" class="switch" type="checkbox" role="switch" aria-describedby="preselect-note" />
+          </div>
+        </div>
+      </section>
+
+      <footer class="about">
+        <h2 id="about-heading" class="visually-hidden" data-i18n="optionAboutHeading">About</h2>
+        <span id="version"></span>
+        <a id="link-privacy" href="https://github.com/kuk1song/Tab-Mission/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer" data-i18n="linkPrivacy">Privacy policy</a>
+        <a id="link-review" href="https://chromewebstore.google.com/detail/hhnkkpdkfhjlmlanebphmmhgkhinijca/reviews" target="_blank" rel="noopener noreferrer" data-i18n="linkReview">Leave a review</a>
+        <a id="link-feedback" href="https://github.com/kuk1song/Tab-Mission/issues" target="_blank" rel="noopener noreferrer" data-i18n="linkFeedback">Report a problem on GitHub</a>
+      </footer>
+
+      <p id="saved" class="visually-hidden" role="status"></p>
     </main>
     <script src="src/options.js" type="module"></script>
   </body>

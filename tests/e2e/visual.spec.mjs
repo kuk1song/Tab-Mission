@@ -43,6 +43,11 @@ for (const scale of [1, 1.25, 1.5]) {
       const options = await context.newPage();
       await options.goto(`chrome-extension://${new URL(ext.sw.url()).host}/options.html`);
       await options.screenshot({ path: name('options'), fullPage: true });
+      // Both pages follow the system appearance; Playwright emulates light by default.
+      for (const [shown, what] of [[options, 'options'], [ext.welcome, 'welcome']]) {
+        await shown.emulateMedia({ colorScheme: 'dark' });
+        await shown.screenshot({ path: name(`${what}-dark`), fullPage: true });
+      }
     });
   });
 }

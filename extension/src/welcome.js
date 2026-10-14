@@ -1,6 +1,7 @@
 // welcome.js: first-install page. Shows the overview shortcut (or explains
 // that Chrome could not assign one) and a few usage tips.
 import { localizeStaticText, t } from './i18n.js';
+import { openShortcutSettings } from './shortcuts.js';
 
 function formatShortcut(shortcut) {
   return shortcut ? shortcut.replace(/\+/g, ' + ') : '';
@@ -55,7 +56,7 @@ async function main() {
     chrome.runtime.sendMessage({ action: 'openOverview' }).catch(() => {});
   });
   document.getElementById('set-shortcut').addEventListener('click', () => {
-    chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+    openShortcutSettings().catch(() => {});
   });
 }
 
