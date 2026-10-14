@@ -65,6 +65,61 @@ test('options page: without a shortcut, the row says so and Add stands out', asy
   await expect(row.locator('button')).toHaveClass('external primary');
 });
 
+// What each of the first 30 frames shows: whether the page is visible, its
+// text, its height and the switch's knob. The shortcut arrives 100 ms late,
+// so the page has several frames to show itself unfinished.
+function recordFrames() {
+  const getAll = chrome.commands.getAll.bind(chrome.commands);
+  chrome.commands.getAll = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return getAll();
+  };
+  window.frames_ = [];
+  const record = () => {
+    const main = document.querySelector('main');
+    if (main) {
+      const knob = document.querySelector('.switch');
+      window.frames_.push({
+        visible: getComputedStyle(main).visibility === 'visible',
+        text: main.innerText,
+        height: main.getBoundingClientRect().height,
+        knob: knob && getComputedStyle(knob, '::before').transform,
+      });
+    }
+    if (window.frames_.length < 30) requestAnimationFrame(record);
+  };
+  requestAnimationFrame(record);
+}
+
+// Every frame the page is visible in looks like the finished page: no English
+// before the translation, no shift when the shortcut arrives, no switch
+// sliding from off to its saved state.
+async function shownFrames(context, url) {
+  const page = await context.newPage();
+  await page.addInitScript(recordFrames);
+  await page.goto(url);
+  await expect.poll(() => page.evaluate(() => window.frames_.length)).toBe(30);
+  const shown = (await page.evaluate(() => window.frames_)).filter((f) => f.visible);
+  await page.close();
+  expect(shown.length).toBeGreaterThan(0);
+  expect(shown.filter((f) => JSON.stringify(f) !== JSON.stringify(shown.at(-1)))).toEqual([]);
+  return shown.at(-1);
+}
+
+test('options page: appears finished, the switch in its saved state without sliding', async ({ ext, context }) => {
+  for (const stored of [true, false]) {
+    await ext.sw.evaluate((value) => chrome.storage.local.set({ preselectPrevious: value }), stored);
+    const finished = await shownFrames(context, `chrome-extension://${new URL(ext.sw.url()).host}/options.html`);
+    expect(finished.knob).toBe(stored ? 'matrix(1, 0, 0, 1, 18, 0)' : 'none');
+  }
+});
+
+test('welcome page: appears finished, with the shortcut', async ({ ext, context }) => {
+  const finished = await shownFrames(context, ext.welcome.url());
+  const shortcut = await ext.sw.evaluate(() => chrome.commands.getAll().then((c) => c.find((x) => x.name === 'open-overview').shortcut));
+  expect(finished.text).toContain(shortcut.replace(/\+/g, ' + '));
+});
+
 test("options page: the shortcut button opens Chrome's shortcuts page", async ({ ext, context }) => {
   const { row } = await openOptions(ext, context);
   const opened = context.waitForEvent('page', (p) => p.url().startsWith('chrome://extensions/shortcuts'));

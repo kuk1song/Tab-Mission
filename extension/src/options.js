@@ -5,25 +5,33 @@ import { loadSettings, saveSettings } from './settings.js';
 import { shortcutKeys, openShortcutSettings } from './shortcuts.js';
 
 async function main() {
-  localizeStaticText();
-
-  const { version } = chrome.runtime.getManifest();
-  document.getElementById('version').textContent = t('optionVersion', [version]) || `Version ${version}`;
-
-  const settings = await loadSettings();
   const preselect = document.getElementById('preselect-previous');
-  preselect.checked = settings.preselectPrevious;
+  try {
+    localizeStaticText();
+    const { version } = chrome.runtime.getManifest();
+    document.getElementById('version').textContent = t('optionVersion', [version]) || `Version ${version}`;
+    const [settings] = await Promise.all([loadSettings(), showShortcuts()]);
+    preselect.checked = settings.preselectPrevious;
+  } finally {
+    reveal(preselect);
+  }
   preselect.addEventListener('change', async () => {
     const saved = await saveSettings({ preselectPrevious: preselect.checked });
     // The switch shows the new state; screen readers also hear "Saved."
     if (saved) announce(t('optionSaved') || 'Saved.');
   });
-
-  await showShortcuts();
   // Refresh after the user changes a shortcut in the tab opened from here.
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) showShortcuts();
   });
+}
+
+// Show the page once the text, the saved setting and the shortcut are in
+// place. Reading the knob's style applies the saved state while transitions
+// are still off, so removing the class afterwards starts no slide.
+function reveal(preselect) {
+  void getComputedStyle(preselect, '::before').transform;
+  document.documentElement.classList.remove('loading');
 }
 
 // A live region repeats a message only when its text changes, so clear it

@@ -42,6 +42,7 @@ for (const scale of [1, 1.25, 1.5]) {
       await ext.welcome.screenshot({ path: name('welcome'), fullPage: true });
       const options = await context.newPage();
       await options.goto(`chrome-extension://${new URL(ext.sw.url()).host}/options.html`);
+      await expect(options.locator('html')).not.toHaveClass(/loading/); // saved state shown
       await options.screenshot({ path: name('options'), fullPage: true });
       // Both pages follow the system appearance; Playwright emulates light by default.
       for (const [shown, what] of [[options, 'options'], [ext.welcome, 'welcome']]) {
