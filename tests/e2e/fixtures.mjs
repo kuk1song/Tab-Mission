@@ -83,6 +83,11 @@ export const test = base.extend({
         '--host-resolver-rules=MAP * 127.0.0.1',
         ...launchArgs,
       ],
+      // A start that hangs (seen once on macos-latest) is killed and the
+      // test retried. Left to the 30 s test timeout, the hung browser also
+      // stalls the worker's teardown, which fails the whole run even when
+      // the retry passes.
+      timeout: 20_000,
     });
     await use(context);
     await context.close();
