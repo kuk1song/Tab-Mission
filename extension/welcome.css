@@ -1,16 +1,44 @@
+/* Welcome page. It follows the system's light or dark appearance, with the
+   same colors as the settings page (options.css). */
 :root {
-  --bg: #1a1a2e;
-  --card: rgba(255, 255, 255, 0.04);
-  --fg: #f0f0f0;
-  --muted: #a0a0aa;
-  --accent: #00d4ff;
-  --border-color: rgba(255, 255, 255, 0.12);
+  color-scheme: light dark;
+  --bg: #f4f4f7;
+  --bg-image: none;
+  --card: #ffffff;
+  --fg: #1d1d26;
+  --muted: #5b5b6b;
+  --accent: #00749e;
+  --accent-fg: #ffffff;
+  --border-color: rgba(20, 20, 40, 0.12);
+  --key-bg: #f3f3f7;
+  --button-bg: transparent;
+  --warn-bg: rgba(255, 176, 32, 0.16);
+  --warn-border: rgba(176, 110, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e2e;
+    --bg-image: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 50%, #1a1a2e 100%);
+    --card: rgba(255, 255, 255, 0.04);
+    --fg: #f0f0f0;
+    --muted: #a0a0aa;
+    --accent: #00d4ff;
+    --accent-fg: #0b1020;
+    --border-color: rgba(255, 255, 255, 0.12);
+    --key-bg: rgba(255, 255, 255, 0.1);
+    --button-bg: rgba(255, 255, 255, 0.06);
+    --warn-bg: rgba(255, 176, 32, 0.12);
+    --warn-border: rgba(255, 176, 32, 0.4);
+  }
 }
 
 html, body {
   margin: 0;
   min-height: 100%;
-  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 50%, #1a1a2e 100%) fixed var(--bg);
+  background-color: var(--bg);
+  background-image: var(--bg-image);
+  background-attachment: fixed;
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
@@ -32,13 +60,13 @@ h2 { margin: 32px 0 8px; font-size: 0.9375rem; color: var(--muted); font-weight:
   margin: 16px 0 0;
   padding: 12px 14px;
   border-radius: 10px;
-  background: rgba(255, 176, 32, 0.12);
-  border: 1px solid rgba(255, 176, 32, 0.4);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
   line-height: 1.5;
 }
 
 kbd {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--key-bg);
   border: 1px solid var(--border-color);
   padding: 1px 7px;
   border-radius: 5px;
@@ -51,19 +79,27 @@ button {
   padding: 10px 16px;
   border-radius: 10px;
   border: 1px solid var(--border-color);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--button-bg);
   color: var(--fg);
   font: inherit;
   font-size: 0.875rem;
   cursor: pointer;
 }
 button:hover { border-color: var(--accent); }
-button.primary { background: var(--accent); border-color: var(--accent); color: #0b1020; font-weight: 600; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Opens Chrome's shortcuts page in a new tab (same arrow as options.css). */
+button.external { display: inline-flex; align-items: center; gap: 6px; }
+button.external::after {
+  content: "";
+  width: 0.8em;
+  height: 0.8em;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 2h5v5M14 2 7.5 8.5M12 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 2h5v5M14 2 7.5 8.5M12 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 
 .tips { margin: 0; padding-left: 20px; line-height: 1.6; font-size: 0.875rem; }
 .tips li { margin: 6px 0; }
 .note { color: var(--muted); font-size: 0.8125rem; line-height: 1.5; margin: 16px 0 0; }
 
-.switch { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; font-size: 0.9375rem; cursor: pointer; }
-.switch input { margin-top: 4px; }
-#shortcuts div { margin: 6px 0; }

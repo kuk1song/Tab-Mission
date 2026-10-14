@@ -16,11 +16,11 @@
     "description": "Toolbar button tooltip; also the welcome page's open button."
   },
   "commandOpen": {
-    "message": "Apri la panoramica delle schede o passa alla scheda selezionata",
+    "message": "Apri Tab Mission o passa alla scheda selezionata",
     "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
   },
   "commandOpenSite": {
-    "message": "Mostra solo le schede del sito corrente",
+    "message": "Apri Tab Mission solo con le schede del sito corrente",
     "description": "Description of the site-view keyboard shortcut."
   },
   "pageTitle": {
@@ -90,8 +90,16 @@
     "description": "Button that leaves the site view."
   },
   "shortcutNotSet": {
-    "message": "non impostata",
-    "description": "Shown in place of a shortcut that is not assigned."
+    "message": "Non impostata",
+    "description": "Settings page: shown instead of the keys of a shortcut that is not set."
+  },
+  "shortcutChange": {
+    "message": "Modifica",
+    "description": "Settings page: button next to an assigned shortcut; opens Chrome's shortcuts page in a new tab."
+  },
+  "shortcutSet": {
+    "message": "Aggiungi",
+    "description": "Settings page: button next to a shortcut that is not set; opens Chrome's shortcuts page in a new tab."
   },
   "welcomeTitle": {
     "message": "Tab Mission è pronto",
@@ -158,28 +166,58 @@
     "description": "Options page title."
   },
   "optionOpenHeading": {
-    "message": "Quando si apre la panoramica",
+    "message": "Quando si apre Tab Mission",
     "description": "Options: heading of the open behaviour section."
   },
   "optionShortcutsHeading": {
     "message": "Scorciatoie da tastiera",
     "description": "Options: shortcuts heading."
   },
+  "optionShortcutsNote": {
+    "message": "Le scorciatoie delle estensioni sono gestite da Chrome: si modificano nella sua pagina delle scorciatoie.",
+    "description": "Settings page: note under the shortcut; only Chrome can change extension shortcuts."
+  },
   "optionSaved": {
     "message": "Salvato.",
-    "description": "Options: confirmation after a change."
+    "description": "Settings page: announced to screen readers after a setting is saved (not shown)."
   },
   "settingsTitle": {
     "message": "Impostazioni",
     "description": "Tooltip of the gear button that opens the settings page."
   },
   "optionPreselect": {
-    "message": "Preseleziona la scheda precedente: premendo due volte la scorciatoia ci torni",
-    "description": "Options: switch that pre-selects the previous tab on open."
+    "message": "Preseleziona la scheda precedente",
+    "description": "Settings page: label of the pre-select switch."
   },
   "optionPreselectNote": {
-    "message": "Attivato (predefinito): la scheda precedente è selezionata, quindi premendo di nuovo la scorciatoia ci torni. Disattivato: nessuna scheda è selezionata e premendo di nuovo la scorciatoia la panoramica si chiude. In entrambi i casi, sposta il mouse su una scheda e premi la scorciatoia per andarci, oppure premi Esc per chiudere.",
-    "description": "Options: note under the switch."
+    "message": "Premi due volte la scorciatoia per tornarci. Se disattivata, nessuna scheda è selezionata e la seconda pressione chiude Tab Mission.",
+    "description": "Settings page: one line under the pre-select switch."
+  },
+  "optionAboutHeading": {
+    "message": "Informazioni",
+    "description": "Settings page: hidden heading, read by screen readers, of the closing line with the version and links."
+  },
+  "optionVersion": {
+    "message": "Versione $version$",
+    "description": "Settings page: version under the title.",
+    "placeholders": {
+      "version": {
+        "content": "$1",
+        "example": "1.3.1"
+      }
+    }
+  },
+  "linkPrivacy": {
+    "message": "Informativa sulla privacy",
+    "description": "Settings page: link to the privacy policy."
+  },
+  "linkReview": {
+    "message": "Lascia una recensione",
+    "description": "Settings page: link to Tab Mission's reviews on the Chrome Web Store."
+  },
+  "linkFeedback": {
+    "message": "Segnala un problema su GitHub",
+    "description": "Settings page: link to the issue tracker."
   },
   "searchSitePlaceholder": {
     "message": "Cerca nelle schede di $host$…",

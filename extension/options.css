@@ -1,0 +1,173 @@
+/* Settings page. It follows the system's light or dark appearance; the dark
+   colors are the overview's. Each row has a label and a one-line description
+   on the left and its control on the right. */
+:root {
+  color-scheme: light dark;
+  --bg: #f4f4f7;
+  --bg-image: none;
+  --surface: #ffffff;
+  --fg: #1d1d26;
+  --muted: #5b5b6b;
+  --line: rgba(20, 20, 40, 0.12);
+  --accent: #00749e;
+  --accent-fg: #ffffff;
+  --key-bg: #f3f3f7;
+  --key-line: rgba(20, 20, 40, 0.2);
+  --track: #8e8e9c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e2e;
+    --bg-image: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 50%, #1a1a2e 100%);
+    --surface: rgba(255, 255, 255, 0.045);
+    --fg: #f0f0f0;
+    --muted: #a0a0aa;
+    --line: rgba(255, 255, 255, 0.1);
+    --accent: #00d4ff;
+    --accent-fg: #0b1020;
+    --key-bg: rgba(255, 255, 255, 0.08);
+    --key-line: rgba(255, 255, 255, 0.18);
+    --track: rgba(255, 255, 255, 0.42);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background-color: var(--bg);
+  background-image: var(--bg-image);
+  background-attachment: fixed;
+  color: var(--fg);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+main { max-width: 640px; margin: 0 auto; padding: 48px 16px 64px; }
+
+.masthead { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+.masthead img { border-radius: 11px; flex: none; }
+h1 { margin: 0; font-size: 1.5rem; line-height: 1.2; }
+
+h2 { margin: 28px 0 8px 4px; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+
+.group { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px 16px; padding: 14px 16px; min-height: 64px; }
+.text { flex: 1; min-width: 0; }
+.title { display: block; font-weight: 600; }
+label.title { cursor: pointer; }
+.desc { margin: 2px 0 0; color: var(--muted); font-size: 0.8125rem; }
+.control { display: flex; align-items: center; gap: 10px; flex: none; }
+.foot { margin: 8px 4px 0; color: var(--muted); font-size: 0.8125rem; }
+
+/* A shortcut: one keycap per key (nested kbd). */
+kbd.combo { display: inline-flex; gap: 4px; font: inherit; }
+kbd.combo kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 7px;
+  background: var(--key-bg);
+  border: 1px solid var(--key-line);
+  border-bottom-width: 2px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--fg);
+}
+.unset { color: var(--muted); font-size: 0.8125rem; border: 1px dashed var(--key-line); border-radius: 7px; padding: 4px 9px; }
+
+button {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+/* Opens Chrome's shortcuts page in a new tab, so it carries the "opens
+   elsewhere" arrow. */
+button.external { display: inline-flex; align-items: center; gap: 5px; }
+button.external::after {
+  content: "";
+  width: 0.8em;
+  height: 0.8em;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 2h5v5M14 2 7.5 8.5M12 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 2h5v5M14 2 7.5 8.5M12 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* The checkbox drawn as a switch: it takes effect at once, with no Save. */
+.switch {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 24px;
+  margin: 0;
+  border-radius: 12px;
+  background: var(--track);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+.switch:checked { background: var(--accent); }
+.switch:checked::before { transform: translateX(18px); }
+
+/* Version and links: information, not settings, so a quiet line at the end. */
+.about { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 36px 4px 0; color: var(--muted); font-size: 0.8125rem; }
+.about a { color: var(--accent); text-decoration: none; }
+.about a:hover { text-decoration: underline; }
+
+:is(button, a, .switch):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Narrow windows: the keys and button move under the label. */
+@media (max-width: 480px) {
+  .row:has(.control) { flex-wrap: wrap; }
+  .control { width: 100%; justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch, .switch::before { transition: none; }
+}
+
+/* Windows high contrast: the switch keeps a visible track and knob. */
+@media (forced-colors: active) {
+  .switch { border: 1px solid CanvasText; background: Canvas; }
+  .switch::before { background: CanvasText; box-shadow: none; }
+  .switch:checked { background: Highlight; }
+}

@@ -34,14 +34,14 @@ Tab Mission puts your tabs into one searchable grid, ordered by when you last us
 ## 🚀 Getting Started
 
 1.  **[Install Tab Mission from the Chrome Web Store](https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca)**.
-2.  Click the extension icon or use the default shortcut: **`Cmd + E`** on Mac, **`Ctrl + Shift + E`** on Windows, Linux and ChromeOS. If another extension already owns it, pick your own at `chrome://extensions/shortcuts`.
+2.  Click the extension icon or use the default shortcut: **`Cmd + E`** on Mac, **`Ctrl + Shift + E`** on Windows, Linux and ChromeOS. If another extension already owns it, pick your own at `chrome://extensions/shortcuts` (the gear in Tab Mission shows your shortcut and opens that page). While assigned, the shortcut takes priority over the same key on web pages, such as GitHub's `Cmd + E` for inline code or Google Docs' `Ctrl + Shift + E` for center align; choose another key if you rely on one.
 3.  Start typing, then press `Enter`.
 
 ## 💡 Pro Tips
 
-- **Back to the previous tab:** press the shortcut twice (the previous tab is selected when the overview opens).
+- **Back to the previous tab:** press the shortcut twice (the previous tab is selected when Tab Mission opens).
 - **No-click switching:** press the shortcut, move the mouse onto the tab you want, and press the shortcut **again**.
-- **Toggle style (optional):** click the gear in the overview and turn off "Pre-select the previous tab"; then nothing is selected on open, and pressing the shortcut again closes the overview.
+- **Toggle style (optional):** click the gear in Tab Mission and turn off "Pre-select the previous tab"; then nothing is selected on open, and pressing the shortcut again closes Tab Mission.
 
 ## 🛠️ Development
 
