@@ -1,6 +1,6 @@
 {
   "appName": {
-    "message": "Tab Mission",
+    "message": "Tab Mission: cambio schede visivo e ricerca",
     "description": "The name of the extension."
   },
   "lang": {
@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Mission Control per le schede di Chrome: le tue schede in una griglia, le più recenti prima. Cerca in tutte, Invio per aprire.",
+    "message": "Cambia scheda come con Alt+Tab: schede in griglia, le più recenti prima. Cerca in tutte le finestre; premi due volte per tornare.",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {

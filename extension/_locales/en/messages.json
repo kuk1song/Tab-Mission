@@ -1,6 +1,6 @@
 {
   "appName": {
-    "message": "Tab Mission",
+    "message": "Tab Mission: Visual Tab Switcher & Search",
     "description": "The name of the extension."
   },
   "lang": {
@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Mission Control for Chrome tabs: your tabs in one visual grid, most recent first. Type to search them all, Enter to switch.",
+    "message": "Switch tabs like Alt+Tab: your tabs as cards, most recent first. Type to search all windows; press the shortcut twice to go back.",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {
