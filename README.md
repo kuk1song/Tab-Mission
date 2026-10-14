@@ -29,7 +29,7 @@ Tab Mission puts your tabs into one searchable grid, ordered by when you last us
 - **Site View:** When the grid holds two or more tabs from the site you are on, press `Tab` in the search box to see only those (`Tab` again, `Esc`, or `Backspace` at the start of the box to leave). A global shortcut for it can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
 - **Keyboard or Mouse:** `↑↓←→` + `Enter`, click, or point at a tab and press the shortcut again. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
 - **Page Previews:** Each tab shows the preview image its page provides, or a clean title card when there is none.
-- **Private by Design:** No server, no analytics. Everything stays in your browser.
+- **Private by Design:** No developer-run server, analytics or tracking. Tab information is processed in your browser; previews and icons load from their original hosts.
 
 ## 🚀 Getting Started
 
@@ -65,7 +65,9 @@ The best way to get in touch is by **[opening an issue on our GitHub repository]
 
 ## 🛡️ Privacy & Open Source
 
-Tab Mission is free and open source (MIT). Everything it reads stays in your browser; it collects, transmits and sells nothing. Details, including why each permission is needed, are in the [**Privacy Policy**](PRIVACY.md).
+Tab Mission is free and open source (MIT). It processes tab information in your browser, does not upload your tab list or search text to the developer, and does not sell user data. Preview images and icons load from websites or their image hosts. Details, including local storage and why each permission is needed, are in the [**Privacy Policy**](PRIVACY.md).
+
+The MIT license covers the code. It does not grant rights to the Tab Mission name or logo as a trademark, so please give forks and derived extensions a different name and icon.
 
 ---
 
