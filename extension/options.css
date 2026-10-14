@@ -161,6 +161,13 @@ button.external::after {
   .control { width: 100%; justify-content: flex-end; }
 }
 
+/* Until options.js has filled in the text, the saved setting and the
+   shortcut (a few frames), the page stays hidden and the switch does not
+   animate. It then appears complete: no English first, no shift as the
+   shortcut arrives, no switch sliding from off to on. */
+.loading main { visibility: hidden; }
+.loading .switch, .loading .switch::before { transition: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .switch, .switch::before { transition: none; }
 }

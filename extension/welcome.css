@@ -52,6 +52,10 @@ html, body {
   border-radius: 20px;
 }
 
+/* Hidden until welcome.js has filled in the text and the shortcut (a few
+   frames), so the page never shows English first or moves as they arrive. */
+.loading main { visibility: hidden; }
+
 .logo { display: block; margin-bottom: 16px; border-radius: 14px; }
 h1 { margin: 0 0 12px; font-size: 1.625rem; }
 h2 { margin: 32px 0 8px; font-size: 0.9375rem; color: var(--muted); font-weight: 600; }
