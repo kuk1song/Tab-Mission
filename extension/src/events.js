@@ -4,6 +4,7 @@ import { render, updateSelection, initializeGridListeners, forgetTile, releasePo
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isValidIconUrl, createPlaceholderIcon } from './utils.js';
+import { recordTryIt } from './tryit.js';
 
 // Filtering is cheap now that tiles are reused, so the search runs once per
 // animation frame instead of after a 200ms debounce. Enter flushes a pending
@@ -103,7 +104,10 @@ export function initializeEventListeners() {
     }
     flushFilterChange();
     if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
-      // If a tab is selected, activate it
+      // If a tab is selected, activate it. This ticks the welcome page's
+      // "press it again" step; the write is not awaited, so it never delays
+      // the switch.
+      recordTryIt('back');
       activateTab(state.filteredTabs[state.selectedIndex]);
     } else {
       // If no tab is selected, just close the overview
@@ -274,6 +278,9 @@ function handleKeydown(e) {
       flushFilterChange();
       if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
         e.preventDefault();
+        // With a query typed, this ticks the welcome page's search step (not
+        // awaited, so it never delays the switch).
+        if (readUiState().searchTerm.trim() !== '') recordTryIt('search');
         activateTab(state.filteredTabs[state.selectedIndex]);
       }
       break;

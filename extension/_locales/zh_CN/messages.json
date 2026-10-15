@@ -123,20 +123,60 @@
     "message": "设置快捷键",
     "description": "Welcome page button that opens chrome://extensions/shortcuts."
   },
+  "welcomeTryTitle": {
+    "message": "动手试试",
+    "description": "Welcome page: heading of the checklist the user completes by doing each step."
+  },
+  "welcomeStepOpen": {
+    "message": "按 $shortcut$ 打开 Tab Mission。",
+    "description": "Welcome page checklist, step 1. Ticks when a Tab Mission keyboard shortcut is pressed (not the toolbar button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "welcomeStepOpenUnset": {
+    "message": "先设置一个快捷键，再按它打开 Tab Mission。",
+    "description": "Welcome page checklist, step 1, when Chrome could not assign a shortcut."
+  },
+  "welcomeStepBack": {
+    "message": "再按一次，回到上一个标签页。",
+    "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
+  },
+  "welcomeStepSearch": {
+    "message": "打开 Tab Mission，输入某个标签页标题里的几个字，然后按回车。",
+    "description": "Welcome page checklist, step 3: Enter switches to a tab found by typing."
+  },
+  "welcomeStepDone": {
+    "message": "已完成",
+    "description": "Welcome page checklist: shown beside a step that is done."
+  },
+  "welcomeStepTodo": {
+    "message": "未完成",
+    "description": "Welcome page checklist: the state of a step not done yet (read by screen readers only)."
+  },
+  "welcomeStepAnnounce": {
+    "message": "已完成：$step$",
+    "description": "Welcome page checklist: announced to screen readers when a step ticks.",
+    "placeholders": {
+      "step": {
+        "content": "$1",
+        "example": "Press ⌘ + E to open Tab Mission."
+      }
+    }
+  },
+  "welcomeAllSet": {
+    "message": "全部完成，开始使用吧。",
+    "description": "Welcome page checklist: shown once all three steps are done."
+  },
   "welcomeTipsTitle": {
-    "message": "使用方法",
-    "description": "Welcome page: tips heading."
-  },
-  "welcomeTipSearch": {
-    "message": "直接输入即可按标题或网址筛选。最佳匹配会被高亮，按回车即可切换过去。",
-    "description": "Welcome page tip."
-  },
-  "welcomeTipMru": {
-    "message": "最可能要切换的标签页（上一个）排第一并已选中，当前标签页排第二。再按一次快捷键即可切回去。",
-    "description": "Welcome page tip."
+    "message": "更多技巧",
+    "description": "Welcome page: heading of the tips under the checklist."
   },
   "welcomeTipHover": {
-    "message": "也可以把鼠标移到某个标签页上，再按一次快捷键直接跳转。",
+    "message": "在 Tab Mission 里，把鼠标移到某个标签页上，再按快捷键即可跳转过去。",
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
@@ -158,7 +198,7 @@
     "description": "Welcome page tip shown when the toolbar button is not pinned."
   },
   "welcomePrivacy": {
-    "message": "所有数据都留在你的浏览器里。Tab Mission 没有服务器，也不收集任何数据。",
+    "message": "Tab Mission 没有服务器：你的标签页列表和搜索内容都只留在浏览器里。",
     "description": "Welcome page privacy note."
   },
   "optionsTitle": {

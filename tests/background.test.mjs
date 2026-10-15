@@ -212,6 +212,29 @@ describe('background.js', () => {
     });
   });
 
+  describe("the welcome page's first step (press a shortcut)", () => {
+    it('a keyboard command records it in session storage; the toolbar button and the page button do not', async () => {
+      chrome.listeners.onClicked();
+      await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+      chrome.listeners.onMessage({ action: 'openOverview' }, {}, () => {});
+      await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1));
+      expect(chrome.storage.session.data.tryItOpen).toBeUndefined();
+
+      chrome.listeners.onCommand('open-overview');
+      await vi.waitFor(() => expect(chrome.storage.session.data.tryItOpen).toBe(true));
+      // The press itself is handled as before: it goes to the open overview.
+      await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(2));
+      expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('the site command records it too', async () => {
+      chrome.listeners.onCommand('open-overview-site');
+      await vi.waitFor(() => expect(chrome.storage.session.data.tryItOpen).toBe(true));
+      await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+      expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?scope=site');
+    });
+  });
+
   it('opens the welcome page on install', () => {
     chrome.listeners.onInstalled({ reason: 'install' });
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://test/welcome.html' });

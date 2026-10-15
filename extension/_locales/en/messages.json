@@ -123,20 +123,60 @@
     "message": "Choose shortcut",
     "description": "Welcome page button that opens chrome://extensions/shortcuts."
   },
+  "welcomeTryTitle": {
+    "message": "Try it",
+    "description": "Welcome page: heading of the checklist the user completes by doing each step."
+  },
+  "welcomeStepOpen": {
+    "message": "Press $shortcut$ to open Tab Mission.",
+    "description": "Welcome page checklist, step 1. Ticks when a Tab Mission keyboard shortcut is pressed (not the toolbar button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "welcomeStepOpenUnset": {
+    "message": "Choose a shortcut, then press it to open Tab Mission.",
+    "description": "Welcome page checklist, step 1, when Chrome could not assign a shortcut."
+  },
+  "welcomeStepBack": {
+    "message": "Press it again to go back to your previous tab.",
+    "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
+  },
+  "welcomeStepSearch": {
+    "message": "Open Tab Mission, type a few letters of a tab's title, then press Enter.",
+    "description": "Welcome page checklist, step 3: Enter switches to a tab found by typing."
+  },
+  "welcomeStepDone": {
+    "message": "Done",
+    "description": "Welcome page checklist: shown beside a step that is done."
+  },
+  "welcomeStepTodo": {
+    "message": "Not done yet",
+    "description": "Welcome page checklist: the state of a step not done yet (read by screen readers only)."
+  },
+  "welcomeStepAnnounce": {
+    "message": "Done: $step$",
+    "description": "Welcome page checklist: announced to screen readers when a step ticks.",
+    "placeholders": {
+      "step": {
+        "content": "$1",
+        "example": "Press ⌘ + E to open Tab Mission."
+      }
+    }
+  },
+  "welcomeAllSet": {
+    "message": "You're all set.",
+    "description": "Welcome page checklist: shown once all three steps are done."
+  },
   "welcomeTipsTitle": {
-    "message": "How it works",
-    "description": "Welcome page: tips heading."
-  },
-  "welcomeTipSearch": {
-    "message": "Just type to filter by title or URL. The best match is highlighted, so Enter switches to it.",
-    "description": "Welcome page tip."
-  },
-  "welcomeTipMru": {
-    "message": "The tab you most likely want (the previous one) comes first and is already selected, your current tab second. Press the shortcut again to jump back.",
-    "description": "Welcome page tip."
+    "message": "More tips",
+    "description": "Welcome page: heading of the tips under the checklist."
   },
   "welcomeTipHover": {
-    "message": "Or move the mouse onto a tab and press the shortcut again to jump there.",
+    "message": "In Tab Mission, point at a tab and press the shortcut to jump to it.",
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
@@ -158,7 +198,7 @@
     "description": "Welcome page tip shown when the toolbar button is not pinned."
   },
   "welcomePrivacy": {
-    "message": "Everything stays in your browser. Tab Mission has no server and collects nothing.",
+    "message": "Tab Mission has no server: your tab list and searches stay in your browser.",
     "description": "Welcome page privacy note."
   },
   "optionsTitle": {

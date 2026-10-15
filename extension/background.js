@@ -1,4 +1,5 @@
 // background.js
+import { recordTryIt } from './src/tryit.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -242,11 +243,15 @@ async function createOverviewWindow(scope) {
 	}
 }
 
-// Listen for the commands to open/toggle the overview.
+// Listen for the commands to open/toggle the overview. A keyboard command
+// also ticks the welcome page's first step (not awaited, so the press is
+// handled as before); the toolbar button below does not.
 chrome.commands.onCommand.addListener((command) => {
 	if (command === 'open-overview') {
+		recordTryIt('open');
 		toggleOverviewWindow();
 	} else if (command === 'open-overview-site') {
+		recordTryIt('open');
 		toggleOverviewWindow('site');
 	}
 });
