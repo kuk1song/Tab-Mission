@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "像 Alt+Tab 一样切换标签页：标签页以卡片呈现，最近用的在前。输入即可搜索所有窗口，连按两次快捷键回到上一个标签页。",
+    "message": "你的标签页指挥中心。所有标签页一览无余，即时搜索，精准切换。",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {
