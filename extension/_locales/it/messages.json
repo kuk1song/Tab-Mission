@@ -51,16 +51,6 @@
     "message": "Reimposta dimensioni e centra",
     "description": "Tooltip for the button that resets the window size and position."
   },
-  "shortcutHintTitle": {
-    "message": "Premi di nuovo $shortcut$ per andare alla scheda selezionata (o chiudere se non ce n'è una)",
-    "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "gridLabel": {
     "message": "Schede aperte",
     "description": "Accessible name of the tab grid."
@@ -105,16 +95,6 @@
     "message": "Tab Mission è pronto",
     "description": "Welcome page heading."
   },
-  "welcomeLead": {
-    "message": "Premi $shortcut$ ovunque in Chrome per vedere le tue schede.",
-    "description": "Welcome page: how to open the overview.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "welcomeNoShortcut": {
     "message": "Chrome non ha potuto assegnare la scorciatoia predefinita, probabilmente perché un'altra estensione la usa già. Scegline una per aprire Tab Mission dalla tastiera.",
     "description": "Welcome page: the default shortcut could not be assigned."
@@ -123,24 +103,64 @@
     "message": "Scegli scorciatoia",
     "description": "Welcome page button that opens chrome://extensions/shortcuts."
   },
+  "welcomeTryTitle": {
+    "message": "Prova subito",
+    "description": "Welcome page: heading of the checklist the user completes by doing each step."
+  },
+  "welcomeStepOpen": {
+    "message": "Premi $shortcut$ in qualsiasi pagina per aprire Tab Mission.",
+    "description": "Welcome page checklist, step 1. Ticks when a Tab Mission keyboard shortcut is pressed (not the toolbar button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "welcomeStepOpenUnset": {
+    "message": "Scegli una scorciatoia, poi premila per aprire Tab Mission.",
+    "description": "Welcome page checklist, step 1, when Chrome could not assign a shortcut."
+  },
+  "welcomeStepBack": {
+    "message": "Premi di nuovo la scorciatoia per tornare alla scheda precedente.",
+    "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
+  },
+  "welcomeStepDone": {
+    "message": "Fatto",
+    "description": "Welcome page checklist: shown beside a step that is done."
+  },
+  "welcomeStepTodo": {
+    "message": "Da fare",
+    "description": "Welcome page checklist: the state of a step not done yet (read by screen readers only)."
+  },
+  "welcomeStepAnnounce": {
+    "message": "Fatto: $step$",
+    "description": "Welcome page checklist: announced to screen readers when a step ticks.",
+    "placeholders": {
+      "step": {
+        "content": "$1",
+        "example": "Press ⌘ + E to open Tab Mission."
+      }
+    }
+  },
+  "welcomeAllSet": {
+    "message": "Tutto pronto.",
+    "description": "Welcome page checklist: shown once all three steps are done."
+  },
   "welcomeTipsTitle": {
-    "message": "Come funziona",
-    "description": "Welcome page: tips heading."
+    "message": "Altri suggerimenti",
+    "description": "Welcome page: heading of the tips under the checklist."
   },
   "welcomeTipSearch": {
-    "message": "Digita per filtrare per titolo o URL. Il risultato migliore è evidenziato: premi Invio per passarci.",
-    "description": "Welcome page tip."
-  },
-  "welcomeTipMru": {
-    "message": "La scheda che probabilmente ti serve (la precedente) è la prima ed è già selezionata, quella attuale la seconda. Premi di nuovo la scorciatoia per tornarci.",
-    "description": "Welcome page tip."
+    "message": "Digita qualche lettera per trovare una scheda, poi premi Invio per aprirla.",
+    "description": "Welcome page: the first of the extra tips."
   },
   "welcomeTipHover": {
-    "message": "Oppure sposta il mouse su una scheda e premi di nuovo la scorciatoia per andarci.",
+    "message": "In Tab Mission, punta il mouse su una scheda e premi la scorciatoia per andarci.",
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
-    "message": "Premi $shortcut$ nella casella di ricerca per vedere solo le schede del sito in cui ti trovi.",
+    "message": "Quando il sito in cui ti trovi ha più schede aperte, premi $shortcut$ nella casella di ricerca per vedere solo le sue schede.",
     "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {
@@ -158,7 +178,7 @@
     "description": "Welcome page tip shown when the toolbar button is not pinned."
   },
   "welcomePrivacy": {
-    "message": "Tutto resta nel tuo browser. Tab Mission non ha server e non raccoglie nulla.",
+    "message": "Tab Mission non ha server: l'elenco delle tue schede e le tue ricerche restano nel browser.",
     "description": "Welcome page privacy note."
   },
   "optionsTitle": {
@@ -172,10 +192,6 @@
   "optionShortcutsHeading": {
     "message": "Scorciatoie da tastiera",
     "description": "Options: shortcuts heading."
-  },
-  "optionShortcutsNote": {
-    "message": "Le scorciatoie delle estensioni sono gestite da Chrome: si modificano nella sua pagina delle scorciatoie.",
-    "description": "Settings page: note under the shortcut; only Chrome can change extension shortcuts."
   },
   "optionSaved": {
     "message": "Salvato.",
@@ -192,6 +208,18 @@
   "optionPreselectNote": {
     "message": "Premi due volte la scorciatoia per tornarci. Se disattivata, nessuna scheda è selezionata e la seconda pressione chiude Tab Mission.",
     "description": "Settings page: one line under the pre-select switch."
+  },
+  "optionHelpHeading": {
+    "message": "Aiuto",
+    "description": "Settings page: heading of the help section."
+  },
+  "optionShowTips": {
+    "message": "Mostra suggerimenti",
+    "description": "Settings page: switch for the tips in the Tab Mission window."
+  },
+  "optionShowTipsNote": {
+    "message": "Ogni volta se attivo; se disattivo, solo nei primi utilizzi.",
+    "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {
     "message": "Informazioni",
@@ -258,6 +286,26 @@
       "host": {
         "content": "$1",
         "example": "youtube.com"
+      }
+    }
+  },
+  "tipBack": {
+    "message": "Premi di nuovo $shortcut$ per tornare qui",
+    "description": "Tab Mission window: tip pointing at the selected card (the previous tab).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "tipOpen": {
+    "message": "Premi $shortcut$ in qualsiasi momento per aprire Tab Mission",
+    "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with a click (the toolbar button or the welcome page's button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
       }
     }
   }

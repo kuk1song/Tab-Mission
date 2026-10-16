@@ -51,16 +51,6 @@
     "message": "Reset size & center",
     "description": "Tooltip for the button that resets the window size and position."
   },
-  "shortcutHintTitle": {
-    "message": "Press $shortcut$ again to go to the selected tab (or close when none is selected)",
-    "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "gridLabel": {
     "message": "Open tabs",
     "description": "Accessible name of the tab grid."
@@ -105,16 +95,6 @@
     "message": "Tab Mission is ready",
     "description": "Welcome page heading."
   },
-  "welcomeLead": {
-    "message": "Press $shortcut$ anywhere in Chrome to see your tabs.",
-    "description": "Welcome page: how to open the overview.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "welcomeNoShortcut": {
     "message": "Chrome could not assign the default shortcut, probably because another extension already uses it. Choose one so you can open Tab Mission from the keyboard.",
     "description": "Welcome page: the default shortcut could not be assigned."
@@ -123,24 +103,64 @@
     "message": "Choose shortcut",
     "description": "Welcome page button that opens chrome://extensions/shortcuts."
   },
+  "welcomeTryTitle": {
+    "message": "Try it",
+    "description": "Welcome page: heading of the checklist the user completes by doing each step."
+  },
+  "welcomeStepOpen": {
+    "message": "Press $shortcut$ on any page to open Tab Mission.",
+    "description": "Welcome page checklist, step 1. Ticks when a Tab Mission keyboard shortcut is pressed (not the toolbar button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "welcomeStepOpenUnset": {
+    "message": "Choose a shortcut, then press it to open Tab Mission.",
+    "description": "Welcome page checklist, step 1, when Chrome could not assign a shortcut."
+  },
+  "welcomeStepBack": {
+    "message": "Press it again to go back to your previous tab.",
+    "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
+  },
+  "welcomeStepDone": {
+    "message": "Done",
+    "description": "Welcome page checklist: shown beside a step that is done."
+  },
+  "welcomeStepTodo": {
+    "message": "Not done yet",
+    "description": "Welcome page checklist: the state of a step not done yet (read by screen readers only)."
+  },
+  "welcomeStepAnnounce": {
+    "message": "Done: $step$",
+    "description": "Welcome page checklist: announced to screen readers when a step ticks.",
+    "placeholders": {
+      "step": {
+        "content": "$1",
+        "example": "Press ⌘ + E to open Tab Mission."
+      }
+    }
+  },
+  "welcomeAllSet": {
+    "message": "You're all set.",
+    "description": "Welcome page checklist: shown once all three steps are done."
+  },
   "welcomeTipsTitle": {
-    "message": "How it works",
-    "description": "Welcome page: tips heading."
+    "message": "More tips",
+    "description": "Welcome page: heading of the tips under the checklist."
   },
   "welcomeTipSearch": {
-    "message": "Just type to filter by title or URL. The best match is highlighted, so Enter switches to it.",
-    "description": "Welcome page tip."
-  },
-  "welcomeTipMru": {
-    "message": "The tab you most likely want (the previous one) comes first and is already selected, your current tab second. Press the shortcut again to jump back.",
-    "description": "Welcome page tip."
+    "message": "Type a few letters to find a tab, then press Enter to switch to it.",
+    "description": "Welcome page: the first of the extra tips."
   },
   "welcomeTipHover": {
-    "message": "Or move the mouse onto a tab and press the shortcut again to jump there.",
+    "message": "In Tab Mission, point at a tab and press the shortcut to jump to it.",
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
-    "message": "Press $shortcut$ in the search box to see only the tabs from the site you are on.",
+    "message": "When the site you are on has several tabs open, press $shortcut$ in the search box to see only its tabs.",
     "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {
@@ -158,7 +178,7 @@
     "description": "Welcome page tip shown when the toolbar button is not pinned."
   },
   "welcomePrivacy": {
-    "message": "Everything stays in your browser. Tab Mission has no server and collects nothing.",
+    "message": "Tab Mission has no server: your tab list and searches stay in your browser.",
     "description": "Welcome page privacy note."
   },
   "optionsTitle": {
@@ -172,10 +192,6 @@
   "optionShortcutsHeading": {
     "message": "Keyboard shortcuts",
     "description": "Options: shortcuts heading."
-  },
-  "optionShortcutsNote": {
-    "message": "Chrome manages extension shortcuts; you change them on its shortcuts page.",
-    "description": "Settings page: note under the shortcut; only Chrome can change extension shortcuts."
   },
   "optionSaved": {
     "message": "Saved.",
@@ -192,6 +208,18 @@
   "optionPreselectNote": {
     "message": "Press the shortcut twice to go back. When off, nothing is selected, so a second press closes Tab Mission.",
     "description": "Settings page: one line under the pre-select switch."
+  },
+  "optionHelpHeading": {
+    "message": "Help",
+    "description": "Settings page: heading of the help section."
+  },
+  "optionShowTips": {
+    "message": "Show tips",
+    "description": "Settings page: switch for the tips in the Tab Mission window."
+  },
+  "optionShowTipsNote": {
+    "message": "Every time when on; when off, only for your first few uses.",
+    "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {
     "message": "About",
@@ -258,6 +286,26 @@
       "host": {
         "content": "$1",
         "example": "youtube.com"
+      }
+    }
+  },
+  "tipBack": {
+    "message": "Press $shortcut$ again to come back here",
+    "description": "Tab Mission window: tip pointing at the selected card (the previous tab).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "tipOpen": {
+    "message": "Press $shortcut$ anytime to open Tab Mission",
+    "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with a click (the toolbar button or the welcome page's button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
       }
     }
   }

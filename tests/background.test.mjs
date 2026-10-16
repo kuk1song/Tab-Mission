@@ -153,12 +153,107 @@ describe('background.js', () => {
     }
   });
 
-  it('opens the welcome page on install', () => {
-    chrome.listeners.onInstalled({ reason: 'install' });
-    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://test/welcome.html' });
+  describe('the toolbar button', () => {
+    const open = async () => {
+      chrome.listeners.onCommand('open-overview');
+      await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+      return chrome.storage.session.data.overviewWindowId;
+    };
+
+    // The page fades out as for the shortcut and closes itself (events.js).
+    const closeAsked = (id) => [chrome.windows._all.get(id).tabs[0].id, { action: 'closeOverview' }];
+
+    it('asks the overview to close while it has focus, even right after opening, without switching tabs', async () => {
+      const id = await open();
+      chrome.listeners.onClicked();
+      await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(...closeAsked(id)));
+      expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1);
+      expect(chrome.windows.remove).not.toHaveBeenCalled();
+      expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+      await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeNull());
+    });
+
+    it('removes the window when the page cannot answer', async () => {
+      const id = await open();
+      chrome.tabs.sendMessage.mockRejectedValueOnce(new Error('Receiving end does not exist.'));
+      chrome.listeners.onClicked();
+      await vi.waitFor(() => expect(chrome.windows.remove).toHaveBeenCalledWith(id));
+      expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks it to close when focus left it just before the click (the click itself moves focus)', async () => {
+      const id = await open();
+      const later = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+      try {
+        chrome.windows._all.get(id).focused = false;
+        chrome.storage.session.data.overviewBlurredAt = Date.now() - 200;
+        chrome.listeners.onClicked();
+        await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(...closeAsked(id)));
+        expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+        expect(chrome.windows.remove).not.toHaveBeenCalled();
+      } finally {
+        later.mockRestore();
+      }
+    });
+
+    it('left behind another window for a while, opens a fresh overview in front', async () => {
+      const id = await open();
+      const later = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5000);
+      try {
+        chrome.windows._all.get(id).focused = false;
+        chrome.storage.session.data.overviewBlurredAt = Date.now() - 3000;
+        chrome.listeners.onClicked();
+        await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(2));
+        expect(chrome.windows.remove).toHaveBeenCalledWith(id);
+        expect(chrome.tabs.sendMessage).not.toHaveBeenCalled();
+      } finally {
+        later.mockRestore();
+      }
+    });
   });
 
-  it('on update, deletes the keys older versions saved and keeps the settings', async () => {
+  it('marks a window opened with a click (the toolbar button, the welcome page button), for the tip that teaches the shortcut', async () => {
+    const url = (i) => chrome.windows.create.mock.calls[i][0].url;
+    chrome.listeners.onClicked();
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    expect(url(0)).toBe('chrome-extension://test/overview.html?via=click');
+    chrome.listeners.onRemoved(chrome.storage.session.data.overviewWindowId);
+    await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeNull());
+    chrome.listeners.onMessage({ action: 'openOverview' }, {}, () => {});
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(2));
+    expect(url(1)).toBe('chrome-extension://test/overview.html?via=click');
+  });
+
+  describe("the welcome page's first step (press a shortcut)", () => {
+    it('a keyboard command records it; the toolbar button and the page button do not', async () => {
+      chrome.listeners.onClicked();
+      await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+      chrome.listeners.onMessage({ action: 'openOverview' }, {}, () => {});
+      await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1));
+      expect(chrome.storage.local.data.tryItOpen).toBeUndefined();
+
+      chrome.listeners.onCommand('open-overview');
+      await vi.waitFor(() => expect(chrome.storage.local.data.tryItOpen).toBe(true));
+      // The press itself is handled as before: it goes to the open overview.
+      await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(2));
+      expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('the site command records it too', async () => {
+      chrome.listeners.onCommand('open-overview-site');
+      await vi.waitFor(() => expect(chrome.storage.local.data.tryItOpen).toBe(true));
+      await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+      expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?scope=site');
+    });
+  });
+
+  it('opens the welcome page on install, and gives the new user the window tips', () => {
+    chrome.listeners.onInstalled({ reason: 'install' });
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://test/welcome.html' });
+    expect(chrome.storage.local.data.tipsLeft).toEqual({ open: 3, back: 3 });
+  });
+
+  it('on update, deletes the keys older versions saved, keeps the settings and leaves the first-use tips off', async () => {
     Object.assign(chrome.storage.local.data, { searchTerm: 'old', overviewWindowId: 7, artMode: false, showSleeping: true });
     chrome.listeners.onInstalled({ reason: 'update' });
     await vi.waitFor(() => expect(Object.keys(chrome.storage.local.data)).toEqual(['showSleeping']));

@@ -2,7 +2,9 @@
 import { state, fetchAllTabs, currentSiteHost } from './state.js';
 import { initializeEventListeners, handleFilterChange } from './events.js';
 import { loadSettings } from './settings.js';
-import { localizeStaticText, t } from './i18n.js';
+import { localizeStaticText } from './i18n.js';
+import { readTryIt } from './tryit.js';
+import { showTip } from './tips.js';
 
 async function main() {
   // Apply localization for any static text before interacting with the UI
@@ -13,7 +15,9 @@ async function main() {
   // the search box instead of being lost.
   searchEl?.focus();
 
-  const [settings] = await Promise.all([loadSettings(), fetchAllTabs()]);
+  const params = new URLSearchParams(location.search);
+  const [settings, , tryIt, shortcuts] = await Promise.all([loadSettings(), fetchAllTabs(), readTryIt(), readShortcuts()]);
+  const shortcut = shortcuts['open-overview'];
 
   const toggleSleeping = document.getElementById('toggle-sleeping');
   const toggleAllWindows = document.getElementById('toggle-all-windows');
@@ -24,7 +28,7 @@ async function main() {
   state.preselectPrevious = settings.preselectPrevious;
 
   // Opened by the "current site" shortcut: show only this site's tabs.
-  if (new URLSearchParams(location.search).get('scope') === 'site') {
+  if (params.get('scope') === 'site') {
     state.siteHost = currentSiteHost();
   }
 
@@ -32,36 +36,44 @@ async function main() {
   const gridEl = document.getElementById('grid');
   gridEl?.classList.add('entering');
   handleFilterChange({ persist: false });
-  setTimeout(() => gridEl?.classList.remove('entering'), 700);
+  setTimeout(() => {
+    gridEl?.classList.remove('entering');
+    // A tip, if one is due, once the cards have settled (tips.js). Opened
+    // with the site shortcut, the tip names that key: pressed again, it too
+    // goes to the selection.
+    const pressed = params.get('scope') === 'site' ? shortcuts['open-overview-site'] || shortcut : shortcut;
+    showTip({ showTips: settings.showTips, tryIt, shortcut: pressed, viaClick: params.get('via') === 'click' });
+  }, 700);
 
-  updateShortcutHint();
+  updateShortcutHint(shortcut);
 
   initializeEventListeners();
   searchEl?.focus();
 }
 
-async function updateShortcutHint() {
-  const hintEl = document.getElementById('shortcut-hint');
-  if (!hintEl) return;
+// Each command's shortcut as shown on the badge and in tips, read when the
+// window opens, so a key changed at chrome://extensions/shortcuts shows the
+// next time ('' when none).
+async function readShortcuts() {
+  const shortcuts = { 'open-overview': '', 'open-overview-site': '' };
   try {
-    const commands = await chrome.commands.getAll();
-    const openCommand = commands.find(cmd => cmd.name === 'open-overview');
-    if (openCommand && openCommand.shortcut) {
-      const rawShortcut = openCommand.shortcut.replace(/\+/g, ' + ');
-      hintEl.textContent = '';
-      const kbd = document.createElement('kbd');
-      kbd.textContent = rawShortcut;
-
-      // The overview is open, so the badge says what pressing it again does.
-      const tooltip = t('shortcutHintTitle', [rawShortcut]) || `Press ${rawShortcut} again to go to the selected tab (or close when none is selected)`;
-
-      kbd.title = tooltip; // full hint on hover
-      kbd.setAttribute('aria-label', tooltip);
-      hintEl.appendChild(kbd);
+    for (const command of await chrome.commands.getAll()) {
+      shortcuts[command.name] = (command.shortcut || '').replace(/\+/g, ' + ');
     }
   } catch (error) {
     console.warn('Could not load shortcut command.', error);
   }
+  return shortcuts;
+}
+
+// The badge shows the shortcut, nothing more: the tips and the welcome page
+// teach what it does.
+function updateShortcutHint(rawShortcut) {
+  const hintEl = document.getElementById('shortcut-hint');
+  if (!hintEl || !rawShortcut) return;
+  const kbd = document.createElement('kbd');
+  kbd.textContent = rawShortcut;
+  hintEl.replaceChildren(kbd);
 }
 
 if (document.readyState === 'loading') {

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.mjs';
+import { test, expect, PAGES } from './fixtures.mjs';
 
 // Chrome only auto-assigns a suggested key that none of its own shortcuts
 // use: Ctrl+E is Chrome's "search" key on Windows, Linux and ChromeOS, so the
@@ -6,7 +6,7 @@ import { test, expect } from './fixtures.mjs';
 test('the default shortcut is assigned on this OS and shown on the welcome page', async ({ ext }) => {
   const shortcut = await ext.sw.evaluate(() => chrome.commands.getAll().then((c) => c.find((x) => x.name === 'open-overview')?.shortcut || ''));
   expect(shortcut).toBe(process.platform === 'darwin' ? '⌘E' : 'Ctrl+Shift+E');
-  await expect(ext.welcome.locator('#lead kbd')).toBeVisible();
+  await expect(ext.welcome.locator('#step-open kbd')).toBeVisible();
   await expect(ext.welcome.locator('#no-shortcut')).toBeHidden();
   await expect(ext.welcome.locator('#tip-site kbd')).toHaveText('Tab');
 });
@@ -94,9 +94,10 @@ function recordFrames() {
 // Every frame the page is visible in looks like the finished page: no English
 // before the translation, no shift when the shortcut arrives, no switch
 // sliding from off to its saved state.
-async function shownFrames(context, url) {
+async function shownFrames(context, url, setup) {
   const page = await context.newPage();
   await page.addInitScript(recordFrames);
+  if (setup) await page.addInitScript(setup);
   await page.goto(url);
   await expect.poll(() => page.evaluate(() => window.frames_.length)).toBe(30);
   const shown = (await page.evaluate(() => window.frames_)).filter((f) => f.visible);
@@ -114,10 +115,138 @@ test('options page: appears finished, the switch in its saved state without slid
   }
 });
 
-test('welcome page: appears finished, with the shortcut', async ({ ext, context }) => {
-  const finished = await shownFrames(context, ext.welcome.url());
+// With a "Try it" step already done, read later than the shortcut arrives:
+// the page still appears with that step ticked, never unticked first.
+test('welcome page: appears finished, with the shortcut and the steps done so far', async ({ ext, context }) => {
+  await ext.sw.evaluate(() => chrome.storage.local.set({ tryItOpen: true }));
+  const finished = await shownFrames(context, ext.welcome.url(), () => {
+    const get = chrome.storage.local.get.bind(chrome.storage.local);
+    chrome.storage.local.get = async (keys) => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      return get(keys);
+    };
+  });
   const shortcut = await ext.sw.evaluate(() => chrome.commands.getAll().then((c) => c.find((x) => x.name === 'open-overview').shortcut));
   expect(finished.text).toContain(shortcut.replace(/\+/g, ' + '));
+  const doneLabel = await ext.welcome.evaluate(() => chrome.i18n.getMessage('welcomeStepDone'));
+  expect(finished.text).toContain(doneLabel);
+});
+
+const stepsStored = (ext) => ext.sw.evaluate(() => chrome.storage.local.get(['tryItOpen', 'tryItBack']));
+
+// Learn by doing: each step on the welcome page ticks itself once the user
+// has done it, with the real shortcut pressed through Chrome.
+test('welcome page: the try-it steps tick as the user does them', async ({ ext, context }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta']);
+  const welcome = ext.welcome;
+  const message = (key, substitutions) => welcome.evaluate(([k, s]) => chrome.i18n.getMessage(k, s), [key, substitutions]);
+  const step = (name) => welcome.locator(`#step-${name}`);
+  const done = welcome.locator('#try-it .step.done');
+
+  await expect(welcome.locator('#try-it .step')).toHaveCount(2);
+  await expect(done).toHaveCount(0);
+  for (const name of ['open', 'back']) {
+    await expect(step(name).locator('.step-state')).toHaveText(await message('welcomeStepTodo'));
+  }
+  await expect(welcome.locator('#all-set')).toBeHidden();
+  const shortcut = await ext.sw.evaluate(() => chrome.commands.getAll().then((c) => c.find((x) => x.name === 'open-overview').shortcut));
+  await expect(step('open').locator('kbd')).toHaveText(shortcut.replace(/\+/g, ' + '));
+  // Typing is the first of the other tips, no longer a step.
+  await expect(welcome.locator('.tips li').first()).toHaveText(await message('welcomeTipSearch'));
+
+  // Opened without the shortcut (the page's button), closed with Esc: no step.
+  let overview = await ext.open();
+  await ext.pressToClose(overview, 'Escape');
+  expect(await stepsStored(ext)).toEqual({});
+  await expect(done).toHaveCount(0);
+
+  // 1. The real shortcut opens Tab Mission.
+  const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
+  await ext.pressDefaultShortcut(context.pages().find((p) => p.url().includes('/beta.html')));
+  overview = await opened;
+  await overview.locator('#grid .tile').first().waitFor();
+  await expect(step('open')).toHaveClass(/\bdone\b/);
+  await expect(step('open').locator('.step-state')).toHaveText(await message('welcomeStepDone'));
+  await expect(welcome.locator('#try-status')).toHaveText(
+    await message('welcomeStepAnnounce', [await step('open').locator('.step-text').textContent()]));
+  await expect(done).toHaveCount(1);
+  await expect(welcome.locator('#all-set')).toBeHidden();
+
+  // 2. Pressed again in Tab Mission, it goes back to the previous tab.
+  await ext.pressDefaultShortcut(overview);
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
+  await expect(step('back')).toHaveClass(/\bdone\b/);
+  await expect(done).toHaveCount(2);
+  await expect(welcome.locator('#all-set')).toBeVisible();
+  await expect(welcome.locator('#try-status')).toContainText(await message('welcomeAllSet'));
+  expect(await stepsStored(ext)).toEqual({ tryItOpen: true, tryItBack: true });
+});
+
+// With reduced motion the window closes at once after a switch; the step
+// is written before that.
+test('welcome page: the steps tick with reduced motion, when the window closes at once', async ({ ext, context }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta']);
+  const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
+  await ext.pressDefaultShortcut(context.pages().find((p) => p.url().includes('/beta.html')));
+  const overview = await opened;
+  await overview.locator('#grid .tile').first().waitFor();
+  await overview.emulateMedia({ reducedMotion: 'reduce' });
+  await ext.pressDefaultShortcut(overview);
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
+  await expect.poll(() => stepsStored(ext)).toEqual({ tryItOpen: true, tryItBack: true });
+  await expect(ext.welcome.locator('#try-it .step.done')).toHaveCount(2);
+  await expect(ext.welcome.locator('#all-set')).toBeVisible();
+});
+
+// Opened with the page's button, the shortcut pressed inside is the user's
+// first press: background.js records step 1 and the overview step 2 for the
+// same press.
+test('welcome page: opened with the button, the first press inside ticks both steps', async ({ ext }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta']);
+  const overview = await ext.open();
+  await ext.pressDefaultShortcut(overview);
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
+  await expect.poll(() => stepsStored(ext)).toEqual({ tryItOpen: true, tryItBack: true });
+  await expect(ext.welcome.locator('#try-it .step.done')).toHaveCount(2);
+});
+
+// Help stays easy to find: the settings page's Help section has one switch,
+// which shows the window's tips every time.
+test('options page: Help is one Show tips switch, off by default, that saves at once', async ({ ext, context }) => {
+  const { page } = await openOptions(ext, context);
+  await expect(page.locator('section[aria-labelledby="help-heading"] .row')).toHaveCount(1);
+  const tips = page.locator('#show-tips');
+  await expect(tips).toHaveAttribute('role', 'switch');
+  await expect(tips).not.toBeChecked();
+  await page.locator('label[for="show-tips"]').click();
+  await expect(tips).toBeChecked();
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('showTips'))).toEqual({ showTips: true });
+});
+
+// Chrome has no event for a changed shortcut: the welcome and settings pages
+// read it again when the user comes back to their tab or window.
+test('welcome and settings pages: a shortcut changed elsewhere shows on coming back', async ({ ext, context }) => {
+  const host = new URL(ext.sw.url()).host;
+  for (const [file, where] of [['welcome.html', '#step-open kbd'], ['options.html', '#shortcuts kbd.combo']]) {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.shortcut_ = '';
+      const getAll = chrome.commands.getAll.bind(chrome.commands);
+      chrome.commands.getAll = async () => (await getAll()).map((c) => (c.name === 'open-overview' && window.shortcut_ ? { ...c, shortcut: window.shortcut_ } : c));
+    });
+    await page.goto(`chrome-extension://${host}/${file}`);
+    await expect(page.locator(where)).toBeVisible();
+    await page.evaluate(() => {
+      window.shortcut_ = 'Alt+Shift+K';
+      window.dispatchEvent(new Event('focus'));
+    });
+    await expect(page.locator(where)).toContainText('K');
+    await expect(page.locator(where)).toContainText('Alt');
+    await page.close();
+  }
 });
 
 test("options page: the shortcut button opens Chrome's shortcuts page", async ({ ext, context }) => {
@@ -160,9 +289,13 @@ async function contrasts(page, selectors) {
 
 test('options and welcome pages follow the system appearance, stay readable and never scroll sideways', async ({ ext, context }) => {
   const { page } = await openOptions(ext, context);
+  // One "Try it" step done, so both step styles are on the page.
+  await ext.sw.evaluate(() => chrome.storage.local.set({ tryItOpen: true }));
+  await expect(ext.welcome.locator('#try-it .step.done')).toHaveCount(1);
   const pages = [
-    [page, ['h1', '.title', '.desc', '.foot', 'h2', '#version', '#link-privacy']],
-    [ext.welcome, ['h1', '.lead', '.tips li', '.note', 'h2']],
+    [page, ['h1', '.title', '.desc', 'h2', '#version', '#link-privacy']],
+    [ext.welcome, ['h1', '.tips li', '.note', 'h2', '.step:not(.done) .step-mark', '.step:not(.done) .step-text',
+      '.step.done .step-text', '.step.done .step-state', '#all-set']],
   ];
   for (const [p, selectors] of pages) {
     const backgrounds = {};
