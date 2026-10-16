@@ -180,7 +180,7 @@
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
-    "message": "Premi $shortcut$ nella casella di ricerca per vedere solo le schede del sito in cui ti trovi.",
+    "message": "Quando il sito in cui ti trovi ha più schede aperte, premi $shortcut$ nella casella di ricerca per vedere solo le sue schede.",
     "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {

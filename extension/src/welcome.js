@@ -105,16 +105,19 @@ async function main() {
   try {
     localizeStaticText();
     setWithKbd(document.getElementById('tip-site'), 'welcomeTipSite', 'Tab',
-      (s) => `Press ${s} in the search box to see only the tabs from the site you are on.`);
+      (s) => `When the site you are on has several tabs open, press ${s} in the search box to see only its tabs.`);
     const [, , done] = await Promise.all([showShortcut(), showPinHint(), readTryIt()]);
     showTryIt(done);
   } finally {
     // Shown complete, a few frames after load (see welcome.css).
     document.documentElement.classList.remove('loading');
   }
+  // A shortcut changed at chrome://extensions/shortcuts shows on coming back
+  // to this tab or window (Chrome has no event for it).
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) showShortcut();
   });
+  window.addEventListener('focus', () => showShortcut());
   document.getElementById('try-it').addEventListener('animationend', (e) => {
     e.target.closest('.step')?.classList.remove('just-done');
   });

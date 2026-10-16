@@ -140,6 +140,40 @@ test('on its own a tip shows at most three times; with "Show tips" on, showing i
   expect(await tipsLeft(ext)).toEqual({ open: 3, back: 3 });
 });
 
+// Chrome reports the keys the user chose at chrome://extensions/shortcuts
+// (here stubbed); the window reads them each time it opens.
+function useShortcuts(context, keys) {
+  return context.addInitScript((keys) => {
+    if (!location.pathname.endsWith('/overview.html')) return;
+    const getAll = chrome.commands.getAll.bind(chrome.commands);
+    chrome.commands.getAll = async () => (await getAll()).map((c) => (c.name in keys ? { ...c, shortcut: keys[c.name] } : c));
+  }, keys);
+}
+
+test('the badge, its hover text and the tips show the shortcut the user set', async ({ ext, context }) => {
+  await useShortcuts(context, { 'open-overview': 'Alt+Shift+K' });
+  await ext.openWindow(['alpha', 'beta']);
+  await giveTips(ext);
+  const overview = await ext.open();
+  const badge = overview.locator('#shortcut-hint kbd');
+  await expect(badge).toHaveText('Alt + Shift + K');
+  await expect(badge).toHaveAttribute('title', /Alt \+ Shift \+ K/);
+  await expect(overview.locator('.tip kbd')).toHaveText('Alt + Shift + K');
+});
+
+test('opened with the site shortcut, the card tip names that key', async ({ ext, context }) => {
+  await useShortcuts(context, { 'open-overview': 'Alt+Shift+K', 'open-overview-site': 'Alt+Shift+S' });
+  await ext.openWindow(['tube1', 'tube2']);
+  await giveTips(ext);
+  // background.js opens the site view like this for the site shortcut.
+  const opened = context.waitForEvent('page', (p) => p.url().endsWith('overview.html?scope=site'));
+  await ext.sw.evaluate(() => chrome.windows.create({ url: chrome.runtime.getURL('overview.html?scope=site'), type: 'popup', width: 1000, height: 700 }));
+  const overview = await opened;
+  await expect(overview.locator('.tip')).toHaveAttribute('data-anchor', 'card');
+  await expect(overview.locator('.tip kbd')).toHaveText('Alt + Shift + S');
+  await expect(overview.locator('#shortcut-hint kbd')).toHaveText('Alt + Shift + K');
+});
+
 test('no card tip when the selected card is the current tab (the only one)', async ({ ext, context }) => {
   const { windowId } = await ext.openWindow(['alpha']);
   await giveTips(ext);

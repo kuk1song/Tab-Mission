@@ -180,7 +180,7 @@
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
-    "message": "Press $shortcut$ in the search box to see only the tabs from the site you are on.",
+    "message": "When the site you are on has several tabs open, press $shortcut$ in the search box to see only its tabs.",
     "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {

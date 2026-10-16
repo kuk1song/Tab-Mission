@@ -24,10 +24,12 @@ async function main() {
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
     });
   }
-  // Refresh after the user changes a shortcut in the tab opened from here.
+  // Refresh after the user changes a shortcut in the tab opened from here
+  // (Chrome has no event for it): on coming back to this tab or window.
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) showShortcuts();
   });
+  window.addEventListener('focus', () => showShortcuts());
 }
 
 // Show the page once the text, the saved setting and the shortcut are in

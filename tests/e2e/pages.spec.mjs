@@ -226,6 +226,29 @@ test('options page: Help is one Show tips switch, off by default, that saves at 
   await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('showTips'))).toEqual({ showTips: true });
 });
 
+// Chrome has no event for a changed shortcut: the welcome and settings pages
+// read it again when the user comes back to their tab or window.
+test('welcome and settings pages: a shortcut changed elsewhere shows on coming back', async ({ ext, context }) => {
+  const host = new URL(ext.sw.url()).host;
+  for (const [file, where] of [['welcome.html', '#lead kbd'], ['options.html', '#shortcuts kbd.combo']]) {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.shortcut_ = '';
+      const getAll = chrome.commands.getAll.bind(chrome.commands);
+      chrome.commands.getAll = async () => (await getAll()).map((c) => (c.name === 'open-overview' && window.shortcut_ ? { ...c, shortcut: window.shortcut_ } : c));
+    });
+    await page.goto(`chrome-extension://${host}/${file}`);
+    await expect(page.locator(where)).toBeVisible();
+    await page.evaluate(() => {
+      window.shortcut_ = 'Alt+Shift+K';
+      window.dispatchEvent(new Event('focus'));
+    });
+    await expect(page.locator(where)).toContainText('K');
+    await expect(page.locator(where)).toContainText('Alt');
+    await page.close();
+  }
+});
+
 test("options page: the shortcut button opens Chrome's shortcuts page", async ({ ext, context }) => {
   const { row } = await openOptions(ext, context);
   const opened = context.waitForEvent('page', (p) => p.url().startsWith('chrome://extensions/shortcuts'));

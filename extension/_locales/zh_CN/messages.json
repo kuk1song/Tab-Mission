@@ -180,7 +180,7 @@
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
-    "message": "在搜索框里按 $shortcut$，只看当前网站的标签页。",
+    "message": "当前网站开着多个标签页时，在搜索框里按 $shortcut$ 只看这个网站的标签页。",
     "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {
