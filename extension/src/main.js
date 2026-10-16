@@ -73,8 +73,9 @@ function updateShortcutHint(rawShortcut) {
   const kbd = document.createElement('kbd');
   kbd.textContent = rawShortcut;
 
-  // The overview is open, so the badge says what pressing it again does.
-  const tooltip = t('shortcutHintTitle', [rawShortcut]) || `Press ${rawShortcut} again to go to the selected tab (or close when none is selected)`;
+  // The badge says what pressing the shortcut here does (opened with a
+  // click, it has not been pressed yet, so no "again").
+  const tooltip = t('shortcutHintTitle', [rawShortcut]) || `Press ${rawShortcut} to switch to the selected tab, or to close Tab Mission when none is selected`;
 
   kbd.title = tooltip; // full hint on hover
   kbd.setAttribute('aria-label', tooltip);

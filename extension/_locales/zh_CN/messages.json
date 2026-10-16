@@ -52,7 +52,7 @@
     "description": "Tooltip for the button that resets the window size and position."
   },
   "shortcutHintTitle": {
-    "message": "再按 $shortcut$：切换到选中的标签页（没有选中时关闭）",
+    "message": "按 $shortcut$ 切换到选中的标签页；没有选中时关闭 Tab Mission",
     "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
     "placeholders": {
       "shortcut": {

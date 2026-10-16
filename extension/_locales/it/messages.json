@@ -52,7 +52,7 @@
     "description": "Tooltip for the button that resets the window size and position."
   },
   "shortcutHintTitle": {
-    "message": "Premi di nuovo $shortcut$ per andare alla scheda selezionata (o chiudere se non ce n'è una)",
+    "message": "Premi $shortcut$ per passare alla scheda selezionata, o per chiudere Tab Mission se non ce n'è una",
     "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
     "placeholders": {
       "shortcut": {
