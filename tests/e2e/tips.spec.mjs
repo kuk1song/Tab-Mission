@@ -150,14 +150,15 @@ function useShortcuts(context, keys) {
   }, keys);
 }
 
-test('the badge, its hover text and the tips show the shortcut the user set', async ({ ext, context }) => {
+test('the badge and the tips show the shortcut the user set', async ({ ext, context }) => {
   await useShortcuts(context, { 'open-overview': 'Alt+Shift+K' });
   await ext.openWindow(['alpha', 'beta']);
   await giveTips(ext);
   const overview = await ext.open();
   const badge = overview.locator('#shortcut-hint kbd');
   await expect(badge).toHaveText('Alt + Shift + K');
-  await expect(badge).toHaveAttribute('title', /Alt \+ Shift \+ K/);
+  // Only the key: no hover text.
+  await expect(badge).not.toHaveAttribute('title');
   await expect(overview.locator('.tip kbd')).toHaveText('Alt + Shift + K');
 });
 

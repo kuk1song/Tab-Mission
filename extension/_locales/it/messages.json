@@ -51,16 +51,6 @@
     "message": "Reimposta dimensioni e centra",
     "description": "Tooltip for the button that resets the window size and position."
   },
-  "shortcutHintTitle": {
-    "message": "Premi $shortcut$ per passare alla scheda selezionata",
-    "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "gridLabel": {
     "message": "Schede aperte",
     "description": "Accessible name of the tab grid."

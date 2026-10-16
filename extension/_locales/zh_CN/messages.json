@@ -51,16 +51,6 @@
     "message": "重置大小和位置",
     "description": "Tooltip for the button that resets the window size and position."
   },
-  "shortcutHintTitle": {
-    "message": "按 $shortcut$ 切换到选中的标签页",
-    "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "gridLabel": {
     "message": "已打开的标签页",
     "description": "Accessible name of the tab grid."

@@ -2,7 +2,7 @@
 import { state, fetchAllTabs, currentSiteHost } from './state.js';
 import { initializeEventListeners, handleFilterChange } from './events.js';
 import { loadSettings } from './settings.js';
-import { localizeStaticText, t } from './i18n.js';
+import { localizeStaticText } from './i18n.js';
 import { readTryIt } from './tryit.js';
 import { showTip } from './tips.js';
 
@@ -66,20 +66,14 @@ async function readShortcuts() {
   return shortcuts;
 }
 
+// The badge shows the shortcut, nothing more: the tips and the welcome page
+// teach what it does.
 function updateShortcutHint(rawShortcut) {
   const hintEl = document.getElementById('shortcut-hint');
   if (!hintEl || !rawShortcut) return;
-  hintEl.textContent = '';
   const kbd = document.createElement('kbd');
   kbd.textContent = rawShortcut;
-
-  // The badge says what pressing the shortcut here does (opened with a
-  // click, it has not been pressed yet, so no "again").
-  const tooltip = t('shortcutHintTitle', [rawShortcut]) || `Press ${rawShortcut} to switch to the selected tab`;
-
-  kbd.title = tooltip; // full hint on hover
-  kbd.setAttribute('aria-label', tooltip);
-  hintEl.appendChild(kbd);
+  hintEl.replaceChildren(kbd);
 }
 
 if (document.readyState === 'loading') {
