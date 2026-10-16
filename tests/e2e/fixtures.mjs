@@ -1,10 +1,15 @@
 // Playwright fixtures: the unpacked extension in Playwright's Chromium, fake
 // websites served locally, and helpers that drive the overview the way a user
 // does. Most presses are sent through background.js (the openOverview
-// message, the same path as chrome.commands); pressDefaultShortcut presses the
-// real key through Chrome's own key handling.
+// message of the welcome page's button, the same path as chrome.commands,
+// except that a window it opens counts as opened with a click);
+// pressDefaultShortcut presses the real key through Chrome's own key handling,
+// and clickToolbarButton fires the toolbar button's own event.
 import { test as base, expect, chromium } from '@playwright/test';
 import http from 'node:http';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const EXTENSION = fileURLToPath(new URL('../../extension', import.meta.url));
@@ -52,6 +57,31 @@ function startSite() {
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
 }
 
+// One command to the browser's own DevTools endpoint (not a page's), found
+// through the DevToolsActivePort file that --remote-debugging-port=0 writes
+// into the profile.
+async function browserCommand(profile, method, params) {
+  const [port, wsPath] = readFileSync(path.join(profile, 'DevToolsActivePort'), 'utf8').trim().split('\n');
+  const ws = new WebSocket(`ws://127.0.0.1:${port}${wsPath}`);
+  await new Promise((resolve, reject) => {
+    ws.onopen = resolve;
+    ws.onerror = reject;
+  });
+  try {
+    const reply = await new Promise((resolve) => {
+      ws.onmessage = (e) => {
+        const message = JSON.parse(e.data);
+        if (message.id === 1) resolve(message);
+      };
+      ws.send(JSON.stringify({ id: 1, method, params }));
+    });
+    if (reply.error) throw new Error(`${method}: ${reply.error.message}`);
+    return reply.result;
+  } finally {
+    ws.close();
+  }
+}
+
 export const test = base.extend({
   // Extra Chromium switches (e.g. a simulated screen) and whether to draw
   // scrollbars (Playwright hides them in headless mode by default).
@@ -65,8 +95,16 @@ export const test = base.extend({
     server.close();
   }, { scope: 'worker' }],
 
-  context: async ({ launchArgs, showScrollbars }, use) => {
-    const context = await chromium.launchPersistentContext('', {
+  // The browser profile, a fresh folder per test (read by browserCommand).
+  profile: async ({}, use) => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'tab-mission-e2e-'));
+    await use(dir);
+    // Windows may still hold a file of the closed browser for a moment.
+    rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  },
+
+  context: async ({ profile, launchArgs, showScrollbars }, use) => {
+    const context = await chromium.launchPersistentContext(profile, {
       channel: 'chromium',
       // Headless Chromium on Windows closes itself on the first
       // chrome.system.display.getInfo() call (seen on windows-latest, where
@@ -81,6 +119,10 @@ export const test = base.extend({
         `--disable-extensions-except=${EXTENSION}`,
         `--load-extension=${EXTENSION}`,
         '--host-resolver-rules=MAP * 127.0.0.1',
+        // The DevTools endpoint and its Extensions domain, for
+        // clickToolbarButton.
+        '--remote-debugging-port=0',
+        '--enable-unsafe-extension-debugging',
         ...launchArgs,
       ],
       // A start that hangs (seen once on macos-latest) is killed and the
@@ -99,11 +141,16 @@ export const test = base.extend({
     await use(worker);
   },
 
-  ext: async ({ context, sw, site }, use) => {
+  ext: async ({ context, sw, site, profile }, use) => {
     // The welcome page opens on install; it doubles as the extension page
     // that sends "shortcut presses" to background.js.
     await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html')), { timeout: 15_000 }).toBe(true);
     const welcome = context.pages().find((p) => p.url().endsWith('/welcome.html'));
+    // A new install gives the Tab Mission window its tips (background.js).
+    // tips.spec gives them back where it tests them; elsewhere they would
+    // cover cards that tests point at.
+    await expect.poll(() => sw.evaluate(() => chrome.storage.local.get('tipsLeft').then((r) => r.tipsLeft))).toEqual({ open: 3, back: 3 });
+    await sw.evaluate(() => chrome.storage.local.remove('tipsLeft'));
     const url = (id, query = '') => `http://${HOSTS[id] ?? 'localhost'}:${site.port}/${id}.html${query}`;
 
     const ext = {
@@ -178,7 +225,24 @@ export const test = base.extend({
         await ext.pressKeys(page, { key: 'e', code: 'KeyE', keyCode: 69, macKeyCode: 14, modifiers: mac ? 4 : 2 | 8 });
       },
 
-      // The shortcut (scope 'site' for the site command).
+      // A click on Tab Mission's toolbar button. The button is browser UI,
+      // out of Playwright's reach; Chrome's DevTools protocol fires its
+      // chrome.action.onClicked (Extensions.triggerAction) on the active tab
+      // of the window the user is in. Unlike a real click it leaves focus
+      // where it is (background.js treats a click just after Tab Mission lost
+      // focus like one while it has focus; unit tests cover that).
+      async clickToolbarButton() {
+        const url = await sw.evaluate(async () => {
+          const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+          return (await chrome.tabs.query({ active: true, windowId: win.id }))[0].url;
+        });
+        const { targetInfos } = await browserCommand(profile, 'Target.getTargets', { filter: [{ type: 'tab' }] });
+        const target = targetInfos.find((t) => t.url === url);
+        await browserCommand(profile, 'Extensions.triggerAction', { id: new URL(sw.url()).host, targetId: target.targetId });
+      },
+
+      // The shortcut (scope 'site' for the site command), sent as the
+      // welcome page's button sends it.
       async press(scope) {
         await welcome.evaluate((scope) => chrome.runtime.sendMessage({ action: 'openOverview', scope }).catch(() => {}), scope);
       },

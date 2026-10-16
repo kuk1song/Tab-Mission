@@ -51,16 +51,6 @@
     "message": "重置大小和位置",
     "description": "Tooltip for the button that resets the window size and position."
   },
-  "shortcutHintTitle": {
-    "message": "再按 $shortcut$：切换到选中的标签页（没有选中时关闭）",
-    "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "gridLabel": {
     "message": "已打开的标签页",
     "description": "Accessible name of the tab grid."
@@ -105,16 +95,6 @@
     "message": "Tab Mission 已就绪",
     "description": "Welcome page heading."
   },
-  "welcomeLead": {
-    "message": "在 Chrome 中任意位置按 $shortcut$，即可查看标签页。",
-    "description": "Welcome page: how to open the overview.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "welcomeNoShortcut": {
     "message": "Chrome 未能分配默认快捷键（可能已被其他扩展占用）。请设置一个快捷键，以便用键盘打开 Tab Mission。",
     "description": "Welcome page: the default shortcut could not be assigned."
@@ -123,24 +103,64 @@
     "message": "设置快捷键",
     "description": "Welcome page button that opens chrome://extensions/shortcuts."
   },
+  "welcomeTryTitle": {
+    "message": "动手试试",
+    "description": "Welcome page: heading of the checklist the user completes by doing each step."
+  },
+  "welcomeStepOpen": {
+    "message": "在任意网页按 $shortcut$ 打开 Tab Mission。",
+    "description": "Welcome page checklist, step 1. Ticks when a Tab Mission keyboard shortcut is pressed (not the toolbar button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘ + E"
+      }
+    }
+  },
+  "welcomeStepOpenUnset": {
+    "message": "先设置一个快捷键，再按它打开 Tab Mission。",
+    "description": "Welcome page checklist, step 1, when Chrome could not assign a shortcut."
+  },
+  "welcomeStepBack": {
+    "message": "再按一次，回到上一个标签页。",
+    "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
+  },
+  "welcomeStepDone": {
+    "message": "已完成",
+    "description": "Welcome page checklist: shown beside a step that is done."
+  },
+  "welcomeStepTodo": {
+    "message": "未完成",
+    "description": "Welcome page checklist: the state of a step not done yet (read by screen readers only)."
+  },
+  "welcomeStepAnnounce": {
+    "message": "已完成：$step$",
+    "description": "Welcome page checklist: announced to screen readers when a step ticks.",
+    "placeholders": {
+      "step": {
+        "content": "$1",
+        "example": "Press ⌘ + E to open Tab Mission."
+      }
+    }
+  },
+  "welcomeAllSet": {
+    "message": "全部完成，开始使用吧。",
+    "description": "Welcome page checklist: shown once all three steps are done."
+  },
   "welcomeTipsTitle": {
-    "message": "使用方法",
-    "description": "Welcome page: tips heading."
+    "message": "更多技巧",
+    "description": "Welcome page: heading of the tips under the checklist."
   },
   "welcomeTipSearch": {
-    "message": "直接输入即可按标题或网址筛选。最佳匹配会被高亮，按回车即可切换过去。",
-    "description": "Welcome page tip."
-  },
-  "welcomeTipMru": {
-    "message": "最可能要切换的标签页（上一个）排第一并已选中，当前标签页排第二。再按一次快捷键即可切回去。",
-    "description": "Welcome page tip."
+    "message": "输入几个字查找标签页，按回车切换过去。",
+    "description": "Welcome page: the first of the extra tips."
   },
   "welcomeTipHover": {
-    "message": "也可以把鼠标移到某个标签页上，再按一次快捷键直接跳转。",
+    "message": "在 Tab Mission 里，把鼠标移到某个标签页上，再按快捷键即可跳转过去。",
     "description": "Welcome page tip."
   },
   "welcomeTipSite": {
-    "message": "在搜索框里按 $shortcut$，只看当前网站的标签页。",
+    "message": "当前网站开着多个标签页时，在搜索框里按 $shortcut$ 只看这个网站的标签页。",
     "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {
@@ -158,7 +178,7 @@
     "description": "Welcome page tip shown when the toolbar button is not pinned."
   },
   "welcomePrivacy": {
-    "message": "所有数据都留在你的浏览器里。Tab Mission 没有服务器，也不收集任何数据。",
+    "message": "Tab Mission 没有服务器：你的标签页列表和搜索内容都只留在浏览器里。",
     "description": "Welcome page privacy note."
   },
   "optionsTitle": {
@@ -172,10 +192,6 @@
   "optionShortcutsHeading": {
     "message": "快捷键",
     "description": "Options: shortcuts heading."
-  },
-  "optionShortcutsNote": {
-    "message": "快捷键由 Chrome 管理，需要在 Chrome 的快捷键页面里修改。",
-    "description": "Settings page: note under the shortcut; only Chrome can change extension shortcuts."
   },
   "optionSaved": {
     "message": "已保存。",
@@ -192,6 +208,18 @@
   "optionPreselectNote": {
     "message": "连按两次快捷键即可回去。关闭后不预选，再按一次会关闭 Tab Mission。",
     "description": "Settings page: one line under the pre-select switch."
+  },
+  "optionHelpHeading": {
+    "message": "帮助",
+    "description": "Settings page: heading of the help section."
+  },
+  "optionShowTips": {
+    "message": "显示操作提示",
+    "description": "Settings page: switch for the tips in the Tab Mission window."
+  },
+  "optionShowTipsNote": {
+    "message": "打开后每次都显示；关闭时只在刚开始用的几次显示。",
+    "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {
     "message": "关于",
@@ -258,6 +286,26 @@
       "host": {
         "content": "$1",
         "example": "youtube.com"
+      }
+    }
+  },
+  "tipBack": {
+    "message": "再按 $shortcut$ 回到这里",
+    "description": "Tab Mission window: tip pointing at the selected card (the previous tab).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "tipOpen": {
+    "message": "随时按 $shortcut$ 就能打开",
+    "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with a click (the toolbar button or the welcome page's button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
       }
     }
   }

@@ -10,7 +10,6 @@
     <main class="card">
       <img class="logo" src="icons/icon128.png" alt="" width="64" height="64" />
       <h1 data-i18n="welcomeTitle">Tab Mission is ready</h1>
-      <p id="lead" class="lead"></p>
       <p id="no-shortcut" class="warn" hidden data-i18n="welcomeNoShortcut">
         Chrome could not assign the default shortcut, probably because another extension already uses it.
         Choose one so you can open Tab Mission from the keyboard.
@@ -20,16 +19,31 @@
         <button id="set-shortcut" class="external" data-i18n="changeShortcutTitle">Change shortcut</button>
       </div>
 
-      <h2 data-i18n="welcomeTipsTitle">How it works</h2>
+      <h2 id="try-title" data-i18n="welcomeTryTitle">Try it</h2>
+      <!-- Each step ticks itself when done (welcome.js); the state is also
+           written out, for screen readers, and announced by #try-status. -->
+      <ol id="try-it" class="steps" aria-labelledby="try-title">
+        <li id="step-open" class="step">
+          <span class="step-mark" aria-hidden="true">1</span>
+          <span class="step-body"><span class="step-text"></span> <span class="step-state"></span></span>
+        </li>
+        <li id="step-back" class="step">
+          <span class="step-mark" aria-hidden="true">2</span>
+          <span class="step-body"><span class="step-text" data-i18n="welcomeStepBack">Press it again to go back to your previous tab.</span> <span class="step-state"></span></span>
+        </li>
+      </ol>
+      <p id="all-set" class="all-set" hidden data-i18n="welcomeAllSet">You're all set.</p>
+      <p id="try-status" class="visually-hidden" role="status"></p>
+
+      <h2 data-i18n="welcomeTipsTitle">More tips</h2>
       <ul class="tips">
-        <li data-i18n="welcomeTipSearch">Just type to filter by title or URL. The best match is highlighted, so Enter switches to it.</li>
-        <li data-i18n="welcomeTipMru">The tab you most likely want (the previous one) comes first and is already selected, your current tab second. Press the shortcut again to jump back.</li>
-        <li data-i18n="welcomeTipHover">Or move the mouse onto a tab and press the shortcut again to jump there.</li>
-        <li id="tip-site">Press Tab in the search box to see only the tabs from the site you are on.</li>
+        <li data-i18n="welcomeTipSearch">Type a few letters to find a tab, then press Enter to switch to it.</li>
+        <li data-i18n="welcomeTipHover">In Tab Mission, point at a tab and press the shortcut to jump to it.</li>
+        <li id="tip-site">When the site you are on has several tabs open, press Tab in the search box to see only its tabs.</li>
         <li data-i18n="welcomeTipClose">Middle-click a tab, or click its ×, to close it.</li>
       </ul>
       <p id="pin" class="note" hidden data-i18n="welcomePin">Tip: pin Tab Mission to the toolbar (puzzle icon, then the pin) to open it with one click.</p>
-      <p class="note" data-i18n="welcomePrivacy">Everything stays in your browser. Tab Mission has no server and collects nothing.</p>
+      <p class="note" data-i18n="welcomePrivacy">Tab Mission has no server: your tab list and searches stay in your browser.</p>
     </main>
     <script src="src/welcome.js" type="module"></script>
   </body>

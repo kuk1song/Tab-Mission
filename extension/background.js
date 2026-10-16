@@ -1,4 +1,5 @@
 // background.js
+import { recordTryIt, startTips } from './src/tryit.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -136,16 +137,18 @@ async function overviewBounds(displays, saved) {
 }
 
 // scope is 'site' for the "current site" shortcut, anything else for all tabs.
-// A press that arrives while a toggle is still running is dropped, so a double
-// press during a service worker cold start cannot open a second window.
-function toggleOverviewWindow(scope) {
-	toggling ??= runToggle(scope).finally(() => {
+// source is what was used: 'shortcut', 'toolbar' (the toolbar button) or
+// 'button' (the welcome page's button). A press that arrives while a toggle
+// is still running is dropped, so a double press during a service worker cold
+// start cannot open a second window.
+function toggleOverviewWindow(scope, source = 'shortcut') {
+	toggling ??= runToggle(scope, source).finally(() => {
 		toggling = null;
 	});
 	return toggling;
 }
 
-async function runToggle(scope) {
+async function runToggle(scope, source) {
 	// After a service worker restart, recover the open overview, if any.
 	if (overviewWindowId === null) {
 		const storedId = await getStoredOverviewWindowId();
@@ -157,7 +160,7 @@ async function runToggle(scope) {
 	}
 
 	if (overviewWindowId === null) {
-		await createOverviewWindow(scope);
+		await createOverviewWindow(scope, source);
 		return;
 	}
 
@@ -168,6 +171,24 @@ async function runToggle(scope) {
 	// window you are in instead. Within a second of opening, the overview may
 	// not report focus yet, so a quick second press always goes to it.
 	const windowId = overviewWindowId;
+	// The toolbar button sits on a browser window, so clicking it always takes
+	// focus from the overview first. Clicked while the overview still has
+	// focus, or within a second of losing it (the overview records when),
+	// the button closes it, without switching tabs: the page fades out as it
+	// does for the shortcut, then closes itself. Left behind for longer, the
+	// overview is out of sight, so the click opens a fresh one below.
+	if (source === 'toolbar') {
+		let blurredAt = 0;
+		try {
+			({ overviewBlurredAt: blurredAt } = await chrome.storage.session.get({ overviewBlurredAt: 0 }));
+		} catch {}
+		if (Date.now() - blurredAt < 1000 || (await hasFocus(windowId))) {
+			overviewWindowId = null;
+			await setStoredOverviewWindowId(null);
+			await tellOverview(windowId, { action: 'closeOverview' });
+			return;
+		}
+	}
 	if (Date.now() - overviewOpenedAt > 1000 && !(await hasFocus(windowId))) {
 		overviewWindowId = null;
 		await setStoredOverviewWindowId(null);
@@ -176,17 +197,22 @@ async function runToggle(scope) {
 				await chrome.windows.remove(windowId);
 			} catch {}
 		}
-		await createOverviewWindow(scope);
+		await createOverviewWindow(scope, source);
 		return;
 	}
+	await tellOverview(windowId, { action: 'handleShortcut', scope });
+}
+
+// Hand a message to the overview page. When the page cannot answer (still
+// loading, or already gone), close its window instead.
+async function tellOverview(windowId, message) {
 	try {
 		const [tab] = await chrome.tabs.query({ windowId });
 		if (tab) {
-			await chrome.tabs.sendMessage(tab.id, { action: 'handleShortcut', scope });
+			await chrome.tabs.sendMessage(tab.id, message);
 			return;
 		}
 	} catch {}
-	// The page could not answer (still loading, or already gone): close it.
 	if (await isOverviewWindow(windowId)) {
 		try {
 			await chrome.windows.remove(windowId);
@@ -194,7 +220,16 @@ async function runToggle(scope) {
 	}
 }
 
-async function createOverviewWindow(scope) {
+// Opened with a click (the toolbar button or the welcome page's button), the
+// window may teach the shortcut (tips.js).
+function overviewPath(scope, source) {
+	const params = new URLSearchParams();
+	if (scope === 'site') params.set('scope', 'site');
+	if (source !== 'shortcut') params.set('via', 'click');
+	return params.size ? `overview.html?${params}` : 'overview.html';
+}
+
+async function createOverviewWindow(scope, source) {
 	try {
 		const displays = await chrome.system.display.getInfo();
 		if (!displays || displays.length === 0) {
@@ -204,7 +239,7 @@ async function createOverviewWindow(scope) {
 		const bounds = await overviewBounds(displays, await getSavedOverviewBounds());
 
 		const win = await chrome.windows.create({
-			url: chrome.runtime.getURL(scope === 'site' ? 'overview.html?scope=site' : 'overview.html'),
+			url: chrome.runtime.getURL(overviewPath(scope, source)),
 			type: 'popup',
 			...bounds,
 		});
@@ -219,24 +254,30 @@ async function createOverviewWindow(scope) {
 	}
 }
 
-// Listen for the commands to open/toggle the overview.
+// Listen for the commands to open/toggle the overview. A keyboard command
+// also ticks the welcome page's first step (not awaited, so the press is
+// handled as before); the toolbar button below does not.
 chrome.commands.onCommand.addListener((command) => {
 	if (command === 'open-overview') {
+		recordTryIt('open');
 		toggleOverviewWindow();
 	} else if (command === 'open-overview-site') {
+		recordTryIt('open');
 		toggleOverviewWindow('site');
 	}
 });
 
 // Also listen for the browser action icon click to toggle.
 chrome.action.onClicked.addListener(() => {
-	toggleOverviewWindow();
+	toggleOverviewWindow(undefined, 'toolbar');
 });
 
 // First install: open a short welcome page that shows the shortcut (or says
 // that none could be assigned) so new users are not left guessing.
 chrome.runtime.onInstalled.addListener(({ reason }) => {
 	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
+		// A new user: the Tab Mission window shows its tips until learned.
+		startTips();
 		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
 	}
 	if (reason === chrome.runtime.OnInstalledReason.UPDATE) {
@@ -270,8 +311,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		);
 		return true; // async response
 	}
+	// The welcome page's "Open Tab Mission" button.
 	if (request?.action === 'openOverview') {
-		toggleOverviewWindow(request.scope);
+		toggleOverviewWindow(request.scope, 'button');
 	}
 	return false;
 });
