@@ -324,7 +324,7 @@
     }
   },
   "tipOpen": {
-    "message": "La prossima volta premi $shortcut$ in qualsiasi pagina per aprire Tab Mission",
+    "message": "Premi $shortcut$ in qualsiasi momento per aprire Tab Mission",
     "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with a click (the toolbar button or the welcome page's button).",
     "placeholders": {
       "shortcut": {

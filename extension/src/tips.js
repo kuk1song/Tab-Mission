@@ -1,8 +1,8 @@
 // tips.js: a tip in the Tab Mission window, at most one, pointing at what it
 // explains. Opened with the shortcut, it points at the selected card (the
 // previous tab): "Press ⌘E again to come back here". Opened with a click (the
-// toolbar button, or the welcome page's button), at the shortcut badge: "Next
-// time, press ⌘E on any page to open Tab Mission". After a new install each shows until its step is done, at most
+// toolbar button, or the welcome page's button), at the shortcut badge: "Press
+// ⌘E anytime to open Tab Mission". After a new install each shows until its step is done, at most
 // TIP_SHOWS times (tryit.js); with "Show tips" on, every time. It has no
 // button and takes neither the pointer nor focus: it goes with the window,
 // or once it no longer applies (a key, scrolling, resizing, or for the card
@@ -87,7 +87,7 @@ export function showTip({ showTips, tryIt, shortcut, viaClick }) {
   if (!anchor?.getClientRects().length) return;
 
   tip = viaClick
-    ? message('tipOpen', shortcut, (s) => `Next time, press ${s} on any page to open Tab Mission`)
+    ? message('tipOpen', shortcut, (s) => `Press ${s} anytime to open Tab Mission`)
     : message('tipBack', shortcut, (s) => `Press ${s} again to come back here`);
   tip.dataset.anchor = viaClick ? 'badge' : 'card';
   root.append(tip);

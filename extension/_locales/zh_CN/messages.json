@@ -324,7 +324,7 @@
     }
   },
   "tipOpen": {
-    "message": "下次在任何网页按 $shortcut$ 就能打开 Tab Mission",
+    "message": "随时按 $shortcut$ 就能打开",
     "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with a click (the toolbar button or the welcome page's button).",
     "placeholders": {
       "shortcut": {
