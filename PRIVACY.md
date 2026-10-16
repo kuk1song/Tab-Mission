@@ -1,6 +1,6 @@
 # Privacy Policy for Tab Mission
 
-**Last Updated: 2026-10-15**
+**Last Updated: 2026-10-16**
 
 Thank you for using Tab Mission ("the Extension"). This policy explains exactly what the Extension reads, where that data stays, and why each permission is needed.
 
