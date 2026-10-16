@@ -213,22 +213,11 @@ test('welcome page: opened with the button, the first press inside ticks both st
   await expect(ext.welcome.locator('#try-it .step.done')).toHaveCount(2);
 });
 
-// Help is easy to find later: the settings page reopens the welcome page's
-// steps, starting over, with the window's tips due again.
-test("options page: Getting started opens the welcome page's steps from the first", async ({ ext, context }) => {
-  await ext.sw.evaluate(() => chrome.storage.local.set({ tryItOpen: true, tryItBack: true }));
+// Help stays easy to find: the settings page's Help section has one switch,
+// which shows the window's tips every time.
+test('options page: Help is one Show tips switch, off by default, that saves at once', async ({ ext, context }) => {
   const { page } = await openOptions(ext, context);
-  const opened = context.waitForEvent('page', (p) => p.url().endsWith('/welcome.html') && p !== ext.welcome);
-  await page.locator('#open-guide').click();
-  const guide = await opened;
-  await expect(guide.locator('#try-it .step')).toHaveCount(2);
-  await expect(guide.locator('#try-it .step.done')).toHaveCount(0);
-  expect(await ext.sw.evaluate(() => chrome.storage.local.get(['tryItOpen', 'tryItBack', 'tipsDue']))).toEqual({ tipsDue: true });
-  await guide.close();
-});
-
-test('options page: the Show tips switch is off by default and saves at once', async ({ ext, context }) => {
-  const { page } = await openOptions(ext, context);
+  await expect(page.locator('section[aria-labelledby="help-heading"] .row')).toHaveCount(1);
   const tips = page.locator('#show-tips');
   await expect(tips).toHaveAttribute('role', 'switch');
   await expect(tips).not.toBeChecked();

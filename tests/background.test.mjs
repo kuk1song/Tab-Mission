@@ -241,10 +241,10 @@ describe('background.js', () => {
     });
   });
 
-  it('opens the welcome page on install, and makes the window tips due for the new user', () => {
+  it('opens the welcome page on install, and gives the new user the window tips', () => {
     chrome.listeners.onInstalled({ reason: 'install' });
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://test/welcome.html' });
-    expect(chrome.storage.local.data.tipsDue).toBe(true);
+    expect(chrome.storage.local.data.tipsLeft).toEqual({ open: 3, back: 3 });
   });
 
   it('on update, deletes the keys older versions saved, keeps the settings and leaves the first-use tips off', async () => {

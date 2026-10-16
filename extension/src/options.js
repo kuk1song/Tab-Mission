@@ -3,7 +3,6 @@
 import { localizeStaticText, t } from './i18n.js';
 import { loadSettings, saveSettings } from './settings.js';
 import { shortcutKeys, openShortcutSettings } from './shortcuts.js';
-import { resetTryIt } from './tryit.js';
 
 async function main() {
   const preselect = document.getElementById('preselect-previous');
@@ -25,11 +24,6 @@ async function main() {
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
     });
   }
-  // The welcome page's steps, from the first one, in a new tab.
-  document.getElementById('open-guide').addEventListener('click', async () => {
-    await resetTryIt();
-    chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') }).catch(() => {});
-  });
   // Refresh after the user changes a shortcut in the tab opened from here.
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) showShortcuts();

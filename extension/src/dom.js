@@ -4,7 +4,7 @@ import { activateTab, closeTab, setSiteScope } from './events.js';
 import { getHostname, isValidIconUrl, isSleeping, generateGradient, createPlaceholderIcon } from './utils.js';
 import { observeTiles } from './thumbnail.js';
 import { t } from './i18n.js';
-import { hideTip } from './tips.js';
+import { selectionMoved } from './tips.js';
 
 // One tile per tab, built on first render and reused afterwards. Filtering
 // only reorders these nodes, so previews never reload and the entrance
@@ -57,7 +57,7 @@ export function releasePointerSelection() {
 
 function select(index) {
   if (state.selectedIndex !== index) {
-    hideTip(); // the tip points at the card that was selected
+    selectionMoved(); // a tip on the card that was selected no longer applies
     state.selectedIndex = index;
     updateSelection();
   }

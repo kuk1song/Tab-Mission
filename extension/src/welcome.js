@@ -55,7 +55,7 @@ async function showPinHint() {
 
 const STEPS = Object.keys(TRY_IT_KEYS);
 // The steps as last shown, so a change can announce only what is new.
-let shown = { open: false, back: false, search: false };
+let shown = { open: false, back: false };
 
 function stepItem(step) {
   return document.getElementById(`step-${step}`);
@@ -63,7 +63,7 @@ function stepItem(step) {
 
 // Tick the steps that are done: a check mark in place of the number, and the
 // state written out ("Done", or "Not done yet" for screen readers only). A
-// live change is also announced, with "You're all set" once all three are done.
+// live change is also announced, with "You're all set" once both are done.
 // Steps only ever become done, so a slower read never unticks one.
 function showTryIt(value, { announce = false } = {}) {
   const done = Object.fromEntries(STEPS.map((step) => [step, value[step] || shown[step]]));

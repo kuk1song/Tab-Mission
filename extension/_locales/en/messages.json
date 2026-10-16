@@ -242,20 +242,8 @@
     "description": "Settings page: switch for the tips in the Tab Mission window."
   },
   "optionShowTipsNote": {
-    "message": "Every time Tab Mission opens, one tip next to what it explains. When off, tips show only on first use.",
+    "message": "Show a tip every time Tab Mission opens. When off, tips show only for your first few uses.",
     "description": "Settings page: what the Show tips switch does."
-  },
-  "optionGuide": {
-    "message": "Getting started",
-    "description": "Settings page: the row that opens the welcome page."
-  },
-  "optionGuideNote": {
-    "message": "Go through the welcome page's steps again, starting from the first.",
-    "description": "Settings page: what the getting started button does."
-  },
-  "optionGuideOpen": {
-    "message": "Open",
-    "description": "Settings page: button that opens the welcome page in a new tab."
   },
   "optionAboutHeading": {
     "message": "About",
@@ -327,7 +315,7 @@
   },
   "tipBack": {
     "message": "Press $shortcut$ again to come back here",
-    "description": "Tab Mission window: tip on the selected card (the previous tab).",
+    "description": "Tab Mission window: tip pointing at the selected card (the previous tab).",
     "placeholders": {
       "shortcut": {
         "content": "$1",
@@ -337,16 +325,12 @@
   },
   "tipToolbar": {
     "message": "Next time, press $shortcut$ on any page to open Tab Mission",
-    "description": "Tab Mission window: tip when it was opened with the toolbar button.",
+    "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with the toolbar button.",
     "placeholders": {
       "shortcut": {
         "content": "$1",
         "example": "⌘E"
       }
     }
-  },
-  "tipDismiss": {
-    "message": "Got it",
-    "description": "Tab Mission window: button that dismisses a tip."
   }
 }

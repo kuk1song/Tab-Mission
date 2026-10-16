@@ -242,20 +242,8 @@
     "description": "Settings page: switch for the tips in the Tab Mission window."
   },
   "optionShowTipsNote": {
-    "message": "Ogni volta che si apre Tab Mission, un suggerimento accanto a ciò che spiega. Se disattivato, solo al primo utilizzo.",
+    "message": "Mostra un suggerimento ogni volta che si apre Tab Mission. Se disattivato, solo nei primi utilizzi.",
     "description": "Settings page: what the Show tips switch does."
-  },
-  "optionGuide": {
-    "message": "Guida introduttiva",
-    "description": "Settings page: the row that opens the welcome page."
-  },
-  "optionGuideNote": {
-    "message": "Ripeti i passaggi della pagina di benvenuto, dal primo.",
-    "description": "Settings page: what the getting started button does."
-  },
-  "optionGuideOpen": {
-    "message": "Apri",
-    "description": "Settings page: button that opens the welcome page in a new tab."
   },
   "optionAboutHeading": {
     "message": "Informazioni",
@@ -327,7 +315,7 @@
   },
   "tipBack": {
     "message": "Premi di nuovo $shortcut$ per tornare qui",
-    "description": "Tab Mission window: tip on the selected card (the previous tab).",
+    "description": "Tab Mission window: tip pointing at the selected card (the previous tab).",
     "placeholders": {
       "shortcut": {
         "content": "$1",
@@ -337,16 +325,12 @@
   },
   "tipToolbar": {
     "message": "La prossima volta premi $shortcut$ in qualsiasi pagina per aprire Tab Mission",
-    "description": "Tab Mission window: tip when it was opened with the toolbar button.",
+    "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with the toolbar button.",
     "placeholders": {
       "shortcut": {
         "content": "$1",
         "example": "⌘E"
       }
     }
-  },
-  "tipDismiss": {
-    "message": "Ho capito",
-    "description": "Tab Mission window: button that dismisses a tip."
   }
 }

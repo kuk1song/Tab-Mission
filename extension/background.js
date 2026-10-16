@@ -1,5 +1,5 @@
 // background.js
-import { recordTryIt, TIPS_DUE_KEY } from './src/tryit.js';
+import { recordTryIt, startTips } from './src/tryit.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -275,7 +275,7 @@ chrome.action.onClicked.addListener(() => {
 chrome.runtime.onInstalled.addListener(({ reason }) => {
 	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
 		// A new user: the Tab Mission window shows its tips until learned.
-		chrome.storage.local.set({ [TIPS_DUE_KEY]: true }).catch(() => {});
+		startTips();
 		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
 	}
 	if (reason === chrome.runtime.OnInstalledReason.UPDATE) {
