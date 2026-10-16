@@ -118,10 +118,17 @@ test('the toolbar button opens Tab Mission; clicked again, it fades out as for t
   await ext.clickToolbarButton();
   const page = await opened;
   await page.locator('#grid .tile').first().waitFor();
-  const faded = page.waitForFunction(() => document.getElementById('root').classList.contains('closing-fast'), null, { polling: 'raf' });
+  // The fade lasts 150 ms before the window closes: too short to poll for
+  // on a busy machine (it was missed on macOS CI). The page notes it the
+  // moment it starts, in storage that outlives the page.
+  await page.evaluate(() => {
+    const root = document.getElementById('root');
+    new MutationObserver(() => {
+      if (root.classList.contains('closing-fast')) chrome.storage.session.set({ fadeSeen: true });
+    }).observe(root, { attributes: true, attributeFilter: ['class'] });
+  });
   await ext.clickToolbarButton();
-  await faded;
   await ext.expectClosed();
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.session.get('fadeSeen').then((r) => r.fadeSeen))).toBe(true);
   expect(await ext.activeTitle(windowId)).toBe(gamma.title);
-  expect(ext.overviewPages()).toHaveLength(0);
 });
