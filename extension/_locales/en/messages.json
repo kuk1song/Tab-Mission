@@ -52,7 +52,7 @@
     "description": "Tooltip for the button that resets the window size and position."
   },
   "shortcutHintTitle": {
-    "message": "Press $shortcut$ to switch to the selected tab, or to close Tab Mission when none is selected",
+    "message": "Press $shortcut$ to switch to the selected tab",
     "description": "Tooltip and accessible name of the shortcut badge in the overview, which is already open; includes the active shortcut.",
     "placeholders": {
       "shortcut": {
