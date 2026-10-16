@@ -536,6 +536,7 @@ html, body {
   font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.4;
+  text-wrap: pretty; /* no lone word on a second line */
   box-shadow: var(--shadow-elevated);
   pointer-events: none;
   animation: tipIn 160ms ease-out;
