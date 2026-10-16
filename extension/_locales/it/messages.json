@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Cambia scheda come con Alt+Tab: schede in griglia, le più recenti prima. Cerca in tutte le finestre; premi due volte per tornare.",
+    "message": "Il tuo centro di comando per le schede. Panoramica istantanea, ricerca immediata, cambio fulmineo.",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {

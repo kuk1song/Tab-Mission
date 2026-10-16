@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Switch tabs like Alt+Tab: your tabs as cards, most recent first. Type to search all windows; press the shortcut twice to go back.",
+    "message": "Mission Control for your Chrome tabs. Instantly search and switch between visual tab previews.",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {
