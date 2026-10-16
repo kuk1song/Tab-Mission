@@ -77,6 +77,11 @@ export function initializeEventListeners() {
   initializeGridListeners();
 
   window.addEventListener('keydown', handleKeydown);
+  // When focus leaves the window: a toolbar click right after closes Tab
+  // Mission instead of reopening it (background.js).
+  window.addEventListener('blur', () => {
+    chrome.storage.session.set({ overviewBlurredAt: Date.now() }).catch(() => {});
+  });
 
   // The shortcut pressed while the overview is open (sent by background.js).
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

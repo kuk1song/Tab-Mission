@@ -138,14 +138,14 @@ async function overviewBounds(displays, saved) {
 // scope is 'site' for the "current site" shortcut, anything else for all tabs.
 // A press that arrives while a toggle is still running is dropped, so a double
 // press during a service worker cold start cannot open a second window.
-function toggleOverviewWindow(scope) {
-	toggling ??= runToggle(scope).finally(() => {
+function toggleOverviewWindow(scope, fromToolbar = false) {
+	toggling ??= runToggle(scope, fromToolbar).finally(() => {
 		toggling = null;
 	});
 	return toggling;
 }
 
-async function runToggle(scope) {
+async function runToggle(scope, fromToolbar) {
 	// After a service worker restart, recover the open overview, if any.
 	if (overviewWindowId === null) {
 		const storedId = await getStoredOverviewWindowId();
@@ -168,6 +168,27 @@ async function runToggle(scope) {
 	// window you are in instead. Within a second of opening, the overview may
 	// not report focus yet, so a quick second press always goes to it.
 	const windowId = overviewWindowId;
+	// The toolbar button sits on a browser window, so clicking it always takes
+	// focus from the overview first. Clicked while the overview still has
+	// focus, or within a second of losing it (the overview records when),
+	// the button closes it, without switching tabs. Left behind for longer,
+	// the overview is out of sight, so the click opens a fresh one below.
+	if (fromToolbar) {
+		let blurredAt = 0;
+		try {
+			({ overviewBlurredAt: blurredAt } = await chrome.storage.session.get({ overviewBlurredAt: 0 }));
+		} catch {}
+		if (Date.now() - blurredAt < 1000 || (await hasFocus(windowId))) {
+			overviewWindowId = null;
+			await setStoredOverviewWindowId(null);
+			if (await isOverviewWindow(windowId)) {
+				try {
+					await chrome.windows.remove(windowId);
+				} catch {}
+			}
+			return;
+		}
+	}
 	if (Date.now() - overviewOpenedAt > 1000 && !(await hasFocus(windowId))) {
 		overviewWindowId = null;
 		await setStoredOverviewWindowId(null);
@@ -230,7 +251,7 @@ chrome.commands.onCommand.addListener((command) => {
 
 // Also listen for the browser action icon click to toggle.
 chrome.action.onClicked.addListener(() => {
-	toggleOverviewWindow();
+	toggleOverviewWindow(undefined, true);
 });
 
 // First install: open a short welcome page that shows the shortcut (or says
