@@ -1,4 +1,4 @@
-import { test, expect, PAGES } from './fixtures.mjs';
+import { test, expect, PAGES, pointAt } from './fixtures.mjs';
 
 test('typing never writes to storage; changing a toggle does', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta', 'gamma']);
@@ -57,7 +57,9 @@ test('× on a tab closed elsewhere drops its tile and gives focus back to the se
   const { tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
   await ext.sw.evaluate((id) => chrome.tabs.remove(id), tabIds.alpha);
-  await page.locator(`.tile[data-tab-id="${tabIds.alpha}"] .tile-close`).click({ force: true });
+  // The × of the card under the pointer (only a selected card's × is there).
+  await pointAt(page, page.locator(`.tile[data-tab-id="${tabIds.alpha}"]`));
+  await page.locator(`.tile[data-tab-id="${tabIds.alpha}"] .tile-close`).click();
   await expect(page.locator(`.tile[data-tab-id="${tabIds.alpha}"]`)).toHaveCount(0);
   await expect(page.locator('#search')).toBeFocused();
 });
