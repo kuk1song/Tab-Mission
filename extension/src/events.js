@@ -83,8 +83,15 @@ export function initializeEventListeners() {
     chrome.storage.session.set({ overviewBlurredAt: Date.now() }).catch(() => {});
   });
 
-  // The shortcut pressed while the overview is open (sent by background.js).
+  // Sent by background.js: the toolbar button closing Tab Mission (with the
+  // same quick fade as a switch, without switching tabs), or the shortcut
+  // pressed while it is open.
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request?.action === 'closeOverview') {
+      sendResponse({ ok: true });
+      closeOverview(true);
+      return;
+    }
     if (request?.action !== 'handleShortcut') return;
     sendResponse({ ok: true });
     // The site shortcut narrows the open overview to the current site. Every

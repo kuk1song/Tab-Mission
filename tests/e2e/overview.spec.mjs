@@ -83,3 +83,18 @@ test('Esc clears the query first, then closes without switching', async ({ ext }
   await ext.pressToClose(page, 'Escape');
   expect(await ext.activeTitle(windowId)).toBe(gamma.title);
 });
+
+test('closed by the toolbar button, Tab Mission fades out as for the shortcut, without switching', async ({ ext }) => {
+  // The button itself is browser UI, out of Playwright's reach; background.js
+  // sends this message when it is clicked while Tab Mission is in use.
+  const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  const faded = page.waitForFunction(() => document.getElementById('root').classList.contains('closing-fast'));
+  await ext.sw.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ url: chrome.runtime.getURL('overview.html') });
+    await chrome.tabs.sendMessage(tab.id, { action: 'closeOverview' });
+  });
+  await faded;
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(gamma.title);
+});

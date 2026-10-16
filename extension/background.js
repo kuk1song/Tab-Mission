@@ -171,8 +171,9 @@ async function runToggle(scope, fromToolbar) {
 	// The toolbar button sits on a browser window, so clicking it always takes
 	// focus from the overview first. Clicked while the overview still has
 	// focus, or within a second of losing it (the overview records when),
-	// the button closes it, without switching tabs. Left behind for longer,
-	// the overview is out of sight, so the click opens a fresh one below.
+	// the button closes it, without switching tabs: the page fades out as it
+	// does for the shortcut, then closes itself. Left behind for longer, the
+	// overview is out of sight, so the click opens a fresh one below.
 	if (fromToolbar) {
 		let blurredAt = 0;
 		try {
@@ -181,11 +182,7 @@ async function runToggle(scope, fromToolbar) {
 		if (Date.now() - blurredAt < 1000 || (await hasFocus(windowId))) {
 			overviewWindowId = null;
 			await setStoredOverviewWindowId(null);
-			if (await isOverviewWindow(windowId)) {
-				try {
-					await chrome.windows.remove(windowId);
-				} catch {}
-			}
+			await tellOverview(windowId, { action: 'closeOverview' });
 			return;
 		}
 	}
@@ -200,14 +197,19 @@ async function runToggle(scope, fromToolbar) {
 		await createOverviewWindow(scope);
 		return;
 	}
+	await tellOverview(windowId, { action: 'handleShortcut', scope });
+}
+
+// Hand a message to the overview page. When the page cannot answer (still
+// loading, or already gone), close its window instead.
+async function tellOverview(windowId, message) {
 	try {
 		const [tab] = await chrome.tabs.query({ windowId });
 		if (tab) {
-			await chrome.tabs.sendMessage(tab.id, { action: 'handleShortcut', scope });
+			await chrome.tabs.sendMessage(tab.id, message);
 			return;
 		}
 	} catch {}
-	// The page could not answer (still loading, or already gone): close it.
 	if (await isOverviewWindow(windowId)) {
 		try {
 			await chrome.windows.remove(windowId);
