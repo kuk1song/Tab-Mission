@@ -155,7 +155,6 @@ function updateScopeIndicators(uiState) {
   if (offer) {
     document.getElementById('scope-hint-label').textContent =
       t('siteScopeHint', [site.label, String(site.count)]) || `Only ${site.label} · ${site.count}`;
-    hint.title = t('siteScopeHintTitle') || 'Show only tabs from this site';
   }
 }
 

@@ -31,10 +31,6 @@
     "message": "Search tabs (title or URL)…",
     "description": "Placeholder text for the search input field."
   },
-  "searchEverywhereHint": {
-    "message": "Search covers all windows and sleeping tabs",
-    "description": "Tooltip on the toggles: searching ignores them."
-  },
   "showSleepingLabel": {
     "message": "Show sleeping",
     "description": "Label for the 'Show sleeping' checkbox."
@@ -48,7 +44,7 @@
     "description": "Button that opens chrome://extensions/shortcuts."
   },
   "resetWindowTitle": {
-    "message": "Reset size & center",
+    "message": "Reset size and position",
     "description": "Tooltip for the button that resets the window size and position."
   },
   "shortcutHintTitle": {
@@ -242,10 +238,6 @@
         "example": "13"
       }
     }
-  },
-  "siteScopeHintTitle": {
-    "message": "Show only tabs from this site (Tab)",
-    "description": "Tooltip of the site-scope hint."
   },
   "searchAllTabs": {
     "message": "Search all tabs",

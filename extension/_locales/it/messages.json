@@ -31,10 +31,6 @@
     "message": "Cerca schede (titolo o URL)…",
     "description": "Placeholder text for the search input field."
   },
-  "searchEverywhereHint": {
-    "message": "La ricerca include tutte le finestre e le schede inattive",
-    "description": "Tooltip on the toggles: searching ignores them."
-  },
   "showSleepingLabel": {
     "message": "Mostra inattive",
     "description": "Label for the 'Show sleeping' checkbox."
@@ -48,7 +44,7 @@
     "description": "Button that opens chrome://extensions/shortcuts."
   },
   "resetWindowTitle": {
-    "message": "Reimposta dimensioni e centra",
+    "message": "Reimposta dimensioni e posizione",
     "description": "Tooltip for the button that resets the window size and position."
   },
   "shortcutHintTitle": {
@@ -242,10 +238,6 @@
         "example": "13"
       }
     }
-  },
-  "siteScopeHintTitle": {
-    "message": "Mostra solo le schede di questo sito (Tab)",
-    "description": "Tooltip of the site-scope hint."
   },
   "searchAllTabs": {
     "message": "Cerca in tutte le schede",
