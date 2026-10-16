@@ -145,10 +145,6 @@
     "message": "Premi di nuovo la scorciatoia per tornare alla scheda precedente.",
     "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
   },
-  "welcomeStepSearch": {
-    "message": "Apri Tab Mission, digita qualche lettera del titolo di una scheda e premi Invio.",
-    "description": "Welcome page checklist, step 3: Enter switches to a tab found by typing."
-  },
   "welcomeStepDone": {
     "message": "Fatto",
     "description": "Welcome page checklist: shown beside a step that is done."
@@ -174,6 +170,10 @@
   "welcomeTipsTitle": {
     "message": "Altri suggerimenti",
     "description": "Welcome page: heading of the tips under the checklist."
+  },
+  "welcomeTipSearch": {
+    "message": "Digita qualche lettera per trovare una scheda, poi premi Invio per aprirla.",
+    "description": "Welcome page: the first of the extra tips."
   },
   "welcomeTipHover": {
     "message": "In Tab Mission, punta il mouse su una scheda e premi la scorciatoia per andarci.",
@@ -236,6 +236,14 @@
   "optionHelpHeading": {
     "message": "Aiuto",
     "description": "Settings page: heading of the help section."
+  },
+  "optionShowTips": {
+    "message": "Mostra suggerimenti",
+    "description": "Settings page: switch for the tips in the Tab Mission window."
+  },
+  "optionShowTipsNote": {
+    "message": "Ogni volta che si apre Tab Mission, un suggerimento accanto a ciò che spiega. Se disattivato, solo al primo utilizzo.",
+    "description": "Settings page: what the Show tips switch does."
   },
   "optionGuide": {
     "message": "Guida introduttiva",
@@ -316,5 +324,29 @@
         "example": "youtube.com"
       }
     }
+  },
+  "tipBack": {
+    "message": "Premi di nuovo $shortcut$ per tornare qui",
+    "description": "Tab Mission window: tip on the selected card (the previous tab).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "tipToolbar": {
+    "message": "La prossima volta premi $shortcut$ in qualsiasi pagina per aprire Tab Mission",
+    "description": "Tab Mission window: tip when it was opened with the toolbar button.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "tipDismiss": {
+    "message": "Ho capito",
+    "description": "Tab Mission window: button that dismisses a tip."
   }
 }

@@ -5,6 +5,7 @@ import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isValidIconUrl, createPlaceholderIcon } from './utils.js';
 import { recordTryIt } from './tryit.js';
+import { hideTip } from './tips.js';
 
 // Filtering is cheap now that tiles are reused, so the search runs once per
 // animation frame instead of after a 200ms debounce. Enter flushes a pending
@@ -232,6 +233,7 @@ export async function closeTab(tab) {
 
 function handleKeydown(e) {
   releasePointerSelection();
+  hideTip();
   // Keys that pick or commit an input method candidate (pinyin, kana) belong
   // to the input method, not to the overview.
   if (e.isComposing || e.keyCode === 229) return;
@@ -278,9 +280,6 @@ function handleKeydown(e) {
       flushFilterChange();
       if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
         e.preventDefault();
-        // With a query typed, this ticks the welcome page's search step (not
-        // awaited, so it never delays the switch).
-        if (readUiState().searchTerm.trim() !== '') recordTryIt('search');
         activateTab(state.filteredTabs[state.selectedIndex]);
       }
       break;

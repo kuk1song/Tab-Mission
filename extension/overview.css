@@ -520,6 +520,70 @@ html, body {
   text-overflow: ellipsis; 
 }
 
+/* Tips (tips.js): one at a time, next to what they explain. On a card it
+   hangs from the card with an arrow; opened from the toolbar it sits at the
+   bottom. Both stand apart from the cards (solid color, a button to dismiss),
+   so they never look like something to pick. */
+.tip {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100% - 16px);
+  padding: 8px 8px 8px 14px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: var(--shadow-elevated);
+  animation: tipIn 160ms ease-out;
+}
+.tip kbd {
+  font: inherit;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+}
+.tip button {
+  flex: none;
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 7px;
+  border: 1px solid currentColor;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.tip button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.tip-card { background: var(--accent); color: #0b1020; }
+.tip-card::before {
+  content: "";
+  position: absolute;
+  left: 22px;
+  top: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+.tip-card.above::before { top: auto; bottom: -6px; }
+.tip-bar {
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border: 1px solid var(--accent);
+  white-space: nowrap;
+}
+@keyframes tipIn { from { opacity: 0; } to { opacity: 1; } }
+@media (forced-colors: active) {
+  .tip { border: 1px solid CanvasText; }
+  .tip-card::before { display: none; }
+}
+
 /* Respect the OS "reduce motion" setting: no entrance, selection or exit motion.
    (closeOverview() also skips its exit delay in this mode.) */
 @media (prefers-reduced-motion: reduce) {
@@ -527,7 +591,8 @@ html, body {
   .tile,
   .grid.entering .tile,
   .thumbnail,
-  .scope-token {
+  .scope-token,
+  .tip {
     animation: none !important;
     transition: none !important;
   }

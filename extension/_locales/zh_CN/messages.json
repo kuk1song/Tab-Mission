@@ -145,10 +145,6 @@
     "message": "再按一次，回到上一个标签页。",
     "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
   },
-  "welcomeStepSearch": {
-    "message": "打开 Tab Mission，输入某个标签页标题里的几个字，然后按回车。",
-    "description": "Welcome page checklist, step 3: Enter switches to a tab found by typing."
-  },
   "welcomeStepDone": {
     "message": "已完成",
     "description": "Welcome page checklist: shown beside a step that is done."
@@ -174,6 +170,10 @@
   "welcomeTipsTitle": {
     "message": "更多技巧",
     "description": "Welcome page: heading of the tips under the checklist."
+  },
+  "welcomeTipSearch": {
+    "message": "输入几个字查找标签页，按回车切换过去。",
+    "description": "Welcome page: the first of the extra tips."
   },
   "welcomeTipHover": {
     "message": "在 Tab Mission 里，把鼠标移到某个标签页上，再按快捷键即可跳转过去。",
@@ -236,6 +236,14 @@
   "optionHelpHeading": {
     "message": "帮助",
     "description": "Settings page: heading of the help section."
+  },
+  "optionShowTips": {
+    "message": "显示操作提示",
+    "description": "Settings page: switch for the tips in the Tab Mission window."
+  },
+  "optionShowTipsNote": {
+    "message": "每次打开 Tab Mission 都显示一条提示，就在它说明的位置旁边。关闭时只在第一次使用时显示。",
+    "description": "Settings page: what the Show tips switch does."
   },
   "optionGuide": {
     "message": "入门指南",
@@ -316,5 +324,29 @@
         "example": "youtube.com"
       }
     }
+  },
+  "tipBack": {
+    "message": "再按 $shortcut$ 回到这里",
+    "description": "Tab Mission window: tip on the selected card (the previous tab).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "tipToolbar": {
+    "message": "下次在任何网页按 $shortcut$ 就能打开 Tab Mission",
+    "description": "Tab Mission window: tip when it was opened with the toolbar button.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "tipDismiss": {
+    "message": "知道了",
+    "description": "Tab Mission window: button that dismisses a tip."
   }
 }

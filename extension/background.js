@@ -1,5 +1,5 @@
 // background.js
-import { recordTryIt } from './src/tryit.js';
+import { recordTryIt, TIPS_DUE_KEY } from './src/tryit.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -158,7 +158,7 @@ async function runToggle(scope, fromToolbar) {
 	}
 
 	if (overviewWindowId === null) {
-		await createOverviewWindow(scope);
+		await createOverviewWindow(scope, fromToolbar);
 		return;
 	}
 
@@ -195,7 +195,7 @@ async function runToggle(scope, fromToolbar) {
 				await chrome.windows.remove(windowId);
 			} catch {}
 		}
-		await createOverviewWindow(scope);
+		await createOverviewWindow(scope, fromToolbar);
 		return;
 	}
 	await tellOverview(windowId, { action: 'handleShortcut', scope });
@@ -218,7 +218,16 @@ async function tellOverview(windowId, message) {
 	}
 }
 
-async function createOverviewWindow(scope) {
+function overviewPath(scope, viaToolbar) {
+	const params = new URLSearchParams();
+	if (scope === 'site') params.set('scope', 'site');
+	if (viaToolbar) params.set('via', 'toolbar');
+	return params.size ? `overview.html?${params}` : 'overview.html';
+}
+
+// viaToolbar: opened with the toolbar button (the window may then teach the
+// shortcut, see tips.js).
+async function createOverviewWindow(scope, viaToolbar = false) {
 	try {
 		const displays = await chrome.system.display.getInfo();
 		if (!displays || displays.length === 0) {
@@ -228,7 +237,7 @@ async function createOverviewWindow(scope) {
 		const bounds = await overviewBounds(displays, await getSavedOverviewBounds());
 
 		const win = await chrome.windows.create({
-			url: chrome.runtime.getURL(scope === 'site' ? 'overview.html?scope=site' : 'overview.html'),
+			url: chrome.runtime.getURL(overviewPath(scope, viaToolbar)),
 			type: 'popup',
 			...bounds,
 		});
@@ -265,6 +274,8 @@ chrome.action.onClicked.addListener(() => {
 // that none could be assigned) so new users are not left guessing.
 chrome.runtime.onInstalled.addListener(({ reason }) => {
 	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
+		// A new user: the Tab Mission window shows its tips until learned.
+		chrome.storage.local.set({ [TIPS_DUE_KEY]: true }).catch(() => {});
 		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
 	}
 	if (reason === chrome.runtime.OnInstalledReason.UPDATE) {

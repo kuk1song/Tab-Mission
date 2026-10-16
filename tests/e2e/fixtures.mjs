@@ -145,6 +145,11 @@ export const test = base.extend({
     // that sends "shortcut presses" to background.js.
     await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html')), { timeout: 15_000 }).toBe(true);
     const welcome = context.pages().find((p) => p.url().endsWith('/welcome.html'));
+    // A new install makes the Tab Mission window's tips due (background.js).
+    // tips.spec turns them on where it tests them; elsewhere they would cover
+    // cards that tests click.
+    await expect.poll(() => sw.evaluate(() => chrome.storage.local.get('tipsDue').then((r) => r.tipsDue))).toBe(true);
+    await sw.evaluate(() => chrome.storage.local.remove('tipsDue'));
     const url = (id, query = '') => `http://${HOSTS[id] ?? 'localhost'}:${site.port}/${id}.html${query}`;
 
     const ext = {

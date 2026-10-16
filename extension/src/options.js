@@ -7,20 +7,24 @@ import { resetTryIt } from './tryit.js';
 
 async function main() {
   const preselect = document.getElementById('preselect-previous');
+  const showTips = document.getElementById('show-tips');
   try {
     localizeStaticText();
     const { version } = chrome.runtime.getManifest();
     document.getElementById('version').textContent = t('optionVersion', [version]) || `Version ${version}`;
     const [settings] = await Promise.all([loadSettings(), showShortcuts()]);
     preselect.checked = settings.preselectPrevious;
+    showTips.checked = settings.showTips;
   } finally {
     reveal(preselect);
   }
-  preselect.addEventListener('change', async () => {
-    const saved = await saveSettings({ preselectPrevious: preselect.checked });
-    // The switch shows the new state; screen readers also hear "Saved."
-    if (saved) announce(t('optionSaved') || 'Saved.');
-  });
+  // Each switch saves at once; the switch shows the new state and screen
+  // readers also hear "Saved."
+  for (const [input, key] of [[preselect, 'preselectPrevious'], [showTips, 'showTips']]) {
+    input.addEventListener('change', async () => {
+      if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
+    });
+  }
   // The welcome page's steps, from the first one, in a new tab.
   document.getElementById('open-guide').addEventListener('click', async () => {
     await resetTryIt();

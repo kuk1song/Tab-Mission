@@ -95,7 +95,7 @@ function showTryIt(value, { announce = false } = {}) {
 async function main() {
   // Steps done in Tab Mission while this page is open tick here at once.
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'session') return;
+    if (area !== 'local') return;
     const changed = STEPS.filter((step) => TRY_IT_KEYS[step] in changes);
     if (changed.length === 0) return;
     const done = { ...shown };

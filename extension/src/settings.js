@@ -7,6 +7,9 @@ const DEFAULTS = {
   // shortcut twice goes back to it (Alt+Tab style). Off (options page):
   // nothing is selected on open, so pressing it twice closes the overview.
   preselectPrevious: true,
+  // Off by default: tips in the Tab Mission window show only after a new
+  // install, until learned (tips.js). On (settings page): every time.
+  showTips: false,
 };
 
 /**
