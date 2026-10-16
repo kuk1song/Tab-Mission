@@ -6,24 +6,30 @@ import { shortcutKeys, openShortcutSettings } from './shortcuts.js';
 
 async function main() {
   const preselect = document.getElementById('preselect-previous');
+  const showTips = document.getElementById('show-tips');
   try {
     localizeStaticText();
     const { version } = chrome.runtime.getManifest();
     document.getElementById('version').textContent = t('optionVersion', [version]) || `Version ${version}`;
     const [settings] = await Promise.all([loadSettings(), showShortcuts()]);
     preselect.checked = settings.preselectPrevious;
+    showTips.checked = settings.showTips;
   } finally {
     reveal(preselect);
   }
-  preselect.addEventListener('change', async () => {
-    const saved = await saveSettings({ preselectPrevious: preselect.checked });
-    // The switch shows the new state; screen readers also hear "Saved."
-    if (saved) announce(t('optionSaved') || 'Saved.');
-  });
-  // Refresh after the user changes a shortcut in the tab opened from here.
+  // Each switch saves at once; the switch shows the new state and screen
+  // readers also hear "Saved."
+  for (const [input, key] of [[preselect, 'preselectPrevious'], [showTips, 'showTips']]) {
+    input.addEventListener('change', async () => {
+      if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
+    });
+  }
+  // Refresh after the user changes a shortcut in the tab opened from here
+  // (Chrome has no event for it): on coming back to this tab or window.
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) showShortcuts();
   });
+  window.addEventListener('focus', () => showShortcuts());
 }
 
 // Show the page once the text, the saved setting and the shortcut are in

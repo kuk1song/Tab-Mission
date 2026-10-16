@@ -212,12 +212,48 @@ describe('background.js', () => {
     });
   });
 
-  it('opens the welcome page on install', () => {
-    chrome.listeners.onInstalled({ reason: 'install' });
-    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://test/welcome.html' });
+  it('marks a window opened with a click (the toolbar button, the welcome page button), for the tip that teaches the shortcut', async () => {
+    const url = (i) => chrome.windows.create.mock.calls[i][0].url;
+    chrome.listeners.onClicked();
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    expect(url(0)).toBe('chrome-extension://test/overview.html?via=click');
+    chrome.listeners.onRemoved(chrome.storage.session.data.overviewWindowId);
+    await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeNull());
+    chrome.listeners.onMessage({ action: 'openOverview' }, {}, () => {});
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(2));
+    expect(url(1)).toBe('chrome-extension://test/overview.html?via=click');
   });
 
-  it('on update, deletes the keys older versions saved and keeps the settings', async () => {
+  describe("the welcome page's first step (press a shortcut)", () => {
+    it('a keyboard command records it; the toolbar button and the page button do not', async () => {
+      chrome.listeners.onClicked();
+      await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+      chrome.listeners.onMessage({ action: 'openOverview' }, {}, () => {});
+      await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1));
+      expect(chrome.storage.local.data.tryItOpen).toBeUndefined();
+
+      chrome.listeners.onCommand('open-overview');
+      await vi.waitFor(() => expect(chrome.storage.local.data.tryItOpen).toBe(true));
+      // The press itself is handled as before: it goes to the open overview.
+      await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(2));
+      expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('the site command records it too', async () => {
+      chrome.listeners.onCommand('open-overview-site');
+      await vi.waitFor(() => expect(chrome.storage.local.data.tryItOpen).toBe(true));
+      await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+      expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?scope=site');
+    });
+  });
+
+  it('opens the welcome page on install, and gives the new user the window tips', () => {
+    chrome.listeners.onInstalled({ reason: 'install' });
+    expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://test/welcome.html' });
+    expect(chrome.storage.local.data.tipsLeft).toEqual({ open: 3, back: 3 });
+  });
+
+  it('on update, deletes the keys older versions saved, keeps the settings and leaves the first-use tips off', async () => {
     Object.assign(chrome.storage.local.data, { searchTerm: 'old', overviewWindowId: 7, artMode: false, showSleeping: true });
     chrome.listeners.onInstalled({ reason: 'update' });
     await vi.waitFor(() => expect(Object.keys(chrome.storage.local.data)).toEqual(['showSleeping']));
