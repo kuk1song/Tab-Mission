@@ -212,10 +212,16 @@ describe('background.js', () => {
     });
   });
 
-  it('marks a window opened with the toolbar button, for the tip that teaches the shortcut', async () => {
+  it('marks a window opened with a click (the toolbar button, the welcome page button), for the tip that teaches the shortcut', async () => {
+    const url = (i) => chrome.windows.create.mock.calls[i][0].url;
     chrome.listeners.onClicked();
     await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
-    expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?via=toolbar');
+    expect(url(0)).toBe('chrome-extension://test/overview.html?via=click');
+    chrome.listeners.onRemoved(chrome.storage.session.data.overviewWindowId);
+    await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeNull());
+    chrome.listeners.onMessage({ action: 'openOverview' }, {}, () => {});
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(2));
+    expect(url(1)).toBe('chrome-extension://test/overview.html?via=click');
   });
 
   describe("the welcome page's first step (press a shortcut)", () => {

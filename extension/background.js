@@ -137,16 +137,18 @@ async function overviewBounds(displays, saved) {
 }
 
 // scope is 'site' for the "current site" shortcut, anything else for all tabs.
-// A press that arrives while a toggle is still running is dropped, so a double
-// press during a service worker cold start cannot open a second window.
-function toggleOverviewWindow(scope, fromToolbar = false) {
-	toggling ??= runToggle(scope, fromToolbar).finally(() => {
+// source is what was used: 'shortcut', 'toolbar' (the toolbar button) or
+// 'button' (the welcome page's button). A press that arrives while a toggle
+// is still running is dropped, so a double press during a service worker cold
+// start cannot open a second window.
+function toggleOverviewWindow(scope, source = 'shortcut') {
+	toggling ??= runToggle(scope, source).finally(() => {
 		toggling = null;
 	});
 	return toggling;
 }
 
-async function runToggle(scope, fromToolbar) {
+async function runToggle(scope, source) {
 	// After a service worker restart, recover the open overview, if any.
 	if (overviewWindowId === null) {
 		const storedId = await getStoredOverviewWindowId();
@@ -158,7 +160,7 @@ async function runToggle(scope, fromToolbar) {
 	}
 
 	if (overviewWindowId === null) {
-		await createOverviewWindow(scope, fromToolbar);
+		await createOverviewWindow(scope, source);
 		return;
 	}
 
@@ -175,7 +177,7 @@ async function runToggle(scope, fromToolbar) {
 	// the button closes it, without switching tabs: the page fades out as it
 	// does for the shortcut, then closes itself. Left behind for longer, the
 	// overview is out of sight, so the click opens a fresh one below.
-	if (fromToolbar) {
+	if (source === 'toolbar') {
 		let blurredAt = 0;
 		try {
 			({ overviewBlurredAt: blurredAt } = await chrome.storage.session.get({ overviewBlurredAt: 0 }));
@@ -195,7 +197,7 @@ async function runToggle(scope, fromToolbar) {
 				await chrome.windows.remove(windowId);
 			} catch {}
 		}
-		await createOverviewWindow(scope, fromToolbar);
+		await createOverviewWindow(scope, source);
 		return;
 	}
 	await tellOverview(windowId, { action: 'handleShortcut', scope });
@@ -218,16 +220,16 @@ async function tellOverview(windowId, message) {
 	}
 }
 
-function overviewPath(scope, viaToolbar) {
+// Opened with a click (the toolbar button or the welcome page's button), the
+// window may teach the shortcut (tips.js).
+function overviewPath(scope, source) {
 	const params = new URLSearchParams();
 	if (scope === 'site') params.set('scope', 'site');
-	if (viaToolbar) params.set('via', 'toolbar');
+	if (source !== 'shortcut') params.set('via', 'click');
 	return params.size ? `overview.html?${params}` : 'overview.html';
 }
 
-// viaToolbar: opened with the toolbar button (the window may then teach the
-// shortcut, see tips.js).
-async function createOverviewWindow(scope, viaToolbar = false) {
+async function createOverviewWindow(scope, source) {
 	try {
 		const displays = await chrome.system.display.getInfo();
 		if (!displays || displays.length === 0) {
@@ -237,7 +239,7 @@ async function createOverviewWindow(scope, viaToolbar = false) {
 		const bounds = await overviewBounds(displays, await getSavedOverviewBounds());
 
 		const win = await chrome.windows.create({
-			url: chrome.runtime.getURL(overviewPath(scope, viaToolbar)),
+			url: chrome.runtime.getURL(overviewPath(scope, source)),
 			type: 'popup',
 			...bounds,
 		});
@@ -267,7 +269,7 @@ chrome.commands.onCommand.addListener((command) => {
 
 // Also listen for the browser action icon click to toggle.
 chrome.action.onClicked.addListener(() => {
-	toggleOverviewWindow(undefined, true);
+	toggleOverviewWindow(undefined, 'toolbar');
 });
 
 // First install: open a short welcome page that shows the shortcut (or says
@@ -309,8 +311,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		);
 		return true; // async response
 	}
+	// The welcome page's "Open Tab Mission" button.
 	if (request?.action === 'openOverview') {
-		toggleOverviewWindow(request.scope);
+		toggleOverviewWindow(request.scope, 'button');
 	}
 	return false;
 });

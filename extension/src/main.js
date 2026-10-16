@@ -38,7 +38,7 @@ async function main() {
   setTimeout(() => {
     gridEl?.classList.remove('entering');
     // A tip, if one is due, once the cards have settled (tips.js).
-    showTip({ showTips: settings.showTips, tryIt, shortcut, viaToolbar: params.get('via') === 'toolbar' });
+    showTip({ showTips: settings.showTips, tryIt, shortcut, viaClick: params.get('via') === 'click' });
   }, 700);
 
   updateShortcutHint(shortcut);

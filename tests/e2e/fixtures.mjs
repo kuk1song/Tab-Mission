@@ -1,9 +1,10 @@
 // Playwright fixtures: the unpacked extension in Playwright's Chromium, fake
 // websites served locally, and helpers that drive the overview the way a user
 // does. Most presses are sent through background.js (the openOverview
-// message, the same path as chrome.commands); pressDefaultShortcut presses the
-// real key through Chrome's own key handling, and clickToolbarButton fires the
-// toolbar button's own event.
+// message of the welcome page's button, the same path as chrome.commands,
+// except that a window it opens counts as opened with a click);
+// pressDefaultShortcut presses the real key through Chrome's own key handling,
+// and clickToolbarButton fires the toolbar button's own event.
 import { test as base, expect, chromium } from '@playwright/test';
 import http from 'node:http';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -240,7 +241,8 @@ export const test = base.extend({
         await browserCommand(profile, 'Extensions.triggerAction', { id: new URL(sw.url()).host, targetId: target.targetId });
       },
 
-      // The shortcut (scope 'site' for the site command).
+      // The shortcut (scope 'site' for the site command), sent as the
+      // welcome page's button sends it.
       async press(scope) {
         await welcome.evaluate((scope) => chrome.runtime.sendMessage({ action: 'openOverview', scope }).catch(() => {}), scope);
       },
