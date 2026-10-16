@@ -73,6 +73,22 @@ test('× and middle-click close tabs', async ({ ext }) => {
   expect(open).toEqual([]);
 });
 
+// The × shows only on the selected card, and only there can it be clicked
+// (as in Chrome's Tab Search). The window opens under a resting pointer, so a
+// click on the corner of a card the pointer has not selected yet switches to
+// that tab instead of closing it unseen.
+test('a click where an unselected card hides its × switches to the tab, never closes it', async ({ ext }) => {
+  const { windowId, tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  const card = page.locator(`.tile[data-tab-id="${tabIds.alpha}"]`);
+  await expect(card).not.toHaveClass(/selected/);
+  const box = await card.locator('.tile-close').boundingBox();
+  // One move and the click: too little movement for the pointer to take over.
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2).catch(() => {});
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(alpha.title);
+});
+
 test('Esc clears the query first, then closes without switching', async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();

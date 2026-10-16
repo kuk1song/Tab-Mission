@@ -412,6 +412,9 @@ html, body {
   transition: opacity 0.15s, background 0.15s;
   z-index: 2;
 }
+/* Shown and clickable on the selected card only (the pointer selects the card
+   it moves onto), so a click on a hidden × switches instead of closing. */
+.tile:not(.selected) .tile-close { pointer-events: none; }
 .tile.selected .tile-close { opacity: 0.85; }
 .tile-close:hover { opacity: 1; background: #e5484d; }
 
