@@ -31,10 +31,6 @@
     "message": "搜索标签页（标题或网址）…",
     "description": "Placeholder text for the search input field."
   },
-  "searchEverywhereHint": {
-    "message": "搜索时会包含所有窗口和休眠标签页",
-    "description": "Tooltip on the toggles: searching ignores them."
-  },
   "showSleepingLabel": {
     "message": "显示休眠标签页",
     "description": "Label for the 'Show sleeping' checkbox."
@@ -270,10 +266,6 @@
         "example": "13"
       }
     }
-  },
-  "siteScopeHintTitle": {
-    "message": "只显示当前网站的标签页（Tab）",
-    "description": "Tooltip of the site-scope hint."
   },
   "searchAllTabs": {
     "message": "在全部标签页中搜索",

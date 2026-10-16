@@ -47,6 +47,18 @@ test('a query searches other windows and dims the toggles', async ({ ext }) => {
   await expect(page.locator('.toolbar')).toHaveClass(/searching/);
 });
 
+// No hover text where a control's own words say it all (Apple's guidelines:
+// avoid repeating a control's name in its tooltip). Icon-only buttons keep
+// theirs: it is their name.
+test('the checkboxes and the site button have no hover text; icon-only buttons do', async ({ ext }) => {
+  await ext.openWindow(['tube1', 'tube2']);
+  const page = await ext.open();
+  await expect(page.locator('#scope-hint')).toBeVisible();
+  const titles = await page.evaluate(() => [...document.querySelectorAll('.toolbar-toggles label, #scope-hint')].map((el) => el.title));
+  expect(titles).toEqual(['', '', '']);
+  for (const id of ['#open-settings', '#reset-window']) await expect(page.locator(id)).not.toHaveAttribute('title', '');
+});
+
 test('all windows never lists the overview; erasing the query returns to the previous tab', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
