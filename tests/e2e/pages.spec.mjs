@@ -6,7 +6,7 @@ import { test, expect, PAGES } from './fixtures.mjs';
 test('the default shortcut is assigned on this OS and shown on the welcome page', async ({ ext }) => {
   const shortcut = await ext.sw.evaluate(() => chrome.commands.getAll().then((c) => c.find((x) => x.name === 'open-overview')?.shortcut || ''));
   expect(shortcut).toBe(process.platform === 'darwin' ? '⌘E' : 'Ctrl+Shift+E');
-  await expect(ext.welcome.locator('#lead kbd')).toBeVisible();
+  await expect(ext.welcome.locator('#step-open kbd')).toBeVisible();
   await expect(ext.welcome.locator('#no-shortcut')).toBeHidden();
   await expect(ext.welcome.locator('#tip-site kbd')).toHaveText('Tab');
 });
@@ -149,8 +149,8 @@ test('welcome page: the try-it steps tick as the user does them', async ({ ext, 
     await expect(step(name).locator('.step-state')).toHaveText(await message('welcomeStepTodo'));
   }
   await expect(welcome.locator('#all-set')).toBeHidden();
-  const shortcut = await welcome.locator('#lead kbd').textContent();
-  await expect(step('open').locator('kbd')).toHaveText(shortcut);
+  const shortcut = await ext.sw.evaluate(() => chrome.commands.getAll().then((c) => c.find((x) => x.name === 'open-overview').shortcut));
+  await expect(step('open').locator('kbd')).toHaveText(shortcut.replace(/\+/g, ' + '));
   // Typing is the first of the other tips, no longer a step.
   await expect(welcome.locator('.tips li').first()).toHaveText(await message('welcomeTipSearch'));
 
@@ -230,7 +230,7 @@ test('options page: Help is one Show tips switch, off by default, that saves at 
 // read it again when the user comes back to their tab or window.
 test('welcome and settings pages: a shortcut changed elsewhere shows on coming back', async ({ ext, context }) => {
   const host = new URL(ext.sw.url()).host;
-  for (const [file, where] of [['welcome.html', '#lead kbd'], ['options.html', '#shortcuts kbd.combo']]) {
+  for (const [file, where] of [['welcome.html', '#step-open kbd'], ['options.html', '#shortcuts kbd.combo']]) {
     const page = await context.newPage();
     await page.addInitScript(() => {
       window.shortcut_ = '';
@@ -293,8 +293,8 @@ test('options and welcome pages follow the system appearance, stay readable and 
   await ext.sw.evaluate(() => chrome.storage.local.set({ tryItOpen: true }));
   await expect(ext.welcome.locator('#try-it .step.done')).toHaveCount(1);
   const pages = [
-    [page, ['h1', '.title', '.desc', '.foot', 'h2', '#version', '#link-privacy']],
-    [ext.welcome, ['h1', '.lead', '.tips li', '.note', 'h2', '.step:not(.done) .step-mark', '.step:not(.done) .step-text',
+    [page, ['h1', '.title', '.desc', 'h2', '#version', '#link-privacy']],
+    [ext.welcome, ['h1', '.tips li', '.note', 'h2', '.step:not(.done) .step-mark', '.step:not(.done) .step-text',
       '.step.done .step-text', '.step.done .step-state', '#all-set']],
   ];
   for (const [p, selectors] of pages) {

@@ -95,16 +95,6 @@
     "message": "Tab Mission è pronto",
     "description": "Welcome page heading."
   },
-  "welcomeLead": {
-    "message": "Premi $shortcut$ ovunque in Chrome per vedere le tue schede.",
-    "description": "Welcome page: how to open the overview.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "welcomeNoShortcut": {
     "message": "Chrome non ha potuto assegnare la scorciatoia predefinita, probabilmente perché un'altra estensione la usa già. Scegline una per aprire Tab Mission dalla tastiera.",
     "description": "Welcome page: the default shortcut could not be assigned."
@@ -118,7 +108,7 @@
     "description": "Welcome page: heading of the checklist the user completes by doing each step."
   },
   "welcomeStepOpen": {
-    "message": "Premi $shortcut$ per aprire Tab Mission.",
+    "message": "Premi $shortcut$ in qualsiasi pagina per aprire Tab Mission.",
     "description": "Welcome page checklist, step 1. Ticks when a Tab Mission keyboard shortcut is pressed (not the toolbar button).",
     "placeholders": {
       "shortcut": {
@@ -203,10 +193,6 @@
     "message": "Scorciatoie da tastiera",
     "description": "Options: shortcuts heading."
   },
-  "optionShortcutsNote": {
-    "message": "Le scorciatoie delle estensioni sono gestite da Chrome: si modificano nella sua pagina delle scorciatoie.",
-    "description": "Settings page: note under the shortcut; only Chrome can change extension shortcuts."
-  },
   "optionSaved": {
     "message": "Salvato.",
     "description": "Settings page: announced to screen readers after a setting is saved (not shown)."
@@ -232,7 +218,7 @@
     "description": "Settings page: switch for the tips in the Tab Mission window."
   },
   "optionShowTipsNote": {
-    "message": "Mostra un suggerimento ogni volta che si apre Tab Mission. Se disattivato, solo nei primi utilizzi.",
+    "message": "Ogni volta se attivo; se disattivo, solo nei primi utilizzi.",
     "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {

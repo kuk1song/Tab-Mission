@@ -95,16 +95,6 @@
     "message": "Tab Mission 已就绪",
     "description": "Welcome page heading."
   },
-  "welcomeLead": {
-    "message": "在 Chrome 中任意位置按 $shortcut$，即可查看标签页。",
-    "description": "Welcome page: how to open the overview.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "welcomeNoShortcut": {
     "message": "Chrome 未能分配默认快捷键（可能已被其他扩展占用）。请设置一个快捷键，以便用键盘打开 Tab Mission。",
     "description": "Welcome page: the default shortcut could not be assigned."
@@ -118,7 +108,7 @@
     "description": "Welcome page: heading of the checklist the user completes by doing each step."
   },
   "welcomeStepOpen": {
-    "message": "按 $shortcut$ 打开 Tab Mission。",
+    "message": "在任意网页按 $shortcut$ 打开 Tab Mission。",
     "description": "Welcome page checklist, step 1. Ticks when a Tab Mission keyboard shortcut is pressed (not the toolbar button).",
     "placeholders": {
       "shortcut": {
@@ -203,10 +193,6 @@
     "message": "快捷键",
     "description": "Options: shortcuts heading."
   },
-  "optionShortcutsNote": {
-    "message": "快捷键由 Chrome 管理，需要在 Chrome 的快捷键页面里修改。",
-    "description": "Settings page: note under the shortcut; only Chrome can change extension shortcuts."
-  },
   "optionSaved": {
     "message": "已保存。",
     "description": "Settings page: announced to screen readers after a setting is saved (not shown)."
@@ -232,7 +218,7 @@
     "description": "Settings page: switch for the tips in the Tab Mission window."
   },
   "optionShowTipsNote": {
-    "message": "每次打开 Tab Mission 都显示提示。关闭时，只在刚开始使用的几次显示。",
+    "message": "打开后每次都显示；关闭时只在刚开始用的几次显示。",
     "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {

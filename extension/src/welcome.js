@@ -28,19 +28,14 @@ async function showShortcut() {
   } catch {}
   const openShortcut = formatShortcut(commands.find((c) => c.name === 'open-overview')?.shortcut);
 
-  const lead = document.getElementById('lead');
-  lead.hidden = !openShortcut;
   document.getElementById('no-shortcut').hidden = Boolean(openShortcut);
   document.getElementById('set-shortcut').textContent = openShortcut
     ? (t('changeShortcutTitle') || 'Change shortcut')
     : (t('welcomeSetShortcut') || 'Choose shortcut');
-  if (openShortcut) {
-    setWithKbd(lead, 'welcomeLead', openShortcut, (s) => `Press ${s} anywhere in Chrome to see your tabs.`);
-  }
 
   const openStep = document.querySelector('#step-open .step-text');
   if (openShortcut) {
-    setWithKbd(openStep, 'welcomeStepOpen', openShortcut, (s) => `Press ${s} to open Tab Mission.`);
+    setWithKbd(openStep, 'welcomeStepOpen', openShortcut, (s) => `Press ${s} on any page to open Tab Mission.`);
   } else {
     openStep.textContent = t('welcomeStepOpenUnset') || 'Choose a shortcut, then press it to open Tab Mission.';
   }

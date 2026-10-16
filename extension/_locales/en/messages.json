@@ -95,16 +95,6 @@
     "message": "Tab Mission is ready",
     "description": "Welcome page heading."
   },
-  "welcomeLead": {
-    "message": "Press $shortcut$ anywhere in Chrome to see your tabs.",
-    "description": "Welcome page: how to open the overview.",
-    "placeholders": {
-      "shortcut": {
-        "content": "$1",
-        "example": "⌘ + E"
-      }
-    }
-  },
   "welcomeNoShortcut": {
     "message": "Chrome could not assign the default shortcut, probably because another extension already uses it. Choose one so you can open Tab Mission from the keyboard.",
     "description": "Welcome page: the default shortcut could not be assigned."
@@ -118,7 +108,7 @@
     "description": "Welcome page: heading of the checklist the user completes by doing each step."
   },
   "welcomeStepOpen": {
-    "message": "Press $shortcut$ to open Tab Mission.",
+    "message": "Press $shortcut$ on any page to open Tab Mission.",
     "description": "Welcome page checklist, step 1. Ticks when a Tab Mission keyboard shortcut is pressed (not the toolbar button).",
     "placeholders": {
       "shortcut": {
@@ -203,10 +193,6 @@
     "message": "Keyboard shortcuts",
     "description": "Options: shortcuts heading."
   },
-  "optionShortcutsNote": {
-    "message": "Chrome manages extension shortcuts; you change them on its shortcuts page.",
-    "description": "Settings page: note under the shortcut; only Chrome can change extension shortcuts."
-  },
   "optionSaved": {
     "message": "Saved.",
     "description": "Settings page: announced to screen readers after a setting is saved (not shown)."
@@ -232,7 +218,7 @@
     "description": "Settings page: switch for the tips in the Tab Mission window."
   },
   "optionShowTipsNote": {
-    "message": "Show a tip every time Tab Mission opens. When off, tips show only for your first few uses.",
+    "message": "Every time when on; when off, only for your first few uses.",
     "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {
