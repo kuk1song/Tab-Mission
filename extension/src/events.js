@@ -4,6 +4,8 @@ import { render, updateSelection, initializeGridListeners, forgetTile, releasePo
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isValidIconUrl, createPlaceholderIcon } from './utils.js';
+import { recordTryIt } from './tryit.js';
+import { hideTip } from './tips.js';
 
 // Filtering is cheap now that tiles are reused, so the search runs once per
 // animation frame instead of after a 200ms debounce. Enter flushes a pending
@@ -77,9 +79,21 @@ export function initializeEventListeners() {
   initializeGridListeners();
 
   window.addEventListener('keydown', handleKeydown);
+  // When focus leaves the window: a toolbar click right after closes Tab
+  // Mission instead of reopening it (background.js).
+  window.addEventListener('blur', () => {
+    chrome.storage.session.set({ overviewBlurredAt: Date.now() }).catch(() => {});
+  });
 
-  // The shortcut pressed while the overview is open (sent by background.js).
+  // Sent by background.js: the toolbar button closing Tab Mission (with the
+  // same quick fade as a switch, without switching tabs), or the shortcut
+  // pressed while it is open.
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request?.action === 'closeOverview') {
+      sendResponse({ ok: true });
+      closeOverview(true);
+      return;
+    }
     if (request?.action !== 'handleShortcut') return;
     sendResponse({ ok: true });
     // The site shortcut narrows the open overview to the current site. Every
@@ -91,7 +105,10 @@ export function initializeEventListeners() {
     }
     flushFilterChange();
     if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
-      // If a tab is selected, activate it
+      // If a tab is selected, activate it. This ticks the welcome page's
+      // "press it again" step; the write is not awaited, so it never delays
+      // the switch.
+      recordTryIt('back');
       activateTab(state.filteredTabs[state.selectedIndex]);
     } else {
       // If no tab is selected, just close the overview
@@ -215,6 +232,7 @@ export async function closeTab(tab) {
 
 function handleKeydown(e) {
   releasePointerSelection();
+  hideTip();
   // Keys that pick or commit an input method candidate (pinyin, kana) belong
   // to the input method, not to the overview.
   if (e.isComposing || e.keyCode === 229) return;

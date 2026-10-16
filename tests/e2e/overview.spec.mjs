@@ -95,3 +95,17 @@ test('Esc clears the query first, then closes without switching', async ({ ext }
   await ext.pressToClose(page, 'Escape');
   expect(await ext.activeTitle(windowId)).toBe(gamma.title);
 });
+
+test('the toolbar button opens Tab Mission; clicked again, it fades out as for the shortcut, without switching', async ({ ext, context }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
+  await ext.clickToolbarButton();
+  const page = await opened;
+  await page.locator('#grid .tile').first().waitFor();
+  const faded = page.waitForFunction(() => document.getElementById('root').classList.contains('closing-fast'), null, { polling: 'raf' });
+  await ext.clickToolbarButton();
+  await faded;
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(gamma.title);
+  expect(ext.overviewPages()).toHaveLength(0);
+});
