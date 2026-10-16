@@ -233,6 +233,22 @@
     "message": "连按两次快捷键即可回去。关闭后不预选，再按一次会关闭 Tab Mission。",
     "description": "Settings page: one line under the pre-select switch."
   },
+  "optionHelpHeading": {
+    "message": "帮助",
+    "description": "Settings page: heading of the help section."
+  },
+  "optionGuide": {
+    "message": "入门指南",
+    "description": "Settings page: the row that opens the welcome page."
+  },
+  "optionGuideNote": {
+    "message": "从第一步开始，再走一遍欢迎页上的步骤。",
+    "description": "Settings page: what the getting started button does."
+  },
+  "optionGuideOpen": {
+    "message": "打开",
+    "description": "Settings page: button that opens the welcome page in a new tab."
+  },
   "optionAboutHeading": {
     "message": "关于",
     "description": "Settings page: hidden heading, read by screen readers, of the closing line with the version and links."

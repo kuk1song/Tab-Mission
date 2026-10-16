@@ -233,6 +233,22 @@
     "message": "Premi due volte la scorciatoia per tornarci. Se disattivata, nessuna scheda è selezionata e la seconda pressione chiude Tab Mission.",
     "description": "Settings page: one line under the pre-select switch."
   },
+  "optionHelpHeading": {
+    "message": "Aiuto",
+    "description": "Settings page: heading of the help section."
+  },
+  "optionGuide": {
+    "message": "Guida introduttiva",
+    "description": "Settings page: the row that opens the welcome page."
+  },
+  "optionGuideNote": {
+    "message": "Ripeti i passaggi della pagina di benvenuto, dal primo.",
+    "description": "Settings page: what the getting started button does."
+  },
+  "optionGuideOpen": {
+    "message": "Apri",
+    "description": "Settings page: button that opens the welcome page in a new tab."
+  },
   "optionAboutHeading": {
     "message": "Informazioni",
     "description": "Settings page: hidden heading, read by screen readers, of the closing line with the version and links."

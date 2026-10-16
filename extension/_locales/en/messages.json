@@ -233,6 +233,22 @@
     "message": "Press the shortcut twice to go back. When off, nothing is selected, so a second press closes Tab Mission.",
     "description": "Settings page: one line under the pre-select switch."
   },
+  "optionHelpHeading": {
+    "message": "Help",
+    "description": "Settings page: heading of the help section."
+  },
+  "optionGuide": {
+    "message": "Getting started",
+    "description": "Settings page: the row that opens the welcome page."
+  },
+  "optionGuideNote": {
+    "message": "Go through the welcome page's steps again, starting from the first.",
+    "description": "Settings page: what the getting started button does."
+  },
+  "optionGuideOpen": {
+    "message": "Open",
+    "description": "Settings page: button that opens the welcome page in a new tab."
+  },
   "optionAboutHeading": {
     "message": "About",
     "description": "Settings page: hidden heading, read by screen readers, of the closing line with the version and links."

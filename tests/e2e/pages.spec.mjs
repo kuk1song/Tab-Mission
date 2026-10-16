@@ -230,6 +230,20 @@ test('welcome page: opened with the button, the first press inside ticks steps 1
   await expect(ext.welcome.locator('#try-it .step.done')).toHaveCount(2);
 });
 
+// Help is easy to find later: the settings page reopens the welcome page's
+// steps, starting over.
+test("options page: Getting started opens the welcome page's steps from the first", async ({ ext, context }) => {
+  await ext.sw.evaluate(() => chrome.storage.session.set({ tryItOpen: true, tryItBack: true }));
+  const { page } = await openOptions(ext, context);
+  const opened = context.waitForEvent('page', (p) => p.url().endsWith('/welcome.html') && p !== ext.welcome);
+  await page.locator('#open-guide').click();
+  const guide = await opened;
+  await expect(guide.locator('#try-it .step')).toHaveCount(3);
+  await expect(guide.locator('#try-it .step.done')).toHaveCount(0);
+  expect(await ext.sw.evaluate(() => chrome.storage.session.get(['tryItOpen', 'tryItBack', 'tryItSearch']))).toEqual({});
+  await guide.close();
+});
+
 test("options page: the shortcut button opens Chrome's shortcuts page", async ({ ext, context }) => {
   const { row } = await openOptions(ext, context);
   const opened = context.waitForEvent('page', (p) => p.url().startsWith('chrome://extensions/shortcuts'));

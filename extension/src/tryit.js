@@ -18,6 +18,13 @@ export function recordTryIt(step) {
   } catch {}
 }
 
+// Start the steps over (the settings page's "Getting started").
+export async function resetTryIt() {
+  try {
+    await chrome.storage.session.remove(Object.values(TRY_IT_KEYS));
+  } catch {}
+}
+
 export async function readTryIt() {
   let stored = {};
   try {
