@@ -17,8 +17,9 @@ export const state = {
   groups: null,
 };
 
-// Group by site: the recent tabs first, then every tab again under its site.
-export const RECENT_COUNT = 5;
+// Group by site: the recent tabs first (one row, at most this many), then
+// every tab again under its site.
+export const RECENT_MAX = 5;
 
 export async function fetchAllTabs() {
   try {
@@ -106,13 +107,16 @@ export function applyFilters(uiState) {
     [tabs[0], tabs[1]] = [tabs[1], tabs[0]];
   }
 
-  // Grouped by site (browsing only, with more tabs than the recent group
-  // holds): the most recent tabs stay first, so the previous tab keeps the
-  // first slot, then all tabs again by site in tab-strip order, which
-  // switching tabs does not change. Nothing is stored.
+  // Grouped by site (browsing only, once the tabs fill more than two rows;
+  // fewer fit on screen anyway, and most would show twice): the most recent
+  // tabs stay first, one row of them, so the previous tab keeps the first
+  // slot; then all tabs again by site in tab-strip order, which switching
+  // tabs does not change. Nothing is stored. uiState.columns is how many
+  // tiles fit in a row.
   state.groups = null;
-  if (uiState.groupBySite && !searching && !state.siteHost && tabs.length > RECENT_COUNT) {
-    const { entries, groups } = groupBySite(tabs);
+  const recentCount = Math.max(1, Math.min(RECENT_MAX, uiState.columns || RECENT_MAX));
+  if (uiState.groupBySite && !searching && !state.siteHost && tabs.length > 2 * recentCount) {
+    const { entries, groups } = groupBySite(tabs, recentCount);
     tabs = entries;
     state.groups = groups;
   }
@@ -141,8 +145,8 @@ export function applyFilters(uiState) {
 // tabs in recent order. Sites follow the tab strip: windows in the order they
 // were opened (by id), tabs by position, a site where its first tab is;
 // within a site, its tabs by position.
-export function groupBySite(tabs) {
-  const recent = tabs.slice(0, RECENT_COUNT);
+export function groupBySite(tabs, recentCount = RECENT_MAX) {
+  const recent = tabs.slice(0, recentCount);
   const strip = [...tabs].sort((a, b) => a.windowId - b.windowId || a.index - b.index);
   const sites = new Map();
   for (const tab of strip) {

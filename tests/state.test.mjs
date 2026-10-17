@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { state, applyFilters, moveSelection, moveSelectionByRects, countSiteTabs, RECENT_COUNT } from '../extension/src/state.js';
+import { state, applyFilters, moveSelection, moveSelectionByRects, countSiteTabs, RECENT_MAX } from '../extension/src/state.js';
 
 function makeTab(id, overrides = {}) {
   return {
@@ -338,24 +338,40 @@ describe('applyFilters — group by site', () => {
     state.currentTabId = 8;
   });
 
-  it('puts the recent tabs first, then each site\'s tabs in tab-bar order', () => {
-    applyFilters(ui({ groupBySite: true, preselectPrevious: true }));
+  // Three tiles fit in a row here, so the recent row holds three and the
+  // eight tabs (more than two rows) are grouped.
+  const grouped = (overrides = {}) => ui({ groupBySite: true, columns: 3, ...overrides });
+
+  it('puts one row of recent tabs first, then each site\'s tabs in tab-bar order', () => {
+    applyFilters(grouped({ preselectPrevious: true }));
     expect(state.groups.map(({ recent, host, count }) => [Boolean(recent), host, count])).toEqual([
-      [true, '', RECENT_COUNT], [false, 'a.test', 3], [false, 'b.test', 2], [false, 'c.test', 2], [false, 'd.test', 1],
+      [true, '', 3], [false, 'a.test', 3], [false, 'b.test', 2], [false, 'c.test', 2], [false, 'd.test', 1],
     ]);
     // Recent: the previous tab first, the current tab second.
-    expect(ids(state.filteredTabs.slice(0, RECENT_COUNT))).toEqual([3, 8, 2, 6, 7]);
-    expect(ids(state.filteredTabs.slice(RECENT_COUNT))).toEqual([1, 3, 6, 2, 5, 4, 8, 7]);
+    expect(ids(state.filteredTabs.slice(0, 3))).toEqual([3, 8, 2]);
+    expect(ids(state.filteredTabs.slice(3))).toEqual([1, 3, 6, 2, 5, 4, 8, 7]);
     expect(state.filteredTabs[state.selectedIndex].id).toBe(3);
   });
 
+  it('fills the recent row with as many tiles as fit, at most five, and groups only past two rows', () => {
+    applyFilters(ui({ groupBySite: true, columns: 8 })); // five recent: 8 tabs are not past two rows
+    expect(state.groups).toBe(null);
+    applyFilters(ui({ groupBySite: true, columns: 2 }));
+    expect(state.groups[0].count).toBe(2);
+    applyFilters(ui({ groupBySite: true })); // not measured: five
+    expect(state.groups).toBe(null);
+    state.allTabs.push(...[9, 10, 11].map((id) => makeTab(id, { url: `https://e.test/${id}`, index: id })));
+    applyFilters(ui({ groupBySite: true, columns: 8 }));
+    expect(state.groups[0].count).toBe(RECENT_MAX);
+  });
+
   it('keeps the site groups where they are when you switch tabs', () => {
-    applyFilters(ui({ groupBySite: true }));
-    const before = ids(state.filteredTabs.slice(RECENT_COUNT));
+    applyFilters(grouped());
+    const before = ids(state.filteredTabs.slice(3));
     state.allTabs.find((tab) => tab.id === 7).lastAccessed = 100; // switched to d.test
     state.currentTabId = 7;
-    applyFilters(ui({ groupBySite: true }));
-    expect(ids(state.filteredTabs.slice(RECENT_COUNT))).toEqual(before);
+    applyFilters(grouped());
+    expect(ids(state.filteredTabs.slice(3))).toEqual(before);
     expect(state.filteredTabs[0].id).toBe(8); // the previous tab now
   });
 
@@ -366,29 +382,29 @@ describe('applyFilters — group by site', () => {
       makeTab(3, { windowId: 1, index: 0, url: 'https://first.test/' }),
       ...[4, 5, 6, 7].map((id) => makeTab(id, { windowId: 1, index: id, url: `https://n${id}.test/` })),
     ];
-    applyFilters(ui({ groupBySite: true, showAllWindows: true }));
+    applyFilters(grouped({ showAllWindows: true }));
     expect(state.groups.slice(1, 3).map((g) => g.host)).toEqual(['first.test', 'second.test']);
     expect(state.groups.at(-1).host).toBe('late.test');
   });
 
   it('gives tabs without a site a group of their own, after the recent one', () => {
     state.allTabs.push(makeTab(9, { url: 'about:blank', index: 8, lastAccessed: 0 }));
-    applyFilters(ui({ groupBySite: true }));
+    applyFilters(grouped());
     expect(state.groups.filter((g) => g.recent)).toEqual([expect.objectContaining({ start: 0 })]);
-    expect(state.groups.at(-1)).toEqual({ host: '', start: RECENT_COUNT + 8, count: 1 });
+    expect(state.groups.at(-1)).toEqual({ host: '', start: 3 + 8, count: 1 });
   });
 
-  it('is off while searching, in the site view, with few tabs, or with the setting off', () => {
-    applyFilters(ui({ groupBySite: true, searchTerm: 'a.test' }));
+  it('is off while searching, in the site view, with two rows of tabs or fewer, or with the setting off', () => {
+    applyFilters(grouped({ searchTerm: 'a.test' }));
     expect(state.groups).toBe(null);
     state.siteHost = 'a.test';
-    applyFilters(ui({ groupBySite: true }));
+    applyFilters(grouped());
     expect(state.groups).toBe(null);
     state.siteHost = '';
-    applyFilters(ui({ groupBySite: false }));
+    applyFilters(grouped({ groupBySite: false }));
     expect(state.groups).toBe(null);
-    state.allTabs = state.allTabs.slice(0, RECENT_COUNT);
-    applyFilters(ui({ groupBySite: true }));
+    state.allTabs = state.allTabs.slice(0, 6);
+    applyFilters(grouped());
     expect(state.groups).toBe(null);
   });
 });

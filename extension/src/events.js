@@ -78,6 +78,12 @@ export function initializeEventListeners() {
 
   initializeGridListeners();
 
+  // Grouped by site, the recent row holds as many tiles as fit, so a resize
+  // can change it.
+  window.addEventListener('resize', () => {
+    if (state.groupBySite) scheduleFilterChange();
+  });
+
   window.addEventListener('keydown', handleKeydown);
   // When focus leaves the window: a toolbar click right after closes Tab
   // Mission instead of reopening it (background.js).
@@ -127,7 +133,26 @@ function readUiState() {
     showAllWindows: toggleAllWindows ? toggleAllWindows.checked : false,
     preselectPrevious: state.preselectPrevious,
     groupBySite: state.groupBySite,
+    // Only needed to group by site, which applies while browsing.
+    columns: state.groupBySite && !state.siteHost && !searchEl?.value.trim() ? tilesPerRow() : undefined,
   };
+}
+
+// How many tiles fit in a row of the grid. Grouped by site the grid is not a
+// CSS grid, so this measures the minimum tile width (--tile-min) instead of
+// reading the grid's columns.
+function tilesPerRow() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return undefined;
+  const probe = document.createElement('div');
+  probe.style.width = 'var(--tile-min)';
+  gridEl.append(probe);
+  const tile = probe.getBoundingClientRect().width;
+  probe.remove();
+  const style = getComputedStyle(gridEl);
+  const width = gridEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const gap = 12; // between tiles, as in overview.css
+  return tile > 0 ? Math.max(1, Math.floor((width + gap) / (tile + gap))) : undefined;
 }
 
 // persist: save the two toggles (only when one of them changed). The search

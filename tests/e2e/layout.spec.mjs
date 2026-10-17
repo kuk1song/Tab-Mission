@@ -13,17 +13,24 @@ function measure(page) {
     const clipped = tiles.filter((t) => t.querySelector('.title').getBoundingClientRect().bottom > t.getBoundingClientRect().bottom + 0.5).length;
     // 16:10 within a pixel of rounding.
     const off16by10 = ratios.filter((r) => Math.abs(r - 1.6) > 0.02).length;
-    return { tiles: tiles.length, off16by10, clipped, overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    // Grouped by site, the recent tabs have a second tile each.
+    const recent = document.querySelectorAll('.tile-group.recent .tile').length;
+    return { tabs: tiles.length - recent, off16by10, clipped, overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
 }
 
-test('40 tabs: tiles keep 16:10 previews and whole titles from 320 to 1280 px', async ({ ext }) => {
+test('40 tabs: tiles keep 16:10 previews and whole titles from 320 to 1280 px, grouped by site or not', async ({ ext }) => {
   const ids = Array.from({ length: 40 }, (_, i) => `beta?n=${i}`);
   await ext.openWindow(ids);
-  const page = await ext.open();
-  for (const width of [320, 360, 700, 1280]) {
-    await page.setViewportSize({ width, height: 700 });
-    await expect.poll(() => measure(page)).toEqual({ tiles: 40, off16by10: 0, clipped: 0, overflowX: false });
+  for (const groupBySite of [true, false]) {
+    await ext.sw.evaluate((groupBySite) => chrome.storage.local.set({ groupBySite }), groupBySite);
+    const page = await ext.open();
+    await expect(page.locator('#grid.grouped')).toHaveCount(groupBySite ? 1 : 0);
+    for (const width of [320, 360, 700, 1280]) {
+      await page.setViewportSize({ width, height: 700 });
+      await expect.poll(() => measure(page)).toEqual({ tabs: 40, off16by10: 0, clipped: 0, overflowX: false });
+    }
+    await ext.pressToClose(page, 'Escape');
   }
 });
 
