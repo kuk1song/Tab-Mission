@@ -1,5 +1,5 @@
 // events.js
-import { state, applyFilters, moveSelection, currentSiteHost, countSiteTabs } from './state.js';
+import { state, applyFilters, moveSelection, moveSelectionByRects, currentSiteHost, countSiteTabs } from './state.js';
 import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection } from './dom.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
@@ -126,6 +126,7 @@ function readUiState() {
     showSleeping: toggleSleeping ? toggleSleeping.checked : false,
     showAllWindows: toggleAllWindows ? toggleAllWindows.checked : false,
     preselectPrevious: state.preselectPrevious,
+    groupBySite: state.groupBySite,
   };
 }
 
@@ -203,9 +204,9 @@ function getColumnCount() {
   return Math.max(1, columns);
 }
 
-export function activateTab(tab) {
-  const gridEl = document.getElementById('grid');
-  const tile = gridEl.querySelector(`.tile[data-tab-id="${tab.id}"]`);
+// tile: the one clicked; else the selected one. Grouped by site, a tab can
+// have two tiles, and the press shows on the one you used.
+export function activateTab(tab, tile = document.querySelector(`#grid .tile[data-index="${state.selectedIndex}"]`)) {
   if (tile) {
     tile.classList.add('activating');
   }
@@ -288,7 +289,13 @@ function handleKeydown(e) {
     case 'ArrowRight':
       e.preventDefault();
       flushFilterChange();
-      moveSelection(e.key, getColumnCount());
+      if (state.groups) {
+        // Grouped by site, tiles do not form one grid: go by their boxes.
+        const tiles = document.querySelectorAll('#grid .tile');
+        moveSelectionByRects(e.key, Array.from(tiles, (tile) => tile.getBoundingClientRect()));
+      } else {
+        moveSelection(e.key, getColumnCount());
+      }
       updateSelection(true);
       break;
     default:

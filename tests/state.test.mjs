@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { state, applyFilters, moveSelection, countSiteTabs } from '../extension/src/state.js';
+import { state, applyFilters, moveSelection, moveSelectionByRects, countSiteTabs, RECENT_COUNT } from '../extension/src/state.js';
 
 function makeTab(id, overrides = {}) {
   return {
@@ -322,5 +322,109 @@ describe('applyFilters — preselectPrevious setting', () => {
     state.siteHost = 'a.test';
     applyFilters(ui({ preselectPrevious: true }));
     expect(state.filteredTabs[state.selectedIndex].id).toBe(3);
+  });
+});
+
+describe('applyFilters — group by site', () => {
+  // Eight tabs in one window, in tab-bar order (index); by last use: 8 (the
+  // current tab), 3, 2, 6, 7, 5, 4, 1.
+  const strip = [
+    ['https://a.test/1', 1], ['https://b.test/1', 6], ['https://a.test/2', 7], ['https://c.test/1', 2],
+    ['https://b.test/2', 3], ['https://a.test/3', 5], ['https://d.test/1', 4], ['https://c.test/2', 8],
+  ];
+  const ids = (list) => list.map((tab) => tab.id);
+  beforeEach(() => {
+    state.allTabs = strip.map(([url, lastAccessed], i) => makeTab(i + 1, { url, index: i, lastAccessed }));
+    state.currentTabId = 8;
+  });
+
+  it('puts the recent tabs first, then each site\'s tabs in tab-bar order', () => {
+    applyFilters(ui({ groupBySite: true, preselectPrevious: true }));
+    expect(state.groups.map(({ recent, host, count }) => [Boolean(recent), host, count])).toEqual([
+      [true, '', RECENT_COUNT], [false, 'a.test', 3], [false, 'b.test', 2], [false, 'c.test', 2], [false, 'd.test', 1],
+    ]);
+    // Recent: the previous tab first, the current tab second.
+    expect(ids(state.filteredTabs.slice(0, RECENT_COUNT))).toEqual([3, 8, 2, 6, 7]);
+    expect(ids(state.filteredTabs.slice(RECENT_COUNT))).toEqual([1, 3, 6, 2, 5, 4, 8, 7]);
+    expect(state.filteredTabs[state.selectedIndex].id).toBe(3);
+  });
+
+  it('keeps the site groups where they are when you switch tabs', () => {
+    applyFilters(ui({ groupBySite: true }));
+    const before = ids(state.filteredTabs.slice(RECENT_COUNT));
+    state.allTabs.find((tab) => tab.id === 7).lastAccessed = 100; // switched to d.test
+    state.currentTabId = 7;
+    applyFilters(ui({ groupBySite: true }));
+    expect(ids(state.filteredTabs.slice(RECENT_COUNT))).toEqual(before);
+    expect(state.filteredTabs[0].id).toBe(8); // the previous tab now
+  });
+
+  it('orders windows by when they were opened, and tabs by position', () => {
+    state.allTabs = [
+      makeTab(1, { windowId: 2, index: 0, url: 'https://late.test/' }),
+      makeTab(2, { windowId: 1, index: 1, url: 'https://second.test/' }),
+      makeTab(3, { windowId: 1, index: 0, url: 'https://first.test/' }),
+      ...[4, 5, 6, 7].map((id) => makeTab(id, { windowId: 1, index: id, url: `https://n${id}.test/` })),
+    ];
+    applyFilters(ui({ groupBySite: true, showAllWindows: true }));
+    expect(state.groups.slice(1, 3).map((g) => g.host)).toEqual(['first.test', 'second.test']);
+    expect(state.groups.at(-1).host).toBe('late.test');
+  });
+
+  it('gives tabs without a site a group of their own, after the recent one', () => {
+    state.allTabs.push(makeTab(9, { url: 'about:blank', index: 8, lastAccessed: 0 }));
+    applyFilters(ui({ groupBySite: true }));
+    expect(state.groups.filter((g) => g.recent)).toEqual([expect.objectContaining({ start: 0 })]);
+    expect(state.groups.at(-1)).toEqual({ host: '', start: RECENT_COUNT + 8, count: 1 });
+  });
+
+  it('is off while searching, in the site view, with few tabs, or with the setting off', () => {
+    applyFilters(ui({ groupBySite: true, searchTerm: 'a.test' }));
+    expect(state.groups).toBe(null);
+    state.siteHost = 'a.test';
+    applyFilters(ui({ groupBySite: true }));
+    expect(state.groups).toBe(null);
+    state.siteHost = '';
+    applyFilters(ui({ groupBySite: false }));
+    expect(state.groups).toBe(null);
+    state.allTabs = state.allTabs.slice(0, RECENT_COUNT);
+    applyFilters(ui({ groupBySite: true }));
+    expect(state.groups).toBe(null);
+  });
+});
+
+describe('moveSelectionByRects', () => {
+  // Two groups side by side, then one below:
+  //   [0][1]   [2]
+  //   [3]
+  //   [4][5]
+  const box = (left, top) => ({ left, top, width: 100, height: 80 });
+  const rects = [box(0, 0), box(110, 0), box(300, 0), box(0, 90), box(0, 200), box(110, 200)];
+  beforeEach(() => {
+    state.filteredTabs = rects.map((_, i) => makeTab(i + 1));
+  });
+  const move = (from, key) => {
+    state.selectedIndex = from;
+    moveSelectionByRects(key, rects);
+    return state.selectedIndex;
+  };
+
+  it('steps through the order with left and right', () => {
+    expect(move(2, 'ArrowRight')).toBe(3);
+    expect(move(3, 'ArrowLeft')).toBe(2);
+  });
+
+  it('goes to the tile straight below or above, before one off to the side', () => {
+    expect(move(1, 'ArrowDown')).toBe(5); // nothing right under 1 until the third row
+    expect(move(0, 'ArrowDown')).toBe(3);
+    expect(move(3, 'ArrowDown')).toBe(4);
+    expect(move(5, 'ArrowUp')).toBe(1);
+    expect(move(2, 'ArrowDown')).toBe(3); // nothing straight below: the nearest row
+  });
+
+  it('stays put at the edge, and starts at an end with nothing selected', () => {
+    expect(move(0, 'ArrowUp')).toBe(0);
+    expect(move(-1, 'ArrowDown')).toBe(0);
+    expect(move(-1, 'ArrowUp')).toBe(5);
   });
 });

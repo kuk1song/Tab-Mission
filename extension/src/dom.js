@@ -8,8 +8,10 @@ import { selectionMoved } from './tips.js';
 
 // One tile per tab, built on first render and reused afterwards. Filtering
 // only reorders these nodes, so previews never reload and the entrance
-// animation never replays while typing.
+// animation never replays while typing. Grouped by site, a tab in the recent
+// group has a second tile there (recentTiles).
 const tiles = new Map();
+const recentTiles = new Map();
 
 // Bind the delegated grid listeners exactly once. render() swaps the grid's
 // children but keeps the same #grid element.
@@ -22,7 +24,7 @@ export function initializeGridListeners() {
     const tab = tabForEvent(e);
     if (!tab) return;
     if (e.target.closest('.tile-close')) closeTab(tab);
-    else activateTab(tab);
+    else activateTab(tab, e.target.closest('.tile'));
   });
   // Middle-click closes a tab, as on Chrome's own tab strip.
   gridEl.addEventListener('mousedown', (e) => {
@@ -86,28 +88,54 @@ export function render() {
 
   document.getElementById('search')?.setAttribute('aria-expanded', String(state.filteredTabs.length > 0));
   if (state.filteredTabs.length === 0) {
+    gridEl.classList.remove('grouped');
     gridEl.replaceChildren(createEmptyMessage());
     updateSelection();
     return;
   }
 
+  const recentEnd = state.groups ? state.groups[0].count : 0;
   const nodes = state.filteredTabs.map((tab, index) => {
-    let tile = tiles.get(tab.id);
+    const map = index < recentEnd ? recentTiles : tiles;
+    let tile = map.get(tab.id);
     if (!tile) {
       tile = createTile(tab, index);
-      tiles.set(tab.id, tile);
+      if (map === recentTiles) tile.id = `tile-recent-${tab.id}`;
+      map.set(tab.id, tile);
     }
     tile.dataset.index = String(index);
     return tile;
   });
-  gridEl.replaceChildren(...nodes);
+  gridEl.classList.toggle('grouped', Boolean(state.groups));
+  gridEl.replaceChildren(...(state.groups ? state.groups.map((group) => createGroup(group, nodes)) : nodes));
 
   updateSelection();
   observeTiles(nodes);
 }
 
+// A group of tiles under a small label: the recent tabs, one site's tabs,
+// or tabs without a site (local files, blank pages). It is as wide as its
+// tiles (--n), up to the grid's width.
+function createGroup({ recent, host, start, count }, nodes) {
+  const group = document.createElement('div');
+  group.className = recent ? 'tile-group recent' : 'tile-group';
+  group.setAttribute('role', 'group');
+  const label = recent
+    ? (t('groupRecent') || 'Recent')
+    : host.replace(/^www\./, '') || t('groupOther') || 'Other pages';
+  group.setAttribute('aria-label', label);
+  group.style.setProperty('--n', String(count));
+  const heading = document.createElement('div');
+  heading.className = 'group-label';
+  heading.setAttribute('aria-hidden', 'true');
+  heading.textContent = label;
+  group.append(heading, ...nodes.slice(start, start + count));
+  return group;
+}
+
 export function forgetTile(tabId) {
   tiles.delete(tabId);
+  recentTiles.delete(tabId);
 }
 
 function createTile(tab, index) {

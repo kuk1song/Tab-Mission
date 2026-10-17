@@ -205,6 +205,14 @@
     "message": "Press the shortcut twice to go back. When off, nothing is selected, so a second press closes Tab Mission.",
     "description": "Settings page: one line under the pre-select switch."
   },
+  "optionGroupBySite": {
+    "message": "Group tabs by site",
+    "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
+  },
+  "optionGroupBySiteNote": {
+    "message": "Your most recent tabs come first, then all tabs grouped by site in tab bar order, which switching tabs doesn't change.",
+    "description": "Settings page: one line under the group-by-site switch."
+  },
   "optionHelpHeading": {
     "message": "Help",
     "description": "Settings page: heading of the help section."
@@ -300,5 +308,13 @@
         "example": "⌘E"
       }
     }
+  },
+  "groupRecent": {
+    "message": "Recent",
+    "description": "Tab Mission, grouped by site: label above the most recent tabs."
+  },
+  "groupOther": {
+    "message": "Other pages",
+    "description": "Tab Mission, grouped by site: label above tabs without a site, such as local files."
   }
 }
