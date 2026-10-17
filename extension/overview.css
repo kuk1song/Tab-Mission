@@ -268,6 +268,38 @@ html, body {
   scrollbar-gutter: stable;
 }
 
+/* Grouped by site (state.js): the groups flow like words in a line, each as
+   wide as its tiles (--n of them, at the grid's minimum tile width) and
+   wrapping inside when it holds more than a row. The recent group takes the
+   first line on its own. */
+.grid.grouped {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  column-gap: 24px;
+  row-gap: 16px;
+}
+
+.tile-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, min(100%, var(--tile-min)));
+  grid-auto-rows: max-content;
+  gap: 12px;
+  width: calc(var(--n) * var(--tile-min) + (var(--n) - 1) * 12px);
+  max-width: 100%;
+}
+
+.tile-group.recent { flex-basis: 100%; }
+
+.group-label {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .tile {
   display: flex;
   flex-direction: column;
@@ -290,7 +322,8 @@ html, body {
 
 /* The staggered entrance plays on the first render only; filtering reuses the
    same tiles and must not replay it on every keystroke. */
-.grid.entering .tile {
+.grid.entering .tile,
+.grid.entering .group-label {
   animation: fadeInUp 320ms ease both;
   animation-delay: var(--stagger, 0ms);
 }
@@ -472,7 +505,8 @@ html, body {
 }
 
 /* Exit animation: closeOverview adds .closing to #root */
-#root.closing .tile {
+#root.closing .tile,
+#root.closing .group-label {
   /* Use our new animation - using ease-in matches the feel of being "sucked back" */
   animation: fadeOutUp 320ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
   /* Apply the reverse stagger delay calculated in JS */
@@ -581,6 +615,7 @@ html, body {
   #root,
   .tile,
   .grid.entering .tile,
+  .group-label,
   .thumbnail,
   .scope-token,
   .tip {

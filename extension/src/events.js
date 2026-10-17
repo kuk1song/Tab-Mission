@@ -1,5 +1,5 @@
 // events.js
-import { state, applyFilters, moveSelection, currentSiteHost, countSiteTabs } from './state.js';
+import { state, applyFilters, moveSelection, moveSelectionByRects, currentSiteHost, countSiteTabs } from './state.js';
 import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection } from './dom.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
@@ -78,6 +78,12 @@ export function initializeEventListeners() {
 
   initializeGridListeners();
 
+  // Grouped by site, the recent row holds as many tiles as fit, so a resize
+  // can change it.
+  window.addEventListener('resize', () => {
+    if (state.groupBySite) scheduleFilterChange();
+  });
+
   window.addEventListener('keydown', handleKeydown);
   // When focus leaves the window: a toolbar click right after closes Tab
   // Mission instead of reopening it (background.js).
@@ -126,7 +132,27 @@ function readUiState() {
     showSleeping: toggleSleeping ? toggleSleeping.checked : false,
     showAllWindows: toggleAllWindows ? toggleAllWindows.checked : false,
     preselectPrevious: state.preselectPrevious,
+    groupBySite: state.groupBySite,
+    // Only needed to group by site, which applies while browsing.
+    columns: state.groupBySite && !state.siteHost && !searchEl?.value.trim() ? tilesPerRow() : undefined,
   };
+}
+
+// How many tiles fit in a row of the grid. Grouped by site the grid is not a
+// CSS grid, so this measures the minimum tile width (--tile-min) instead of
+// reading the grid's columns.
+function tilesPerRow() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return undefined;
+  const probe = document.createElement('div');
+  probe.style.width = 'var(--tile-min)';
+  gridEl.append(probe);
+  const tile = probe.getBoundingClientRect().width;
+  probe.remove();
+  const style = getComputedStyle(gridEl);
+  const width = gridEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const gap = 12; // between tiles, as in overview.css
+  return tile > 0 ? Math.max(1, Math.floor((width + gap) / (tile + gap))) : undefined;
 }
 
 // persist: save the two toggles (only when one of them changed). The search
@@ -203,9 +229,9 @@ function getColumnCount() {
   return Math.max(1, columns);
 }
 
-export function activateTab(tab) {
-  const gridEl = document.getElementById('grid');
-  const tile = gridEl.querySelector(`.tile[data-tab-id="${tab.id}"]`);
+// tile: the one clicked; else the selected one. Grouped by site, a tab can
+// have two tiles, and the press shows on the one you used.
+export function activateTab(tab, tile = document.querySelector(`#grid .tile[data-index="${state.selectedIndex}"]`)) {
   if (tile) {
     tile.classList.add('activating');
   }
@@ -288,7 +314,13 @@ function handleKeydown(e) {
     case 'ArrowRight':
       e.preventDefault();
       flushFilterChange();
-      moveSelection(e.key, getColumnCount());
+      if (state.groups) {
+        // Grouped by site, tiles do not form one grid: go by their boxes.
+        const tiles = document.querySelectorAll('#grid .tile');
+        moveSelectionByRects(e.key, Array.from(tiles, (tile) => tile.getBoundingClientRect()));
+      } else {
+        moveSelection(e.key, getColumnCount());
+      }
       updateSelection(true);
       break;
     default:
