@@ -23,7 +23,10 @@ test('→ moves the selection; typing pre-selects the best match; Enter switches
 });
 
 test('loads a relative og:image and serves it from the session cache on reopen', async ({ ext }) => {
-  await ext.openWindow(['alpha', 'beta', 'gamma']);
+  // alpha is in front only for a moment (not first, as the window's first
+  // tab is in front while the pages load), so it gets no picture of its own
+  // (covers.js) and its card shows the page's image.
+  await ext.openWindow(['beta', 'alpha', 'gamma']);
   let page = await ext.open();
   await expect(page.locator('img.thumbnail.loaded[src$="/img/alpha.svg"]')).toHaveCount(1);
   await ext.pressToClose(page, 'Escape');

@@ -1,6 +1,7 @@
 // thumbnail.js
 import { state } from './state.js';
 import { isCapturableUrl, isSleeping } from './utils.js';
+import { readCover } from './covers.js';
 
 // Preview image URLs are cached in chrome.storage.session (kept in memory and
 // cleared when the browser quits), so reopening the overview shows previews
@@ -60,6 +61,18 @@ async function loadThumbnail(tab, tile) {
   const img = tile.querySelector('.thumbnail');
   // Pages we cannot read keep the placeholder (title + hostname on a gradient).
   if (!img || !isCapturableUrl(tab.url)) return;
+
+  // A picture of the page as you last saw it (covers.js) says more than the
+  // image the page declares for itself, and needs nothing from the tab, so
+  // it also serves sleeping tabs.
+  const cover = await readCover(tab);
+  if (cover) {
+    img.classList.add('cover');
+    img.onload = () => requestAnimationFrame(() => img.classList.add('loaded'));
+    img.onerror = () => { img.style.display = 'none'; };
+    img.src = cover;
+    return;
+  }
 
   await loadCache();
   const hit = cache[tab.id];
