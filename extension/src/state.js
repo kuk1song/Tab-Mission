@@ -11,7 +11,14 @@ export const state = {
   selfWindowId: null, // the overview popup itself; its own tab is never listed
   siteHost: '', // non-empty while showing only one site's tabs
   preselectPrevious: true, // mirrors the setting of the same name
+  groupBySite: false, // mirrors the setting of the same name
+  // With groupBySite, while browsing: the parts of filteredTabs, in order
+  // ({ host, start, count }, the first one the recent tabs), else null.
+  groups: null,
 };
+
+// Group by site: the recent tabs first, then every tab again under its site.
+export const RECENT_COUNT = 5;
 
 export async function fetchAllTabs() {
   try {
@@ -99,6 +106,17 @@ export function applyFilters(uiState) {
     [tabs[0], tabs[1]] = [tabs[1], tabs[0]];
   }
 
+  // Grouped by site (browsing only, with more tabs than the recent group
+  // holds): the most recent tabs stay first, so the previous tab keeps the
+  // first slot, then all tabs again by site in tab-strip order, which
+  // switching tabs does not change. Nothing is stored.
+  state.groups = null;
+  if (uiState.groupBySite && !searching && !state.siteHost && tabs.length > RECENT_COUNT) {
+    const { entries, groups } = groupBySite(tabs);
+    tabs = entries;
+    state.groups = groups;
+  }
+
   state.filteredTabs = tabs;
 
   // A search pre-selects its best match so Enter switches straight away: the
@@ -120,6 +138,27 @@ export function applyFilters(uiState) {
   }
 }
 
+// tabs in recent order. Sites follow the tab strip: windows in the order they
+// were opened (by id), tabs by position, a site where its first tab is;
+// within a site, its tabs by position.
+export function groupBySite(tabs) {
+  const recent = tabs.slice(0, RECENT_COUNT);
+  const strip = [...tabs].sort((a, b) => a.windowId - b.windowId || a.index - b.index);
+  const sites = new Map();
+  for (const tab of strip) {
+    const host = getHostname(tab.url);
+    if (!sites.has(host)) sites.set(host, []);
+    sites.get(host).push(tab);
+  }
+  const groups = [{ recent: true, host: '', start: 0, count: recent.length }];
+  const entries = [...recent];
+  for (const [host, siteTabs] of sites) {
+    groups.push({ host, start: entries.length, count: siteTabs.length });
+    entries.push(...siteTabs);
+  }
+  return { entries, groups };
+}
+
 function firstOtherIndex(tabs) {
   if (tabs.length === 0) return -1;
   const index = tabs.findIndex((tab) => tab.id !== state.currentTabId);
@@ -138,4 +177,39 @@ export function moveSelection(key, columns) {
     return;
   }
   state.selectedIndex = Math.min(last, Math.max(0, state.selectedIndex + step));
+}
+
+// Arrow keys when tiles do not sit in one grid (grouped by site): ← and →
+// step through the order; ↑ and ↓ go to the nearest tile above or below,
+// preferring one straight above or below (overlapping columns) over one off
+// to the side, then the nearest row, then the nearest column. rects are the
+// tiles' boxes ({ left, top, width, height }) in the order of filteredTabs.
+export function moveSelectionByRects(key, rects) {
+  if (key === 'ArrowLeft' || key === 'ArrowRight' || state.selectedIndex === -1) {
+    moveSelection(key, 1);
+    return;
+  }
+  const from = rects[state.selectedIndex];
+  if (!from) return;
+  const down = key === 'ArrowDown';
+  const middle = from.top + from.height / 2;
+  const center = from.left + from.width / 2;
+  let best = null;
+  rects.forEach((r, index) => {
+    // Whole pixels, so subpixel layout never splits a row.
+    const dy = Math.round(down ? r.top - middle : middle - (r.top + r.height));
+    if (dy <= 0) return;
+    const candidate = {
+      index,
+      aside: r.left >= from.left + from.width || r.left + r.width <= from.left ? 1 : 0,
+      dy,
+      dx: Math.abs(r.left + r.width / 2 - center),
+    };
+    if (!best || compare(candidate, best) < 0) best = candidate;
+  });
+  if (best) state.selectedIndex = best.index;
+}
+
+function compare(a, b) {
+  return a.aside - b.aside || a.dy - b.dy || a.dx - b.dx;
 }
