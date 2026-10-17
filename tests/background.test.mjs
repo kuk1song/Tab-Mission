@@ -32,6 +32,10 @@ function fakeChrome() {
     _focused: { left: 0, top: 0, width: 1600, height: 1000, state: 'normal' },
     system: { display: { getInfo: async () => chrome._displays } },
     tabs: {
+      // Covers (src/covers.js) listen here; their own tests drive them.
+      onActivated: event('tabs.onActivated'),
+      onUpdated: event('tabs.onUpdated'),
+      onRemoved: event('tabs.onRemoved'),
       create: vi.fn(async () => ({})),
       query: vi.fn(async ({ windowId }) => windows.get(windowId)?.tabs ?? []),
       // Only the overview page listens; a web page has no receiver.
@@ -59,6 +63,8 @@ function fakeChrome() {
       update: vi.fn(async () => ({})),
       onBoundsChanged: event('onBoundsChanged'),
       onRemoved: event('onRemoved'),
+      onFocusChanged: event('windows.onFocusChanged'),
+      WINDOW_ID_NONE: -1,
     },
   };
   return chrome;
@@ -245,6 +251,18 @@ describe('background.js', () => {
       await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
       expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?scope=site');
     });
+  });
+
+  it('the shortcuts and the toolbar button picture the page in front; the welcome page\'s button does not', async () => {
+    const front = { active: true, lastFocusedWindow: true, windowType: 'normal' };
+    chrome.listeners.onMessage({ action: 'openOverview' }, {}, () => {});
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    expect(chrome.tabs.query).not.toHaveBeenCalledWith(front);
+    chrome.listeners.onCommand('open-overview');
+    chrome.listeners.onCommand('open-overview-site');
+    chrome.listeners.onClicked();
+    await vi.waitFor(() => expect(chrome.tabs.query.mock.calls.filter(([q]) => q.lastFocusedWindow)).toHaveLength(3));
+    expect(chrome.tabs.query).toHaveBeenCalledWith(front);
   });
 
   it('opens the welcome page on install, and gives the new user the window tips', () => {

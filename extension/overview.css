@@ -342,6 +342,11 @@ html, body {
   opacity: 1;
 }
 
+/* A picture of the page (covers.js): its top, where the page says what it is. */
+.thumbnail.cover {
+  object-position: top;
+}
+
 .text-preview {
   position: absolute;
   inset: 0;
