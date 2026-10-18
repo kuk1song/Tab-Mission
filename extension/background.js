@@ -1,6 +1,6 @@
 // background.js
 import { recordTryIt, startTips } from './src/tryit.js';
-import { coverFrontTab, startCovers } from './src/covers.js';
+import { coverFrontTab, startCovers, tidyCovers } from './src/covers.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -231,6 +231,8 @@ function overviewPath(scope, source) {
 }
 
 async function createOverviewWindow(scope, source) {
+	// Drop the pictures of pages no longer open (src/covers.js), meanwhile.
+	tidyCovers();
 	try {
 		const displays = await chrome.system.display.getInfo();
 		if (!displays || displays.length === 0) {

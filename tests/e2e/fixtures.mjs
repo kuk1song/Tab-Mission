@@ -20,6 +20,8 @@ const EXTENSION = fileURLToPath(new URL('../../extension', import.meta.url));
 // forced to https.
 export const PAGES = {
   alpha: { title: 'Page alpha docs', og: '/img/alpha.svg' },
+  logo: { title: 'Page logo docs', og: '/img/logo-square.svg' },
+  icon: { title: 'Page icon docs', touch: '/img/touch-square.svg' },
   beta: { title: 'Page beta docs' },
   gamma: { title: 'Page gamma docs' },
   tube1: { title: 'Lo-fi jazz for focused work - Tube' },
@@ -44,13 +46,16 @@ function startSite() {
   const server = http.createServer((req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
     if (path.startsWith('/img/')) {
+      // A social preview's shape, or a logo's.
+      const [w, h] = path.includes('square') ? [180, 180] : [1200, 630];
       res.writeHead(200, { 'content-type': 'image/svg+xml' });
-      res.end('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><rect width="100%" height="100%" fill="#4a6"/></svg>');
+      res.end(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="#4a6"/></svg>`);
       return;
     }
     const id = path.replace(/^\//, '').replace(/\.html$/, '');
     const page = PAGES[id] ?? { title: `Tab ${id}` };
-    const og = page.og ? `<meta property="og:image" content="${page.og}">` : '';
+    const og = (page.og ? `<meta property="og:image" content="${page.og}">` : '')
+      + (page.touch ? `<link rel="apple-touch-icon" href="${page.touch}">` : '');
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(`<!doctype html><html><head><title>${page.title}</title>${og}</head><body><h1>${page.title}</h1></body></html>`);
   });
@@ -82,6 +87,37 @@ async function browserCommand(profile, method, params) {
   }
 }
 
+// Playwright's Chromium with the unpacked extension, on this profile.
+function launch(profile, { launchArgs = [], showScrollbars = false } = {}) {
+  return chromium.launchPersistentContext(profile, {
+    channel: 'chromium',
+    // Headless Chromium on Windows closes itself on the first
+    // chrome.system.display.getInfo() call (seen on windows-latest, where
+    // the headed browser returns the real display), so Windows runs
+    // headed. The extension calls it before opening the overview.
+    headless: process.platform !== 'win32',
+    // No viewport emulation: windows keep the size the extension gives
+    // them (it saves and restores the overview's bounds).
+    viewport: null,
+    ignoreDefaultArgs: showScrollbars ? ['--hide-scrollbars'] : [],
+    args: [
+      `--disable-extensions-except=${EXTENSION}`,
+      `--load-extension=${EXTENSION}`,
+      '--host-resolver-rules=MAP * 127.0.0.1',
+      // The DevTools endpoint and its Extensions domain, for
+      // clickToolbarButton.
+      '--remote-debugging-port=0',
+      '--enable-unsafe-extension-debugging',
+      ...launchArgs,
+    ],
+    // A start that hangs (seen once on macos-latest) is killed and the
+    // test retried. Left to the 30 s test timeout, the hung browser also
+    // stalls the worker's teardown, which fails the whole run even when
+    // the retry passes.
+    timeout: 20_000,
+  });
+}
+
 export const test = base.extend({
   // Extra Chromium switches (e.g. a simulated screen) and whether to draw
   // scrollbars (Playwright hides them in headless mode by default).
@@ -104,33 +140,7 @@ export const test = base.extend({
   },
 
   context: async ({ profile, launchArgs, showScrollbars }, use) => {
-    const context = await chromium.launchPersistentContext(profile, {
-      channel: 'chromium',
-      // Headless Chromium on Windows closes itself on the first
-      // chrome.system.display.getInfo() call (seen on windows-latest, where
-      // the headed browser returns the real display), so Windows runs
-      // headed. The extension calls it before opening the overview.
-      headless: process.platform !== 'win32',
-      // No viewport emulation: windows keep the size the extension gives
-      // them (it saves and restores the overview's bounds).
-      viewport: null,
-      ignoreDefaultArgs: showScrollbars ? ['--hide-scrollbars'] : [],
-      args: [
-        `--disable-extensions-except=${EXTENSION}`,
-        `--load-extension=${EXTENSION}`,
-        '--host-resolver-rules=MAP * 127.0.0.1',
-        // The DevTools endpoint and its Extensions domain, for
-        // clickToolbarButton.
-        '--remote-debugging-port=0',
-        '--enable-unsafe-extension-debugging',
-        ...launchArgs,
-      ],
-      // A start that hangs (seen once on macos-latest) is killed and the
-      // test retried. Left to the 30 s test timeout, the hung browser also
-      // stalls the worker's teardown, which fails the whole run even when
-      // the retry passes.
-      timeout: 20_000,
-    });
+    const context = await launch(profile, { launchArgs, showScrollbars });
     await use(context);
     await context.close();
   },
@@ -141,7 +151,7 @@ export const test = base.extend({
     await use(worker);
   },
 
-  ext: async ({ context, sw, site, profile }, use) => {
+  ext: async ({ context, sw, site, profile, launchArgs }, use) => {
     // The welcome page opens on install; it doubles as the extension page
     // that sends "shortcut presses" to background.js.
     await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html')), { timeout: 15_000 }).toBe(true);
@@ -249,6 +259,17 @@ export const test = base.extend({
 
       overviewPages() {
         return context.pages().filter((p) => p.url().includes('/overview.html'));
+      },
+
+      // Quit the browser and start it again on the same profile with the
+      // last session's tabs, as Chrome's "Continue where you left off" does.
+      // Returns the new browser and its service worker; the caller closes it.
+      async restart() {
+        await context.close();
+        const again = await launch(profile, { launchArgs: [...launchArgs, '--restore-last-session'] });
+        let [worker] = again.serviceWorkers();
+        worker ??= await again.waitForEvent('serviceworker');
+        return { context: again, sw: worker };
       },
 
       // Press the shortcut and return the overview page once it has rendered.

@@ -101,8 +101,21 @@ function webImageUrl(url) {
   return typeof url === 'string' && url.length <= 2048 && isCapturableUrl(url) ? url : null;
 }
 
+// A page's own image is shown only when it is wide, as a social preview
+// (1200 × 630) or a video frame is; a small or square one is mostly a logo,
+// which says less than the title card underneath.
+const MIN_WIDTH = 300;
+const MIN_ASPECT = 1.2;
+
 function showImage(img, tab, src) {
-  img.onload = () => requestAnimationFrame(() => img.classList.add('loaded'));
+  img.onload = () => {
+    if (img.naturalWidth < MIN_WIDTH || img.naturalWidth < img.naturalHeight * MIN_ASPECT) {
+      img.style.display = 'none';
+      remember(tab, null);
+      return;
+    }
+    requestAnimationFrame(() => img.classList.add('loaded'));
+  };
   img.onerror = () => {
     // A dead image URL: hide it and remember the miss so we do not retry it.
     img.style.display = 'none';
@@ -145,43 +158,15 @@ async function extractPreviewImage(tabId) {
           if (meta && meta.content) return absolute(meta.content);
         }
 
-        // 2. Try other semantic link tags
-        const linkSelectors = ['link[rel="image_src"]', 'link[rel="apple-touch-icon"]'];
-        for (const selector of linkSelectors) {
-          const link = document.querySelector(selector);
-          if (link && link.href) return link.href;
-        }
+        // 2. The older way to name a page's preview image
+        const link = document.querySelector('link[rel="image_src"]');
+        if (link && link.href) return link.href;
 
-        // 3. Look for video posters
+        // 3. A video's poster frame
         const video = document.querySelector('video[poster]');
         if (video && video.poster) return video.poster;
 
-        // 4. Check for background-image on large elements
-        const largeElements = Array.from(document.querySelectorAll('body, body > *, body > * > *'));
-        for (const el of largeElements) {
-          const style = window.getComputedStyle(el);
-          if (style.backgroundImage && style.backgroundImage.startsWith('url("')) {
-            const url = style.backgroundImage.slice(5, -2);
-            if (el.clientWidth > 200 && el.clientHeight > 150) return url;
-          }
-        }
-
-        // 5. Look for largest image on page
-        const images = Array.from(document.images);
-        let bestImage = null;
-        let bestArea = 0;
-        for (const img of images) {
-          if (!img.complete || !img.naturalWidth || !img.naturalHeight) continue;
-          const aspectRatio = img.naturalWidth / img.naturalHeight;
-          const area = img.naturalWidth * img.naturalHeight;
-          if (area > bestArea && img.naturalWidth > 300 && img.naturalHeight > 150 && aspectRatio > 0.5 && aspectRatio < 3.0) {
-            bestImage = img;
-            bestArea = area;
-          }
-        }
-        if (bestImage && bestImage.currentSrc) return bestImage.currentSrc;
-
-        // Fallback: If no suitable image is found, signal to use placeholder
+        // None: the card keeps its title card.
         return null;
       }
     });

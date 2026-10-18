@@ -6,19 +6,25 @@ import { isCapturableUrl } from './utils.js';
 // when you switch to a tab, it finishes loading or changes address, or its
 // window gets focus, then again a few seconds later (an app may show a
 // loading screen first), and when you open Tab Mission from it. Pictures are
-// shrunk and kept in
-// chrome.storage.session (in memory, cleared when the browser quits), one key
-// per tab plus a small index of their sizes, so the oldest go first when the
-// budget is full. Incognito tabs, browser pages and other windows' tabs (a
-// popup, a window without focus) are never captured.
+// shrunk and kept in chrome.storage.local, one key per tab plus a small index
+// of their pages, sizes and times, so the tabs that come back after a restart
+// of the browser or an update keep theirs. A tab's picture goes when the tab
+// closes, the rest when Tab Mission next opens (tidyCovers), and the oldest
+// first when the budget is full. Incognito tabs, browser pages and other
+// windows' tabs (a popup, a window without focus) are never captured.
 export const COVER_PREFIX = 'cover:';
 export const INDEX_KEY = 'coverIndex';
 export const SETTLE_MS = 500; // after a switch or a load, let the page paint
 // Pictures again after these further delays while the tab stays in front:
 // 3 s and 15 s after the first, then none until something happens.
 export const FOLLOW_UP_MS = [2500, 12000];
+// A page in front that keeps changing (a video's address updating its time,
+// an app's routes, a page or an ad frame reloading) would start over on every
+// change: after a capture, its changes and its window's focus wait this long,
+// and only the last one is pictured.
+export const REPEAT_MS = 30_000;
 export const CAPTURE_GAP_MS = 550; // Chrome allows two captures a second
-export const MAX_BYTES = 6 * 1024 * 1024; // of session storage's 10 MB
+export const MAX_BYTES = 6 * 1024 * 1024; // of local storage's 10 MB
 export const COVER_WIDTH = 640; // a card is at most about 320 px wide
 
 export const coverKey = (tabId) => `${COVER_PREFIX}${tabId}`;
@@ -27,6 +33,8 @@ let shrink = shrinkImage;
 let nextSlot = 0; // the earliest time (performance.now) the next capture may start
 let writes = Promise.resolve(); // storage updates, one at a time
 const timers = new Map(); // tab id to its pending capture
+const shot = new Map(); // tab id to when (performance.now) it was last captured
+let closing = null; // ids of tabs closed since the last storage update
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -36,32 +44,50 @@ export function startCovers(options = {}) {
   shrink = options.shrink ?? shrinkImage;
   chrome.tabs.onActivated.addListener(({ tabId }) => schedule(tabId));
   chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
-    if (tab.active && (change.status === 'complete' || change.url)) schedule(tabId);
+    if (tab.active && (change.status === 'complete' || change.url)) scheduleChange(tabId);
   });
   chrome.windows.onFocusChanged.addListener(async (windowId) => {
     if (windowId === chrome.windows.WINDOW_ID_NONE) return;
     try {
       const [tab] = await chrome.tabs.query({ active: true, windowId });
-      if (tab) schedule(tab.id);
+      if (tab) scheduleChange(tab.id);
     } catch {}
   });
+  // Tabs closed together (a window) are dropped in one storage update.
   chrome.tabs.onRemoved.addListener((tabId) => {
     clearTimeout(timers.get(tabId));
     timers.delete(tabId);
-    update(() => [String(tabId)]);
+    shot.delete(tabId);
+    if (closing) return void closing.add(String(tabId));
+    closing = new Set([String(tabId)]);
+    update(() => {
+      const ids = [...closing];
+      closing = null;
+      return ids;
+    });
   });
 }
 
 // Capture a tab once it has stayed in front for a moment, so a quick run of
 // switches takes one picture, of the tab you stopped at; then follow up while
 // it stays in front. Each new event starts over.
-function schedule(tabId, step = 0) {
+function schedule(tabId, step = 0, delay = step === 0 ? SETTLE_MS : FOLLOW_UP_MS[step - 1]) {
   clearTimeout(timers.get(tabId));
   timers.set(tabId, setTimeout(async () => {
     timers.delete(tabId);
     const taken = await capture(tabId).catch(() => false);
     if (taken && step < FOLLOW_UP_MS.length && !timers.has(tabId)) schedule(tabId, step + 1);
-  }, step === 0 ? SETTLE_MS : FOLLOW_UP_MS[step - 1]));
+  }, delay));
+}
+
+// The page in front loaded or changed its address, or its window got focus:
+// as for a switch, unless the tab was captured less than REPEAT_MS ago. Then
+// a pending capture is left to take the change; otherwise one capture, with
+// no follow-ups, comes when that time is up.
+function scheduleChange(tabId) {
+  const wait = (shot.get(tabId) ?? -Infinity) + REPEAT_MS - performance.now();
+  if (wait <= 0) schedule(tabId);
+  else if (!timers.has(tabId)) schedule(tabId, FOLLOW_UP_MS.length, wait);
 }
 
 // The tab in front of you when you press the shortcut or click the toolbar
@@ -98,13 +124,14 @@ async function capture(tabId, { front = false } = {}) {
     await sleep(start - now);
     if (!unchanged(tab, await chrome.tabs.get(tabId))) return false;
   }
-  const shot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 85 });
+  shot.set(tabId, performance.now()); // even if the picture is dropped below
+  const raw = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 85 });
   // Switched away, moved to another window or on to another page meanwhile:
   // the picture may show something else.
   if (!unchanged(tab, await chrome.tabs.get(tabId))) return false;
-  const img = await shrink(shot);
+  const img = await shrink(raw);
   return update((index) => {
-    index[tabId] = { bytes: img.length, at: Date.now() };
+    index[tabId] = { url: tab.url, bytes: img.length, at: Date.now() };
     return overBudget(index, MAX_BYTES);
   }, { [coverKey(tabId)]: { url: tab.url, img } },
   // A tab closed while its picture was being shrunk is not stored again
@@ -112,26 +139,28 @@ async function capture(tabId, { front = false } = {}) {
   () => chrome.tabs.get(tabId).then(() => true, () => false));
 }
 
-// Change the index (the change returns the tab ids whose pictures to drop)
-// and store it with any new pictures, unless the optional check says no. If
-// storage is full anyway, the older pictures are dropped and the new ones
-// stored again. Resolves true once stored.
+// Change the index (the change returns, or resolves to, the tab ids whose
+// pictures to drop) and store it with any new pictures, unless the optional
+// check says no. If storage is full anyway, the older pictures are dropped
+// and the new ones stored again. Resolves true once stored.
 function update(change, items = {}, check = null) {
   writes = writes.then(async () => {
     if (check && !(await check())) return false;
-    const stored = await chrome.storage.session.get(INDEX_KEY);
+    const stored = await chrome.storage.local.get(INDEX_KEY);
     const index = stored[INDEX_KEY] || {};
-    const dropped = change(index);
+    const dropped = (await change(index)).filter((id) => id in index);
+    // Nothing to write (a tab without a picture closed): no disk write.
+    if (!dropped.length && !Object.keys(items).length) return true;
     for (const id of dropped) delete index[id];
-    if (dropped.length) await chrome.storage.session.remove(dropped.map(coverKey));
+    if (dropped.length) await chrome.storage.local.remove(dropped.map(coverKey));
     try {
-      await chrome.storage.session.set({ ...items, [INDEX_KEY]: index });
+      await chrome.storage.local.set({ ...items, [INDEX_KEY]: index });
     } catch {
       const kept = Object.keys(items).map((key) => key.slice(COVER_PREFIX.length));
       const old = Object.keys(index).filter((id) => !kept.includes(id));
-      await chrome.storage.session.remove(old.map(coverKey));
+      await chrome.storage.local.remove(old.map(coverKey));
       for (const id of old) delete index[id];
-      await chrome.storage.session.set({ ...items, [INDEX_KEY]: index });
+      await chrome.storage.local.set({ ...items, [INDEX_KEY]: index });
     }
     return true;
   }).catch(() => false);
@@ -149,6 +178,23 @@ export function overBudget(index, maxBytes) {
     total -= e.bytes;
   }
   return drop;
+}
+
+// Tab ids last only as long as the browser session: after a restart, the
+// pages come back in new tabs, and a picture of the page stays under the old
+// id until that tab has its own (readCover finds it by address). Called when
+// Tab Mission opens, once the tabs are back: keeps each tab's own picture
+// and, for a tab without one, the newest picture of its page, and drops the
+// rest, such as those of tabs that did not come back.
+export function tidyCovers() {
+  return update(async (index) => {
+    const tabs = await chrome.tabs.query({});
+    const urls = new Map(tabs.map((tab) => [String(tab.id), tab.url]));
+    const own = new Set(Object.keys(index).filter((id) => urls.get(id) === index[id].url));
+    const wanted = new Set(tabs.filter((tab) => !tab.incognito && !own.has(String(tab.id))).map((tab) => tab.url));
+    const newest = Object.entries(index).sort(([, a], [, b]) => b.at - a.at);
+    return newest.filter(([id, entry]) => !own.has(id) && !wanted.delete(entry.url)).map(([id]) => id);
+  });
 }
 
 // Shrink a capture to card size, keeping the top of the page in the cards'
@@ -174,13 +220,27 @@ async function shrinkImage(dataUrl) {
 }
 
 // The overview's side: the picture for a tab, if one was taken of the page
-// the tab shows now.
+// the tab shows now: its own, or one kept from before a restart (tidyCovers).
+let pictured = null; // the index, read once per page
+
 export async function readCover(tab) {
+  if (tab.incognito) return null;
   try {
-    const key = coverKey(tab.id);
-    const entry = (await chrome.storage.session.get(key))[key];
-    return entry?.url === tab.url && typeof entry.img === 'string' ? entry.img : null;
+    const own = await readEntry(tab.id);
+    if (own?.url === tab.url) return own.img;
+    pictured ??= chrome.storage.local.get(INDEX_KEY).then((stored) => stored[INDEX_KEY] || {});
+    const [match] = Object.entries(await pictured)
+      .filter(([, entry]) => entry.url === tab.url)
+      .sort(([, a], [, b]) => b.at - a.at);
+    const kept = match && await readEntry(match[0]);
+    return kept?.url === tab.url ? kept.img : null;
   } catch {
     return null;
   }
+}
+
+async function readEntry(tabId) {
+  const key = coverKey(tabId);
+  const entry = (await chrome.storage.local.get(key))[key];
+  return typeof entry?.img === 'string' ? entry : null;
 }

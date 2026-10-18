@@ -17,7 +17,7 @@ function fakeChrome() {
     listeners, data, tabs: null, windows: null, shots,
     _tabs: tabs, _windows: windows,
     storage: {
-      session: {
+      local: {
         get: vi.fn(async (key) => (key in data ? { [key]: structuredClone(data[key]) } : {})),
         set: vi.fn(async (items) => { Object.assign(data, structuredClone(items)); }),
         remove: vi.fn(async (keys) => { for (const k of [].concat(keys)) delete data[k]; }),
@@ -32,8 +32,9 @@ function fakeChrome() {
       if (!tabs.has(id)) throw new Error(`No tab with id: ${id}.`);
       return { ...tabs.get(id) };
     }),
-    query: vi.fn(async ({ windowId, lastFocusedWindow }) => [...tabs.values()].filter((t) =>
-      t.active && (lastFocusedWindow ? windows.get(t.windowId).focused && windows.get(t.windowId).type === 'normal' : t.windowId === windowId))),
+    query: vi.fn(async ({ windowId, lastFocusedWindow } = {}) => [...tabs.values()].filter((t) =>
+      windowId === undefined && !lastFocusedWindow ? true
+        : t.active && (lastFocusedWindow ? windows.get(t.windowId).focused && windows.get(t.windowId).type === 'normal' : t.windowId === windowId))),
     captureVisibleTab: vi.fn(async (windowId) => {
       shots.push({ windowId, at: Date.now() });
       return 'data:image/jpeg;base64,RAW';
@@ -88,7 +89,7 @@ describe('covers', () => {
     await vi.advanceTimersByTimeAsync(1);
     expect(chrome.shots).toEqual([expect.objectContaining({ windowId: 1 })]);
     expect(chrome.data['cover:11']).toEqual({ url: tab.url, img: 'data:image/webp;base64,SMALL' });
-    expect(chrome.data.coverIndex['11']).toMatchObject({ bytes: 'data:image/webp;base64,SMALL'.length });
+    expect(chrome.data.coverIndex['11']).toMatchObject({ url: tab.url, bytes: 'data:image/webp;base64,SMALL'.length });
     expect(await covers.readCover(tab)).toBe('data:image/webp;base64,SMALL');
   });
 
@@ -119,10 +120,38 @@ describe('covers', () => {
     chrome.listeners.onUpdated(11, { title: 'x' }, tab); // other changes are ignored
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
     expect(chrome.shots).toHaveLength(1);
+    // Focus soon after a capture waits until REPEAT_MS has passed since it.
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0] + covers.FOLLOW_UP_MS[1]);
+    expect(chrome.shots).toHaveLength(3);
     chrome.listeners.onFocusChanged(chrome.windows.WINDOW_ID_NONE);
     chrome.listeners.onFocusChanged(1);
-    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
-    expect(chrome.shots).toHaveLength(2);
+    await vi.advanceTimersByTimeAsync(covers.REPEAT_MS - 1000);
+    expect(chrome.shots).toHaveLength(3);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(chrome.shots).toHaveLength(4);
+    // Long after, focus pictures it as a switch does.
+    await vi.advanceTimersByTimeAsync(covers.REPEAT_MS);
+    chrome.listeners.onFocusChanged(1);
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    expect(chrome.shots).toHaveLength(5);
+  });
+
+  it('a page that keeps changing its address or reloading is captured at most once every 30 s', async () => {
+    const tab = page(11);
+    switchTo(tab);
+    // Its address changes every second for two minutes; a frame in it reloads
+    // every 2 s (status complete again, same address).
+    for (let t = 1; t <= 120; t++) {
+      await vi.advanceTimersByTimeAsync(1000);
+      tab.url = `https://site.test/11?t=${t}`;
+      chrome.listeners.onUpdated(11, { url: tab.url }, tab);
+      if (t % 2 === 0) chrome.listeners.onUpdated(11, { status: 'complete' }, tab);
+    }
+    // The switch's three (0.5, 3 and 15 s), then one every REPEAT_MS: 45, 75, 105 s.
+    expect(chrome.shots).toHaveLength(6);
+    const gaps = chrome.shots.slice(3).map((s, i, all) => (i ? s.at - all[i - 1].at : 0)).slice(1);
+    expect(gaps.every((g) => g >= covers.REPEAT_MS)).toBe(true);
+    expect(chrome.data['cover:11'].url).toMatch(/\?t=10\d$/); // the latest page
   });
 
   it('never pictures incognito tabs, browser pages, popups, minimized or unfocused windows', async () => {
@@ -175,13 +204,67 @@ describe('covers', () => {
     expect(chrome.shots).toHaveLength(1);
   });
 
-  it('forgets a closed tab\'s picture', async () => {
+  it('forgets a closed tab\'s picture, and writes nothing for a tab without one', async () => {
     switchTo(page(11));
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
     chrome.listeners.onRemoved(11);
     await vi.advanceTimersByTimeAsync(0);
     expect(chrome.data['cover:11']).toBeUndefined();
     expect(chrome.data.coverIndex).toEqual({});
+    const writes = chrome.storage.local.set.mock.calls.length;
+    chrome.listeners.onRemoved(12);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(chrome.storage.local.set.mock.calls.length).toBe(writes);
+    expect(chrome.storage.local.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('closing a window of pictured tabs takes one storage update', async () => {
+    chrome.data.coverIndex = {};
+    for (const id of [21, 22, 23]) {
+      chrome.data[`cover:${id}`] = { url: page(id).url, img: 'data:x' };
+      chrome.data.coverIndex[id] = { url: page(id).url, bytes: 6, at: id };
+    }
+    for (const id of [21, 22, 23]) chrome.listeners.onRemoved(id);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(chrome.storage.local.remove).toHaveBeenCalledTimes(1);
+    expect(chrome.storage.local.set).toHaveBeenCalledTimes(1);
+    expect(chrome.data.coverIndex).toEqual({});
+    expect(Object.keys(chrome.data)).toEqual(['coverIndex']);
+  });
+
+  it('after a restart, a tab back under a new id shows its page\'s picture until it has its own', async () => {
+    switchTo(page(11));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    const before = chrome.data['cover:11'].img;
+    // The browser restarts: the page comes back in tab 31, and the old
+    // service worker's state is gone.
+    chrome._tabs.clear();
+    show(page(31, { url: page(11).url }));
+    vi.resetModules();
+    covers = await import('../extension/src/covers.js');
+    expect(await covers.readCover(page(31, { url: page(11).url }))).toBe(before);
+    expect(await covers.readCover(page(31, { url: page(11).url, incognito: true }))).toBe(null);
+    await covers.tidyCovers();
+    expect(Object.keys(chrome.data.coverIndex)).toEqual(['11']); // kept for tab 31
+  });
+
+  it('tidying keeps each tab\'s own picture and the newest of a page without one, and drops the rest', async () => {
+    const url = 'https://site.test/same';
+    chrome.data.coverIndex = {
+      11: { url: page(11).url, bytes: 10, at: 1 }, // tab 11's own
+      12: { url, bytes: 10, at: 2 }, // older pictures of the page tab 32 shows
+      13: { url, bytes: 10, at: 3 },
+      14: { url: 'https://site.test/gone', bytes: 10, at: 4 }, // a page no longer open
+      15: { url: page(15).url, bytes: 10, at: 5 }, // tab 15 moved on to another page
+    };
+    for (const id of [11, 12, 13, 14, 15]) chrome.data[`cover:${id}`] = { url: chrome.data.coverIndex[id].url, img: `data:${id}` };
+    show(page(11));
+    show(page(32, { windowId: 3, url }));
+    show(page(15, { windowId: 4, url: 'https://site.test/next' }));
+    show(page(33, { windowId: 5, url: 'https://site.test/gone', incognito: true }));
+    await covers.tidyCovers();
+    expect(Object.keys(chrome.data.coverIndex).sort()).toEqual(['11', '13']);
+    expect(Object.keys(chrome.data).filter((k) => k.startsWith('cover:')).sort()).toEqual(['cover:11', 'cover:13']);
   });
 
   it('pictures a page again 3 s and 15 s after the first, while it stays in front, then stops', async () => {
@@ -242,7 +325,7 @@ describe('covers', () => {
   it('when storage is full anyway, drops the older pictures and keeps the new one', async () => {
     switchTo(page(11));
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
-    chrome.storage.session.set.mockRejectedValueOnce(new Error('Session storage quota bytes exceeded.'));
+    chrome.storage.local.set.mockRejectedValueOnce(new Error('Resource::kQuotaBytes quota exceeded'));
     switchTo(page(12));
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
     expect(chrome.data['cover:11']).toBeUndefined();
