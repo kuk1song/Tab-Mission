@@ -79,9 +79,10 @@ export function initializeEventListeners() {
   initializeGridListeners();
 
   // Grouped by site, the recent row holds as many tiles as fit, so a resize
-  // can change it.
+  // that changes that number redraws the grid. Dragging the window's edge
+  // fires many resizes, and most keep it.
   window.addEventListener('resize', () => {
-    if (state.groupBySite) scheduleFilterChange();
+    if (shownColumns !== undefined && tilesPerRow() !== shownColumns) scheduleFilterChange();
   });
 
   window.addEventListener('keydown', handleKeydown);
@@ -123,20 +124,24 @@ export function initializeEventListeners() {
   });
 }
 
+let shownColumns; // tiles per row at the last draw, while grouping by site applies
+
 function readUiState() {
   const searchEl = document.getElementById('search');
   const toggleSleeping = document.getElementById('toggle-sleeping');
   const toggleAllWindows = document.getElementById('toggle-all-windows');
+  // Only needed to group by site, which applies while browsing.
+  shownColumns = state.groupBySite && !state.siteHost && !searchEl?.value.trim() ? tilesPerRow() : undefined;
   return {
     searchTerm: searchEl ? searchEl.value : '',
     showSleeping: toggleSleeping ? toggleSleeping.checked : false,
     showAllWindows: toggleAllWindows ? toggleAllWindows.checked : false,
     preselectPrevious: state.preselectPrevious,
     groupBySite: state.groupBySite,
-    // Only needed to group by site, which applies while browsing.
-    columns: state.groupBySite && !state.siteHost && !searchEl?.value.trim() ? tilesPerRow() : undefined,
+    columns: shownColumns,
   };
 }
+
 
 // How many tiles fit in a row of the grid. Grouped by site the grid is not a
 // CSS grid, so this measures the minimum tile width (--tile-min) instead of
@@ -144,13 +149,15 @@ function readUiState() {
 function tilesPerRow() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return undefined;
+  // Out of the flow, so it cannot change the grid's width: both reads below
+  // then take one layout.
   const probe = document.createElement('div');
-  probe.style.width = 'var(--tile-min)';
+  probe.style.cssText = 'position: absolute; visibility: hidden; width: var(--tile-min)';
   gridEl.append(probe);
   const tile = probe.getBoundingClientRect().width;
-  probe.remove();
   const style = getComputedStyle(gridEl);
   const width = gridEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  probe.remove();
   const gap = 12; // between tiles, as in overview.css
   return tile > 0 ? Math.max(1, Math.floor((width + gap) / (tile + gap))) : undefined;
 }

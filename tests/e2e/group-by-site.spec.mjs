@@ -115,3 +115,32 @@ test('the settings page switch turns it off, and with two rows of tabs or fewer 
   await expect(page.locator('#grid .tile')).toHaveCount(VISITED.length); // the current window's
   await expect(page.locator('#grid.grouped')).toHaveCount(0);
 });
+
+test('resizing the window redraws the grid only when the row holds a different number of tiles', async ({ ext }) => {
+  await ext.openWindow(VISITED);
+  const page = await ext.open();
+  await page.locator('#grid:not(.entering)').waitFor();
+  const resize = (dw) => ext.sw.evaluate(async (dw) => {
+    const [win] = await chrome.windows.getAll({ windowTypes: ['popup'] });
+    await chrome.windows.update(win.id, { width: win.width + dw });
+  }, dw);
+  const recent = () => page.locator('#grid .tile-group.recent .tile').count();
+  // A redraw puts new groups into the grid (measuring the row adds and
+  // removes a bare probe, which does not count).
+  await page.evaluate(() => {
+    window.redraws = 0;
+    new MutationObserver((records) => {
+      if (records.some((r) => [...r.addedNodes].some((n) => n.classList?.contains('tile-group')))) window.redraws++;
+    }).observe(document.getElementById('grid'), { childList: true });
+  });
+  const before = await recent();
+  for (const dw of [6, 6, 6, -6, -6, -6]) {
+    await resize(dw);
+    await page.waitForTimeout(100);
+  }
+  expect(await page.evaluate(() => window.redraws)).toBe(0);
+  // Narrower by more than a tile: the recent row holds fewer.
+  await resize(-400);
+  await expect.poll(recent).toBeLessThan(before);
+  expect(await page.evaluate(() => window.redraws)).toBeGreaterThan(0);
+});
