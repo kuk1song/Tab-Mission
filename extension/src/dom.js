@@ -82,12 +82,15 @@ function handleGridMouseLeave() {
   if (pointerSelects) select(-1);
 }
 
+let shown = null; // what the grid shows: its groups and tiles, in order
+
 export function render() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
 
   document.getElementById('search')?.setAttribute('aria-expanded', String(state.filteredTabs.length > 0));
   if (state.filteredTabs.length === 0) {
+    shown = null;
     gridEl.classList.remove('grouped');
     gridEl.replaceChildren(createEmptyMessage());
     updateSelection();
@@ -106,11 +109,34 @@ export function render() {
     tile.dataset.index = String(index);
     return tile;
   });
-  gridEl.classList.toggle('grouped', Boolean(state.groups));
-  gridEl.replaceChildren(...(state.groups ? state.groups.map((group) => createGroup(group, nodes)) : nodes));
+  // A keystroke that leaves the same tiles (most do, with many tabs) only
+  // moves the selection: putting hundreds of tiles back costs a layout.
+  const now = JSON.stringify([state.groups, state.filteredTabs.map((tab) => tab.id)]);
+  if (now !== shown) {
+    shown = now;
+    gridEl.classList.toggle('grouped', Boolean(state.groups));
+    gridEl.replaceChildren(...(state.groups ? state.groups.map((group) => createGroup(group, nodes)) : nodes));
+  }
 
   updateSelection();
   observeTiles(nodes);
+}
+
+// Mark the tiles and group labels in the grid's view, the only ones worth
+// animating: with hundreds of tabs, animating all of them cost a long frame.
+// Every position is read before any class is written, so this takes one
+// layout. Returns the marked elements, in order.
+export function markInView() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return [];
+  const view = gridEl.getBoundingClientRect();
+  const els = [...gridEl.querySelectorAll('.tile, .group-label')];
+  const inView = els.map((el) => {
+    const r = el.getBoundingClientRect();
+    return r.bottom > view.top && r.top < view.bottom;
+  });
+  els.forEach((el, i) => el.classList.toggle('in-view', inView[i]));
+  return els.filter((el, i) => inView[i]);
 }
 
 // A group of tiles under a small label: the recent tabs, one site's tabs,

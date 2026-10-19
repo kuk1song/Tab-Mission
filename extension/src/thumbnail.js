@@ -21,16 +21,22 @@ function loadCache() {
   return cacheLoaded;
 }
 
+let saving = 0; // the pending write of the cache
+
 function remember(tab, imageUrl) {
-  // Incognito pages are never kept beyond the overview that showed them.
-  if (tab.incognito) return;
   cache[tab.id] = { url: tab.url, img: imageUrl || null, at: Date.now() };
   // Drop entries for tabs that no longer exist so the cache stays small.
   const openIds = new Set(state.allTabs.map((t) => String(t.id)));
   for (const id of Object.keys(cache)) {
     if (!openIds.has(id)) delete cache[id];
   }
-  chrome.storage.session.set({ [CACHE_KEY]: cache }).catch(() => {});
+  // One write for a burst of answers (the cards of a window open at once),
+  // not one per card: each write stores the whole cache.
+  if (saving) return;
+  saving = setTimeout(() => {
+    saving = 0;
+    chrome.storage.session.set({ [CACHE_KEY]: cache }).catch(() => {});
+  }, 50);
 }
 
 // Watch tiles that have not been handled yet; each loads its preview once,
@@ -77,6 +83,10 @@ async function loadThumbnail(tab, tile) {
     return;
   }
   tintIcon(tab, tile.querySelector('.preview'));
+  // An incognito tab's page is never read and its images never loaded from
+  // here (this window belongs to the normal profile, with its cache and
+  // cookies); its card keeps the icon card.
+  if (tab.incognito) return;
 
   await loadCache();
   const hit = cache[tab.id];
@@ -137,22 +147,72 @@ function webImageUrl(url) {
 const MIN_WIDTH = 300;
 const SQUARE = [0.8, 1.25]; // width to height
 
-function showImage(img, tab, src) {
-  img.onload = () => {
-    const ratio = img.naturalWidth / img.naturalHeight;
-    if (img.naturalWidth < MIN_WIDTH || (ratio >= SQUARE[0] && ratio <= SQUARE[1])) {
-      img.style.display = 'none';
-      remember(tab, null);
-      return;
-    }
-    requestAnimationFrame(() => img.classList.add('loaded'));
-  };
-  img.onerror = () => {
-    // A dead image URL: hide it and remember the miss so we do not retry it.
+async function showImage(img, tab, src) {
+  img.dataset.from = src; // the address the page named
+  const { local, lasting } = await fetchImage(src);
+  // A dead or refused address, or an image that is not one or is a logo:
+  // hide it and remember the miss so we do not retry it.
+  const miss = () => {
     img.style.display = 'none';
     remember(tab, null);
   };
-  img.src = src;
+  if (!local) {
+    // A network failure or a slow server may pass: hide the image this
+    // time, but keep what is remembered (a sleeping tab cannot look again).
+    if (lasting) miss();
+    else img.style.display = 'none';
+    return;
+  }
+  img.onload = () => {
+    URL.revokeObjectURL(local);
+    const ratio = img.naturalWidth / img.naturalHeight;
+    if (img.naturalWidth < MIN_WIDTH || (ratio >= SQUARE[0] && ratio <= SQUARE[1])) return miss();
+    requestAnimationFrame(() => img.classList.add('loaded'));
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(local);
+    miss();
+  };
+  img.src = local;
+}
+
+// The image a page names is fetched without cookies or a referrer: the page
+// chooses the address, which could be one that acts on the user's account
+// elsewhere. It is then shown from memory. Images over MAX_IMAGE_BYTES, or
+// slower than IMAGE_TIMEOUT_MS, are skipped. Resolves { local } with a blob
+// URL, or { lasting } telling whether the failure will not pass (an error
+// status, a page instead of an image, an image too big).
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const IMAGE_TIMEOUT_MS = 10_000;
+
+// Image servers often send no type or a generic one; <img> decodes those,
+// so they pass too, and a decoding failure counts as a miss (onerror).
+const NOT_AN_IMAGE = /^(text\/|application\/(json|javascript|xml|xhtml))/i;
+
+async function fetchImage(src) {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), IMAGE_TIMEOUT_MS);
+  try {
+    const response = await fetch(src, {
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
+      // What Chrome itself sends for an image, for servers that choose by it.
+      headers: { accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8' },
+      signal: abort.signal,
+    });
+    const type = response.headers.get('content-type') || '';
+    if (!response.ok || NOT_AN_IMAGE.test(type) || Number(response.headers.get('content-length')) > MAX_IMAGE_BYTES) {
+      abort.abort();
+      return { lasting: response.status < 500 };
+    }
+    const blob = await response.blob();
+    if (blob.size > MAX_IMAGE_BYTES) return { lasting: true };
+    return { local: URL.createObjectURL(blob) };
+  } catch {
+    return { lasting: false }; // offline, refused, or too slow
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function extractPreviewImage(tabId) {

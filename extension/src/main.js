@@ -5,6 +5,7 @@ import { loadSettings } from './settings.js';
 import { localizeStaticText } from './i18n.js';
 import { readTryIt } from './tryit.js';
 import { showTip } from './tips.js';
+import { markInView } from './dom.js';
 
 async function main() {
   // Apply localization for any static text before interacting with the UI
@@ -33,10 +34,12 @@ async function main() {
     state.siteHost = currentSiteHost();
   }
 
-  // The staggered entrance animation plays for the first render only.
+  // The staggered entrance animation plays for the first render only, on the
+  // tiles in view.
   const gridEl = document.getElementById('grid');
   gridEl?.classList.add('entering');
   handleFilterChange({ persist: false });
+  markInView();
   setTimeout(() => {
     gridEl?.classList.remove('entering');
     // A tip, if one is due, once the cards have settled (tips.js). Opened

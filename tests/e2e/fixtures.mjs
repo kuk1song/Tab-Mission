@@ -23,6 +23,8 @@ export const PAGES = {
   logo: { title: 'Page logo docs', og: '/img/logo-square.svg' },
   photo: { title: 'Page photo docs', og: '/img/photo-portrait.svg' },
   red: { title: 'Page red docs, with a title long enough to need two lines on a card and more', icon: '/img/icon-red.svg' },
+  // Sets a cookie, and names an image whose request the server records.
+  cookie: { title: 'Page cookie docs', og: '/img/cookie-wide.svg', setsCookie: true },
   icon: { title: 'Page icon docs', touch: '/img/touch-square.svg' },
   // Painted at once, but its load is held up by an image for 10 s.
   slow: { title: 'Page slow docs', slow: true },
@@ -46,9 +48,18 @@ const HOSTS = {
   doc1: 'docs.office.test',
 };
 
+// The headers of the requests for /img/cookie-wide.svg, newest last (GET /seen).
+const seen = [];
+
 function startSite() {
   const server = http.createServer((req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
+    if (path === '/seen') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(seen));
+      return;
+    }
+    if (path === '/img/cookie-wide.svg') seen.push({ cookie: req.headers.cookie ?? null, referer: req.headers.referer ?? null });
     if (path.startsWith('/slow/')) {
       setTimeout(() => {
         res.writeHead(200, { 'content-type': 'image/svg+xml' });
@@ -70,7 +81,7 @@ function startSite() {
       + (page.touch ? `<link rel="apple-touch-icon" href="${page.touch}">` : '');
     const slow = page.slow ? '<img src="/slow/1.svg">' : '';
     const icon = page.icon ? `<link rel="icon" href="${page.icon}">` : '';
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...(page.setsCookie ? { 'set-cookie': 'session=1; Path=/; SameSite=Lax' } : {}) });
     res.end(`<!doctype html><html><head><title>${page.title}</title>${og}${icon}</head><body><h1>${page.title}</h1>${slow}</body></html>`);
   });
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
