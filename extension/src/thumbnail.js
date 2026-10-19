@@ -1,6 +1,6 @@
 // thumbnail.js
 import { state } from './state.js';
-import { isCapturableUrl, isSleeping } from './utils.js';
+import { isCapturableUrl, isSleeping, faviconUrl, dominantColor } from './utils.js';
 import { readCover } from './covers.js';
 
 // Preview image URLs are cached in chrome.storage.session (kept in memory and
@@ -59,7 +59,7 @@ export function observeTiles(tiles) {
 async function loadThumbnail(tab, tile) {
   tile.dataset.thumb = 'done';
   const img = tile.querySelector('.thumbnail');
-  // Pages we cannot read keep the placeholder (title + hostname on a gradient).
+  // Pages we cannot read keep their icon card (a letter on a color).
   if (!img || !isCapturableUrl(tab.url)) return;
 
   // A picture of the page as you last saw it (covers.js) says more than the
@@ -69,10 +69,14 @@ async function loadThumbnail(tab, tile) {
   if (cover) {
     img.classList.add('cover');
     img.onload = () => requestAnimationFrame(() => img.classList.add('loaded'));
-    img.onerror = () => { img.style.display = 'none'; };
+    img.onerror = () => {
+      img.style.display = 'none';
+      tintIcon(tab, tile.querySelector('.preview')); // the icon card shows after all
+    };
     img.src = cover;
     return;
   }
+  tintIcon(tab, tile.querySelector('.preview'));
 
   await loadCache();
   const hit = cache[tab.id];
@@ -95,6 +99,31 @@ async function loadThumbnail(tab, tile) {
   if (imageUrl) showImage(img, tab, imageUrl);
 }
 
+// The icon card takes the color of the site's icon (from Chrome's own store,
+// so the canvas can read it), worked out once per icon for this window. Not
+// per site: Docs, Sheets and Slides share docs.google.com, not their icons.
+const iconColors = new Map();
+
+async function tintIcon(tab, preview) {
+  const key = tab.favIconUrl || tab.url;
+  if (!iconColors.has(key)) iconColors.set(key, iconColor(tab.url));
+  const color = await iconColors.get(key);
+  if (color && preview) preview.style.setProperty('--c', color);
+}
+
+async function iconColor(url) {
+  try {
+    const icon = new Image();
+    icon.src = faviconUrl(url);
+    await icon.decode();
+    const context = new OffscreenCanvas(32, 32).getContext('2d', { willReadFrequently: true });
+    context.drawImage(icon, 0, 0, 32, 32);
+    return dominantColor(context.getImageData(0, 0, 32, 32).data);
+  } catch {
+    return null;
+  }
+}
+
 // Accept only an http(s) address of sane length: a page could hand back a
 // huge data: URL, which would fill the session cache.
 function webImageUrl(url) {
@@ -104,7 +133,7 @@ function webImageUrl(url) {
 // A page's own image is shown unless it is small or about square: a social
 // preview (1200 × 630), a video frame or a portrait photo says something
 // about the page, while a square one is mostly a logo, which says less than
-// the title card underneath.
+// the icon card underneath.
 const MIN_WIDTH = 300;
 const SQUARE = [0.8, 1.25]; // width to height
 
@@ -168,15 +197,15 @@ async function extractPreviewImage(tabId) {
         const video = document.querySelector('video[poster]');
         if (video && video.poster) return video.poster;
 
-        // None: the card keeps its title card.
+        // None: the card keeps its icon card.
         return null;
       }
     });
     return results[0]?.result || null;
   } catch (err) {
     console.debug('Script injection failed for tab', tabId, err.message);
-    // Returning null keeps the text/placeholder preview, instead of caching a
-    // blank image as a "real" thumbnail.
+    // Returning null keeps the icon card, instead of caching a blank image as
+    // a "real" thumbnail.
     return null;
   }
 }

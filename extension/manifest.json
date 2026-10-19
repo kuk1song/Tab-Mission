@@ -18,6 +18,7 @@
   },
   "permissions": [
     "tabs",
+    "favicon",
     "scripting",
     "system.display",
     "storage"

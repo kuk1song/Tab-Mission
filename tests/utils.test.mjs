@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   getHostname,
-  isValidIconUrl,
   isCapturableUrl,
   isSleeping,
-  generateGradient,
+  hueColor,
+  faviconUrl,
+  dominantColor,
   createPlaceholderIcon,
 } from '../extension/src/utils.js';
 
@@ -15,19 +16,6 @@ describe('getHostname', () => {
   it('falls back to the raw string for non-URLs', () => {
     expect(getHostname('not a url')).toBe('not a url');
     expect(getHostname('')).toBe('');
-  });
-});
-
-describe('isValidIconUrl', () => {
-  it('accepts http(s) and data URLs', () => {
-    expect(isValidIconUrl('https://example.com/favicon.ico')).toBe(true);
-    expect(isValidIconUrl('http://example.com/favicon.ico')).toBe(true);
-    expect(isValidIconUrl('data:image/png;base64,AAAA')).toBe(true);
-  });
-  it('rejects other schemes and junk', () => {
-    expect(isValidIconUrl('chrome://favicon')).toBe(false);
-    expect(isValidIconUrl('ftp://example.com/x')).toBe(false);
-    expect(isValidIconUrl('not a url')).toBe(false);
   });
 });
 
@@ -52,11 +40,31 @@ describe('isSleeping', () => {
   });
 });
 
-describe('generateGradient', () => {
-  it('returns a deterministic CSS linear-gradient for a seed', () => {
-    const gradient = generateGradient('example.com');
-    expect(gradient.startsWith('linear-gradient(')).toBe(true);
-    expect(generateGradient('example.com')).toBe(gradient);
+describe('hueColor', () => {
+  it('gives the same color for the same site', () => {
+    expect(hueColor('example.com')).toMatch(/^hsl\(\d+ 45% 55%\)$/);
+    expect(hueColor('example.com')).toBe(hueColor('example.com'));
+  });
+});
+
+describe('faviconUrl', () => {
+  it('asks Chrome\'s favicon store for the page', () => {
+    vi.stubGlobal('chrome', { runtime: { getURL: (path) => `chrome-extension://id${path}` } });
+    expect(faviconUrl('https://a.test/x?y=1')).toBe('chrome-extension://id/_favicon/?pageUrl=https%3A%2F%2Fa.test%2Fx%3Fy%3D1&size=32');
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('dominantColor', () => {
+  const pixels = (list) => Uint8ClampedArray.from(list.flat());
+  it('averages the colored pixels, skipping white, black, grey and transparent ones', () => {
+    const red = [230, 30, 40, 255];
+    const data = pixels([...Array(20).fill(red), ...Array(20).fill([255, 255, 255, 255]), ...Array(20).fill([20, 20, 20, 255]), ...Array(20).fill([0, 120, 255, 10])]);
+    expect(dominantColor(data)).toBe('rgb(230 30 40)');
+  });
+  it('is null for an icon with almost no color (Chrome\'s default globe, a black logo)', () => {
+    expect(dominantColor(pixels(Array(64).fill([128, 128, 130, 255])))).toBe(null);
+    expect(dominantColor(pixels([...Array(5).fill([230, 30, 40, 255]), ...Array(59).fill([0, 0, 0, 255])]))).toBe(null);
   });
 });
 

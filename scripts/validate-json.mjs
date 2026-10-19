@@ -24,7 +24,7 @@ for (const file of files) {
 // looks at, so a change must be deliberate: update this list along with the
 // manifest (and PRIVACY.md).
 const EXPECTED_PERMISSIONS = {
-  permissions: ['scripting', 'storage', 'system.display', 'tabs'],
+  permissions: ['favicon', 'scripting', 'storage', 'system.display', 'tabs'],
   host_permissions: ['<all_urls>'],
   optional_permissions: [],
   optional_host_permissions: [],
