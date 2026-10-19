@@ -21,7 +21,10 @@ const EXTENSION = fileURLToPath(new URL('../../extension', import.meta.url));
 export const PAGES = {
   alpha: { title: 'Page alpha docs', og: '/img/alpha.svg' },
   logo: { title: 'Page logo docs', og: '/img/logo-square.svg' },
+  photo: { title: 'Page photo docs', og: '/img/photo-portrait.svg' },
   icon: { title: 'Page icon docs', touch: '/img/touch-square.svg' },
+  // Painted at once, but its load is held up by an image for 10 s.
+  slow: { title: 'Page slow docs', slow: true },
   beta: { title: 'Page beta docs' },
   gamma: { title: 'Page gamma docs' },
   tube1: { title: 'Lo-fi jazz for focused work - Tube' },
@@ -45,9 +48,16 @@ const HOSTS = {
 function startSite() {
   const server = http.createServer((req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
+    if (path.startsWith('/slow/')) {
+      setTimeout(() => {
+        res.writeHead(200, { 'content-type': 'image/svg+xml' });
+        res.end('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>');
+      }, 10_000);
+      return;
+    }
     if (path.startsWith('/img/')) {
-      // A social preview's shape, or a logo's.
-      const [w, h] = path.includes('square') ? [180, 180] : [1200, 630];
+      // A social preview's shape, a logo's or a portrait photo's.
+      const [w, h] = path.includes('square') ? [180, 180] : path.includes('portrait') ? [600, 800] : [1200, 630];
       res.writeHead(200, { 'content-type': 'image/svg+xml' });
       res.end(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="#4a6"/></svg>`);
       return;
@@ -56,8 +66,9 @@ function startSite() {
     const page = PAGES[id] ?? { title: `Tab ${id}` };
     const og = (page.og ? `<meta property="og:image" content="${page.og}">` : '')
       + (page.touch ? `<link rel="apple-touch-icon" href="${page.touch}">` : '');
+    const slow = page.slow ? '<img src="/slow/1.svg">' : '';
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    res.end(`<!doctype html><html><head><title>${page.title}</title>${og}</head><body><h1>${page.title}</h1></body></html>`);
+    res.end(`<!doctype html><html><head><title>${page.title}</title>${og}</head><body><h1>${page.title}</h1>${slow}</body></html>`);
   });
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
 }

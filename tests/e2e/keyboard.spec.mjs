@@ -6,7 +6,9 @@ test('typing never writes to storage; changing a toggle does', async ({ ext }) =
   await page.evaluate(() => {
     window.__writes = [];
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === 'local') window.__writes.push(...Object.keys(changes));
+      // Page pictures (covers.js) may be stored at any moment; they are not
+      // what typing could write.
+      if (area === 'local') window.__writes.push(...Object.keys(changes).filter((key) => !key.startsWith('cover')));
     });
   });
   await page.keyboard.type('page alpha');

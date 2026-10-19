@@ -59,12 +59,13 @@ test('the shortcut pictures the page you are leaving', async ({ ext, context }) 
   await expect.poll(indexAt, { timeout: 1000 }).toBeGreaterThan(before);
 });
 
-test('without a picture, a card shows the page\'s own image only when it is wide', async ({ ext }) => {
+test('without a picture, a card shows the page\'s own image unless it is a square logo', async ({ ext }) => {
   // beta, the window's first tab, may be pictured while the others load.
-  const { tabIds } = await ext.openWindow(['beta', 'alpha', 'logo', 'icon', 'gamma']);
+  const { tabIds } = await ext.openWindow(['beta', 'alpha', 'photo', 'logo', 'icon', 'gamma']);
   const page = await ext.open();
   const img = (id) => page.locator(`.tile[data-tab-id="${tabIds[id]}"] img.thumbnail`);
   await expect(img('alpha')).toHaveClass(/\bloaded\b/); // 1200 × 630
+  await expect(img('photo')).toHaveClass(/\bloaded\b/); // 600 × 800
   // A square logo, as og:image or as a touch icon, leaves the title card.
   await expect(img('logo')).toHaveAttribute('src', /logo-square\.svg$/);
   await expect(img('logo')).toBeHidden();
@@ -107,4 +108,15 @@ test('pictures last through a browser restart, and those of pages no longer open
   } finally {
     await context.close();
   }
+});
+
+test('a page held up by a slow image is pictured while it still loads', async ({ ext }) => {
+  await ext.openWindow(['beta']);
+  // Opened and switched to here, so the wait for its load stays in the test.
+  const slow = await ext.sw.evaluate(async (url) => {
+    const [win] = await chrome.windows.getAll({ windowTypes: ['normal'] }).then((w) => w.filter((x) => x.focused));
+    return (await chrome.tabs.create({ windowId: win.id, url, active: true })).id;
+  }, ext.url('slow'));
+  await expect.poll(() => coverOf(ext, slow).then((c) => c?.url), { timeout: 6000 }).toBe(ext.url('slow'));
+  expect(await ext.sw.evaluate((id) => chrome.tabs.get(id).then((t) => t.status), slow)).toBe('loading');
 });

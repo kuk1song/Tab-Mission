@@ -28,7 +28,7 @@ Tab Mission puts your tabs into one searchable grid, ordered by when you last us
 - **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. A search covers all windows and sleeping tabs; without one, the grid shows what the two checkboxes say.
 - **Site View:** When the grid holds two or more tabs from the site you are on, press `Tab` in the search box to see only those (`Tab` again, `Esc`, or `Backspace` at the start of the box to leave). A global shortcut for it can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
 - **Keyboard or Mouse:** `↑↓←→` + `Enter`, click, or point at a tab and press the shortcut again. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
-- **Page Previews:** Each tab shows a small picture of the page, taken while it was in front of you and kept after a restart; until it has one, the wide preview image the page provides, or a clean title card.
+- **Page Previews:** Each tab shows a small picture of the page, taken while it was in front of you and kept after a restart; until it has one, the preview image the page provides (not a logo), or a clean title card.
 - **Private by Design:** No developer-run server, analytics or tracking. Tab information and page pictures stay on your computer (pictures only of tabs still open, never of incognito tabs); preview images and icons load from their original hosts.
 
 ## 🚀 Getting Started

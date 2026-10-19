@@ -20,9 +20,12 @@ export const SETTLE_MS = 500; // after a switch or a load, let the page paint
 export const FOLLOW_UP_MS = [2500, 12000];
 // A page in front that keeps changing (a video's address updating its time,
 // an app's routes, a page or an ad frame reloading) would start over on every
-// change: after a capture, its changes and its window's focus wait this long,
-// and only the last one is pictured.
-export const REPEAT_MS = 30_000;
+// change. So each tab has a budget of captures: BURST at once, so a page you
+// open soon after a capture is still pictured at once, and one more every
+// REFILL_MS, so a page that keeps changing is captured about three times a
+// minute.
+export const BURST = 3;
+export const REFILL_MS = 20_000;
 export const CAPTURE_GAP_MS = 550; // Chrome allows two captures a second
 export const MAX_BYTES = 6 * 1024 * 1024; // of local storage's 10 MB
 export const COVER_WIDTH = 640; // a card is at most about 320 px wide
@@ -33,7 +36,7 @@ let shrink = shrinkImage;
 let nextSlot = 0; // the earliest time (performance.now) the next capture may start
 let writes = Promise.resolve(); // storage updates, one at a time
 const timers = new Map(); // tab id to its pending capture
-const shot = new Map(); // tab id to when (performance.now) it was last captured
+const budgets = new Map(); // tab id to { left, at }: captures left at that time (performance.now)
 let closing = null; // ids of tabs closed since the last storage update
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -57,7 +60,7 @@ export function startCovers(options = {}) {
   chrome.tabs.onRemoved.addListener((tabId) => {
     clearTimeout(timers.get(tabId));
     timers.delete(tabId);
-    shot.delete(tabId);
+    budgets.delete(tabId);
     if (closing) return void closing.add(String(tabId));
     closing = new Set([String(tabId)]);
     update(() => {
@@ -75,19 +78,24 @@ function schedule(tabId, step = 0, delay = step === 0 ? SETTLE_MS : FOLLOW_UP_MS
   clearTimeout(timers.get(tabId));
   timers.set(tabId, setTimeout(async () => {
     timers.delete(tabId);
-    const taken = await capture(tabId).catch(() => false);
+    const taken = await capture(tabId, { loading: step > 0 }).catch(() => false);
     if (taken && step < FOLLOW_UP_MS.length && !timers.has(tabId)) schedule(tabId, step + 1);
   }, delay));
 }
 
 // The page in front loaded or changed its address, or its window got focus:
-// as for a switch, unless the tab was captured less than REPEAT_MS ago. Then
-// a pending capture is left to take the change; otherwise one capture, with
-// no follow-ups, comes when that time is up.
+// as for a switch while the tab's budget has a capture left. Otherwise a
+// pending capture is left to take the change, or else one capture, with no
+// follow-ups, comes once the budget has one again.
 function scheduleChange(tabId) {
-  const wait = (shot.get(tabId) ?? -Infinity) + REPEAT_MS - performance.now();
-  if (wait <= 0) schedule(tabId);
-  else if (!timers.has(tabId)) schedule(tabId, FOLLOW_UP_MS.length, wait);
+  const left = capturesLeft(tabId, performance.now());
+  if (left >= 1) schedule(tabId);
+  else if (!timers.has(tabId)) schedule(tabId, FOLLOW_UP_MS.length, (1 - left) * REFILL_MS);
+}
+
+function capturesLeft(tabId, now) {
+  const budget = budgets.get(tabId);
+  return budget ? Math.min(BURST, budget.left + (now - budget.at) / REFILL_MS) : BURST;
 }
 
 // The tab in front of you when you press the shortcut or click the toolbar
@@ -100,18 +108,23 @@ export async function coverFrontTab() {
   } catch {}
 }
 
-function canCover(tab) {
-  return Boolean(tab?.active && tab.status === 'complete' && !tab.incognito && isCapturableUrl(tab.url));
+// A page that has not finished loading may not have painted yet, so the
+// first capture waits for it; the follow-ups take it as it is (a slow ad or
+// image can hold up the load for a long time), and a blank picture is never
+// stored (shrinkImage).
+function canCover(tab, loading = false) {
+  const ready = tab?.status === 'complete' || (loading && tab?.status === 'loading');
+  return Boolean(tab?.active && ready && !tab.incognito && isCapturableUrl(tab.url));
 }
 
-// The same page, still in front in the same window.
-const unchanged = (tab, now) =>
-  canCover(now) && now.url === tab.url && now.windowId === tab.windowId;
-
-// Resolves true when a picture was stored.
-async function capture(tabId, { front = false } = {}) {
+// Resolves true when a picture was stored, and 'loading' or 'blank' when the
+// page in front was not captured, or its picture not kept, only because it
+// has not finished loading or painting (the follow-ups try again).
+async function capture(tabId, { front = false, loading = false } = {}) {
   const tab = await chrome.tabs.get(tabId);
-  if (!canCover(tab)) return false;
+  if (!canCover(tab, loading)) return canCover(tab, true) ? 'loading' : false;
+  // The same page, still in front in the same window.
+  const unchanged = (now) => canCover(now, true) && now.url === tab.url && now.windowId === tab.windowId;
   const win = await chrome.windows.get(tab.windowId);
   if (win.type !== 'normal' || (!front && !win.focused) || win.state === 'minimized') return false;
   // Chrome rejects a third capture within a second, so captures take turns
@@ -122,14 +135,17 @@ async function capture(tabId, { front = false } = {}) {
   nextSlot = start + CAPTURE_GAP_MS;
   if (start > now) {
     await sleep(start - now);
-    if (!unchanged(tab, await chrome.tabs.get(tabId))) return false;
+    if (!unchanged(await chrome.tabs.get(tabId))) return false;
   }
-  shot.set(tabId, performance.now()); // even if the picture is dropped below
+  // Every capture takes from the budget, even if its picture is dropped below.
+  const at = performance.now();
+  budgets.set(tabId, { left: Math.max(0, capturesLeft(tabId, at) - 1), at });
   const raw = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 85 });
   // Switched away, moved to another window or on to another page meanwhile:
   // the picture may show something else.
-  if (!unchanged(tab, await chrome.tabs.get(tabId))) return false;
+  if (!unchanged(await chrome.tabs.get(tabId))) return false;
   const img = await shrink(raw);
+  if (!img) return 'blank';
   return update((index) => {
     index[tabId] = { url: tab.url, bytes: img.length, at: Date.now() };
     return overBudget(index, MAX_BYTES);
@@ -197,9 +213,23 @@ export function tidyCovers() {
   });
 }
 
+// A picture of one colour throughout (a page not painted yet, or blank):
+// fewer than 1 in 200 sampled pixels differ from the first by more than a
+// faint shade. RGBA data, as from getImageData.
+export function isBlank(data) {
+  const step = 4 * 16; // every 16th pixel
+  let samples = 0;
+  let differ = 0;
+  for (let i = 0; i < data.length; i += step) {
+    samples++;
+    if (Math.abs(data[i] - data[0]) > 12 || Math.abs(data[i + 1] - data[1]) > 12 || Math.abs(data[i + 2] - data[2]) > 12) differ++;
+  }
+  return differ * 200 < samples;
+}
+
 // Shrink a capture to card size, keeping the top of the page in the cards'
 // 16:10 shape (a taller window is cut at the bottom; a wider one is kept
-// whole and the card crops its sides).
+// whole and the card crops its sides). Resolves null for a blank picture.
 async function shrinkImage(dataUrl) {
   const bitmap = await createImageBitmap(await (await fetch(dataUrl)).blob());
   const sourceHeight = Math.min(bitmap.height, Math.round(bitmap.width * 10 / 16));
@@ -210,6 +240,7 @@ async function shrinkImage(dataUrl) {
   context.imageSmoothingQuality = 'high';
   context.drawImage(bitmap, 0, 0, bitmap.width, sourceHeight, 0, 0, width, height);
   bitmap.close();
+  if (isBlank(context.getImageData(0, 0, width, height).data)) return null;
   const blob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.7 });
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

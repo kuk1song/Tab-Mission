@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { overBudget } from '../extension/src/covers.js';
+import { isBlank, overBudget } from '../extension/src/covers.js';
 
 // A small fake of the chrome APIs covers.js uses: tabs and windows the tests
 // arrange, storage in memory, and captures that record when they happened.
@@ -120,23 +120,37 @@ describe('covers', () => {
     chrome.listeners.onUpdated(11, { title: 'x' }, tab); // other changes are ignored
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
     expect(chrome.shots).toHaveLength(1);
-    // Focus soon after a capture waits until REPEAT_MS has passed since it.
+    // Focus right after those three waits for the budget to have a capture
+    // again (less than REFILL_MS), then takes one.
     await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0] + covers.FOLLOW_UP_MS[1]);
     expect(chrome.shots).toHaveLength(3);
     chrome.listeners.onFocusChanged(chrome.windows.WINDOW_ID_NONE);
     chrome.listeners.onFocusChanged(1);
-    await vi.advanceTimersByTimeAsync(covers.REPEAT_MS - 1000);
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
     expect(chrome.shots).toHaveLength(3);
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(covers.REFILL_MS);
     expect(chrome.shots).toHaveLength(4);
-    // Long after, focus pictures it as a switch does.
-    await vi.advanceTimersByTimeAsync(covers.REPEAT_MS);
+    // With the budget full again, focus pictures it as a switch does.
+    await vi.advanceTimersByTimeAsync(covers.BURST * covers.REFILL_MS);
     chrome.listeners.onFocusChanged(1);
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
     expect(chrome.shots).toHaveLength(5);
   });
 
-  it('a page that keeps changing its address or reloading is captured at most once every 30 s', async () => {
+  it('a page you open in the same tab soon after its captures is pictured at once', async () => {
+    const tab = page(11);
+    switchTo(tab);
+    await vi.advanceTimersByTimeAsync(25_000); // the switch's three captures, then reading
+    expect(chrome.shots).toHaveLength(3);
+    tab.url = 'https://site.test/next';
+    chrome.listeners.onUpdated(11, { url: tab.url }, tab);
+    chrome.listeners.onUpdated(11, { status: 'complete' }, tab);
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    expect(chrome.shots).toHaveLength(4);
+    expect(chrome.data['cover:11'].url).toBe('https://site.test/next');
+  });
+
+  it('a page that keeps changing its address or reloading is captured about three times a minute', async () => {
     const tab = page(11);
     switchTo(tab);
     // Its address changes every second for two minutes; a frame in it reloads
@@ -147,11 +161,36 @@ describe('covers', () => {
       chrome.listeners.onUpdated(11, { url: tab.url }, tab);
       if (t % 2 === 0) chrome.listeners.onUpdated(11, { status: 'complete' }, tab);
     }
-    // The switch's three (0.5, 3 and 15 s), then one every REPEAT_MS: 45, 75, 105 s.
-    expect(chrome.shots).toHaveLength(6);
-    const gaps = chrome.shots.slice(3).map((s, i, all) => (i ? s.at - all[i - 1].at : 0)).slice(1);
-    expect(gaps.every((g) => g >= covers.REPEAT_MS)).toBe(true);
-    expect(chrome.data['cover:11'].url).toMatch(/\?t=10\d$/); // the latest page
+    // The switch's capture (0.5 s), two more while the budget lasts (1.5 and
+    // 2.5 s), the follow-ups of the last (5 and 17 s), then one every
+    // REFILL_MS (37 to 117 s): about three a minute.
+    expect(chrome.shots).toHaveLength(10);
+    const at = chrome.shots.map((s) => s.at);
+    expect(at.slice(5).every((t, i) => t - at[i + 4] >= covers.REFILL_MS)).toBe(true);
+    expect(chrome.data['cover:11'].url).toMatch(/\?t=11\d$/); // the latest page
+  });
+
+  it('a page still loading is left for the follow-ups, which take it as it is', async () => {
+    switchTo(page(11, { status: 'loading' })); // held up by a slow image, say
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    expect(chrome.shots).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0]);
+    expect(chrome.shots).toHaveLength(1);
+    expect(chrome.data['cover:11']).toBeDefined();
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[1]);
+    expect(chrome.shots).toHaveLength(2);
+  });
+
+  it('stores no blank picture, and tries again at the follow-up', async () => {
+    shrinkImpl = async () => null; // one colour throughout: not painted yet
+    switchTo(page(11));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    expect(chrome.shots).toHaveLength(1);
+    expect(chrome.data['cover:11']).toBeUndefined();
+    shrinkImpl = async () => 'data:image/webp;base64,SMALL';
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0]);
+    expect(chrome.shots).toHaveLength(2);
+    expect(chrome.data['cover:11']).toBeDefined();
   });
 
   it('never pictures incognito tabs, browser pages, popups, minimized or unfocused windows', async () => {
@@ -331,6 +370,16 @@ describe('covers', () => {
     expect(chrome.data['cover:11']).toBeUndefined();
     expect(chrome.data['cover:12']).toBeDefined();
     expect(Object.keys(chrome.data.coverIndex)).toEqual(['12']);
+  });
+});
+
+describe('isBlank', () => {
+  const pixels = (n, at = () => [250, 250, 250]) => Uint8ClampedArray.from({ length: n * 4 }, (_, i) => (i % 4 === 3 ? 255 : at(Math.floor(i / 4))[i % 4]));
+  it('is true for one colour, with faint noise, and false once a little content shows', () => {
+    expect(isBlank(pixels(64000))).toBe(true);
+    expect(isBlank(pixels(64000, (p) => (p % 7 ? [250, 250, 250] : [244, 252, 248])))).toBe(true);
+    // One line of text across a 640 px wide picture, every 40th row.
+    expect(isBlank(pixels(64000, (p) => (Math.floor(p / 640) % 40 === 20 ? [30, 30, 30] : [250, 250, 250])))).toBe(false);
   });
 });
 

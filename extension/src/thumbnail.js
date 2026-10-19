@@ -101,15 +101,17 @@ function webImageUrl(url) {
   return typeof url === 'string' && url.length <= 2048 && isCapturableUrl(url) ? url : null;
 }
 
-// A page's own image is shown only when it is wide, as a social preview
-// (1200 × 630) or a video frame is; a small or square one is mostly a logo,
-// which says less than the title card underneath.
+// A page's own image is shown unless it is small or about square: a social
+// preview (1200 × 630), a video frame or a portrait photo says something
+// about the page, while a square one is mostly a logo, which says less than
+// the title card underneath.
 const MIN_WIDTH = 300;
-const MIN_ASPECT = 1.2;
+const SQUARE = [0.8, 1.25]; // width to height
 
 function showImage(img, tab, src) {
   img.onload = () => {
-    if (img.naturalWidth < MIN_WIDTH || img.naturalWidth < img.naturalHeight * MIN_ASPECT) {
+    const ratio = img.naturalWidth / img.naturalHeight;
+    if (img.naturalWidth < MIN_WIDTH || (ratio >= SQUARE[0] && ratio <= SQUARE[1])) {
       img.style.display = 'none';
       remember(tab, null);
       return;
