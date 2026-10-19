@@ -28,6 +28,7 @@ async function main() {
   if (toggleAllWindows) toggleAllWindows.checked = settings.showAllWindows;
   state.preselectPrevious = settings.preselectPrevious;
   state.groupBySite = settings.groupBySite;
+  state.groupStyle = settings.groupStyle === 'rows' ? 'rows' : 'panels';
 
   // Opened by the "current site" shortcut: show only this site's tabs.
   if (params.get('scope') === 'site') {

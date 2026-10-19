@@ -210,7 +210,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Your most recent tabs come first, then all tabs grouped by site in tab bar order, which switching tabs doesn't change.",
+    "message": "Your most recent tabs come first, then all tabs grouped by site in tab bar order, which switching tabs doesn't change. Sites with one tab come last, together.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionHelpHeading": {
@@ -314,7 +314,23 @@
     "description": "Tab Mission, grouped by site: label above the most recent tabs."
   },
   "groupOther": {
-    "message": "Other pages",
-    "description": "Tab Mission, grouped by site: label above tabs without a site, such as local files."
+    "message": "Other",
+    "description": "Tab Mission, grouped by site: heading of the last group, which holds the sites with one tab and pages that are not web pages, such as local files."
+  },
+  "optionGroupStyle": {
+    "message": "Group style (on trial)",
+    "description": "Settings page: label of the choice of how the site groups are drawn, while two styles are on trial."
+  },
+  "optionGroupStyleNote": {
+    "message": "Panels put small sites side by side; rows give each site rows of its own.",
+    "description": "Settings page: one line under the group style choice."
+  },
+  "optionGroupStylePanels": {
+    "message": "Panels",
+    "description": "Settings page: group style option, each site in a panel."
+  },
+  "optionGroupStyleRows": {
+    "message": "Rows",
+    "description": "Settings page: group style option, each site on rows of its own."
   }
 }

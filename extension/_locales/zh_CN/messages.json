@@ -210,7 +210,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "最近用过的标签页排在最前，其后是按网站分组的全部标签页，顺序与标签栏一致，切换标签页不会改变它。",
+    "message": "最近用过的标签页排在最前，其后是按网站分组的全部标签页，顺序与标签栏一致，切换标签页不会改变它。只有一个标签页的网站一起排在最后。",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionHelpHeading": {
@@ -314,7 +314,23 @@
     "description": "Tab Mission, grouped by site: label above the most recent tabs."
   },
   "groupOther": {
-    "message": "其他页面",
-    "description": "Tab Mission, grouped by site: label above tabs without a site, such as local files."
+    "message": "其他",
+    "description": "Tab Mission, grouped by site: heading of the last group, which holds the sites with one tab and pages that are not web pages, such as local files."
+  },
+  "optionGroupStyle": {
+    "message": "分组样式（试用）",
+    "description": "Settings page: label of the choice of how the site groups are drawn, while two styles are on trial."
+  },
+  "optionGroupStyleNote": {
+    "message": "面板：小的网站并排放；整行：每个网站各占自己的行。",
+    "description": "Settings page: one line under the group style choice."
+  },
+  "optionGroupStylePanels": {
+    "message": "面板",
+    "description": "Settings page: group style option, each site in a panel."
+  },
+  "optionGroupStyleRows": {
+    "message": "整行",
+    "description": "Settings page: group style option, each site on rows of its own."
   }
 }

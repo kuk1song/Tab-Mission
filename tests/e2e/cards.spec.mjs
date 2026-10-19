@@ -59,7 +59,7 @@ test('the window follows the system appearance, and nothing is blurred', async (
   await page.emulateMedia({ colorScheme: 'dark' });
   const dark = await look();
   expect(light.bg).toBe('rgb(244, 244, 247)');
-  expect(dark.bg).toBe('rgb(26, 26, 46)');
+  expect(dark.bg).toBe('rgb(22, 22, 24)'); // a neutral grey, not the old navy
   expect(light.fg).not.toBe(dark.fg);
   expect(light.scheme).toBe('light dark');
   const blurred = await page.evaluate(() => [...document.querySelectorAll('*')]

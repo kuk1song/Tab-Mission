@@ -11,11 +11,15 @@ const DEFAULTS = {
   // install, until learned and at most a few times (tips.js). On (settings
   // page): every time.
   showTips: false,
-  // On by default (off on the settings page): while browsing with more than
-  // two rows of tabs, one row of the most recent tabs, then all tabs grouped
-  // by site in tab-strip order (state.js). Not "artMode": updates delete that
-  // old key (background.js).
+  // On by default (off on the settings page): while browsing, one row of the
+  // most recent tabs, then all tabs grouped by site in tab-strip order
+  // (state.js), at any window size and number of tabs. Not "artMode":
+  // updates delete that old key (background.js).
   groupBySite: true,
+  // How the groups are drawn, while both are on trial (settings page):
+  // 'panels', each site in a panel as wide as its tabs, small ones side by
+  // side; or 'rows', each site on rows of its own.
+  groupStyle: 'panels',
 };
 
 /**

@@ -3,8 +3,6 @@
 :root {
   color-scheme: light dark;
   --bg: #f4f4f7;
-  --bg-image: none;
-  --bg-overlay: transparent;
   --fg: #1d1d26;
   --muted: #5b5b6b;
   --accent: #00749e;
@@ -31,13 +29,14 @@
   --overlay-fg: #ffffff;
   --danger: #e5484d;
   --shadow-elevated: 0 8px 40px rgba(20, 30, 50, 0.18);
+  --group-bg: #ffffff; /* a site's panel, grouped by site */
+  /* The check mark of a ticked view toggle, in --accent-fg. */
+  --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1a1a2e;
-    --bg-image: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 50%, #1a1a2e 100%);
-    --bg-overlay: rgba(15, 15, 25, 0.8);
+    --bg: #161618;
     --fg: #f0f0f0;
     --muted: #a0a0aa;
     --accent: #00d4ff;
@@ -50,17 +49,19 @@
     --toolbar-bg: rgba(255, 255, 255, 0.02);
     --hover: rgba(255, 255, 255, 0.08);
     --key-bg: rgba(255, 255, 255, 0.1);
-    --preview-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f1e 100%);
+    --preview-bg: #232327;
     --preview-line: rgba(255, 255, 255, 0.08);
     --preview-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    --plate-base: #141826;
-    --plate-base-2: #0e1018;
+    --plate-base: #1d1d21;
+    --plate-base-2: #141417;
     --plate-mix-1: 42%;
     --plate-mix-2: 16%;
     --plate-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
     --overlay: rgba(0, 0, 0, 0.6);
     --overlay-fg: #f0f0f0;
     --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.4);
+    --group-bg: rgba(255, 255, 255, 0.035);
+    --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%230b1020' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 }
 
@@ -75,30 +76,18 @@ html, body {
   overflow: hidden; /* Prevent body from scrolling */
 }
 
+/* No frame of its own: the Tab Mission window is a real window, and the
+   system already draws its frame and title bar. */
 #root {
   display: flex;
   flex-direction: column;
   height: 100vh;
   max-height: 100vh;
-  background: var(--bg-image), var(--bg);
+  background: var(--bg);
   position: relative;
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-elevated);
   animation: rootFadeIn 180ms ease-out both;
   overflow: hidden;
   box-sizing: border-box; /* Include padding in height calculation */
-}
-
-#root::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--bg-overlay);
-  z-index: -1;
 }
 
 /* 
@@ -146,6 +135,18 @@ html, body {
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* A magnifier says what the box is for; clicks go through to the box. */
+.search-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
 /* The search box holds focus the whole time, so the caret is the focus
    indicator (WCAG 2.4.7 counts it) and the accent stays for the selected
    tile, the one thing Enter and the shortcut act on. */
@@ -170,9 +171,44 @@ html, body {
    the controls take the whole row, so the toggles start at the left; when
    space runs out, the toggles wrap and the actions keep their place. */
 .toolbar-controls { display: flex; align-items: center; gap: 8px 20px; flex: 1 1 auto; min-width: 0; }
-.toolbar-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; min-width: 0; }
+.toolbar-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
 .toolbar-actions { display: flex; align-items: center; gap: 2px; flex: none; margin-left: auto; }
-.ctrl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.75rem; white-space: nowrap; transition: opacity 0.2s; }
+
+/* The view toggles are filter chips, not form checkboxes (a toolbar is no
+   place for those, Apple's guidelines say): a pill whose box takes a check
+   mark and the pill a tint when on, so the state is not shown by color
+   alone. They stay checkboxes for the keyboard and screen readers. */
+.ctrl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  color: var(--fg);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.2s, background-color 0.15s, border-color 0.15s;
+}
+.ctrl:hover { background: var(--hover); }
+.ctrl:has(input:checked) { background: var(--accent-soft); border-color: transparent; }
+.ctrl:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctrl input {
+  appearance: none;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  border: 1.5px solid var(--muted);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+.ctrl input:checked {
+  border-color: var(--accent);
+  background: var(--accent) var(--check) center / 11px no-repeat;
+}
 
 /* While a query is typed, results span every window and sleeping tab, so
    the toggles do not apply; dim them to say so. */
@@ -194,7 +230,13 @@ html, body {
   animation: tokenIn 140ms ease-out;
 }
 .scope-token[hidden] { display: none; }
-.scope-icon { width: 14px; height: 14px; border-radius: 3px; }
+.scope-icon {
+  width: 14px;
+  height: 14px;
+  padding: 2px;
+  border-radius: 4px;
+  background: var(--plate-bg); /* a dark icon (GitHub) shows on the tint too */
+}
 #scope-label { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 .scope-clear {
   width: 20px;
@@ -253,44 +295,43 @@ html, body {
   margin-right: 6px;
 }
 
+/* A keycap, as the Tab key in the search box. */
 #shortcut-hint kbd {
-  background: var(--key-bg);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: monospace;
+  padding: 1px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  font-family: inherit;
   font-size: 0.6875rem;
+  line-height: 16px;
 }
 
+/* Settings and reset: line icons of one weight (overview.html), on a
+   30 px target. */
 .icon-btn {
-  background: transparent;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   border: none;
+  border-radius: 8px;
+  background: transparent;
   color: var(--muted);
-  padding: 6px;
-  font-size: 1rem; /* default icon size */
-  line-height: 1;
   cursor: pointer;
-  opacity: 0.7;
-  transition: color 0.2s, opacity 0.2s, transform 0.1s ease;
+  transition: color 0.15s, background-color 0.15s, transform 0.1s ease;
 }
-
-/* Fine-tune individual sizes without affecting layout or hit area */
-#open-settings { font-size: 0.8438rem; }
-#reset-window { font-size: 1.25rem; }
-
-#reset-window {
-  position: relative;
-  top: -0.31px; 
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-
-#open-settings {
-  position: relative;
-  top: 1.5px; 
-}
-
-.icon-btn + .icon-btn { margin-left: 2px; }
-
-.icon-btn:hover { opacity: 1; color: var(--accent); }
+.icon-btn:hover { color: var(--fg); background: var(--hover); }
 .icon-btn:active { transform: scale(0.96); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Tiles scale with the overview's width, like Mission Control thumbnails:
    the minimum tile width is a share of the container (17cqi), clamped so
@@ -318,37 +359,82 @@ html, body {
   scrollbar-gutter: stable;
 }
 
-/* Grouped by site (state.js): the groups flow like words in a line, each as
-   wide as its tiles (--n of them, at the grid's minimum tile width) and
-   wrapping inside when it holds more than a row. The recent group takes the
-   first line on its own. */
-.grid.grouped {
+/* Grouped by site (state.js, dom.js): the recent row, then the sites, then
+   the rest. Two styles, on trial on the settings page. Panels: the grid's
+   columns, each site in a panel spanning as many of them as it has tiles
+   (--span, set by dom.js), small panels side by side; the panel's edge says
+   which site a heading belongs to. Rows: each site on rows of its own, on
+   the plain grid's columns, so tiles line up from group to group. Either
+   way the tiles are as wide as in the plain grid. */
+.grid.grouped[data-group-style="panels"] {
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  grid-auto-flow: row;
+  align-items: start;
+}
+.grid.grouped[data-group-style="panels"] .tile-group {
+  grid-template-columns: repeat(var(--span, 1), minmax(0, 1fr));
+  padding: 12px 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--group-bg);
+}
+.grid.grouped[data-group-style="panels"] .tile-group.recent {
+  padding: 0 0 4px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.grid.grouped[data-group-style="rows"] {
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  column-gap: 24px;
-  row-gap: 16px;
+  flex-direction: column;
+  gap: 28px;
+}
+.grid.grouped[data-group-style="rows"] .tile-group {
+  flex: none;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--tile-min)), 1fr));
+}
+.grid.grouped[data-group-style="rows"] .tile-group.recent {
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .tile-group {
   display: grid;
-  grid-template-columns: repeat(auto-fill, min(100%, var(--tile-min)));
   grid-auto-rows: max-content;
   gap: 16px 12px;
-  width: calc(var(--n) * var(--tile-min) + (var(--n) - 1) * 12px);
-  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-.tile-group.recent { flex-basis: 100%; }
-
+/* A heading: the site's icon on a plate (so a dark icon shows on a dark
+   background), its name and how many tabs it has. */
 .group-label {
   grid-column: 1 / -1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.75rem;
-  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--fg);
 }
+.tile-group.recent .group-label { color: var(--muted); }
+.group-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-count { flex: none; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.group-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--plate-bg);
+  box-shadow: inset 0 0 0 1px var(--preview-line);
+}
+.group-icon img { width: 16px; height: 16px; }
+.group-icon[data-icon="missing"] { display: none; }
 
 /* A card is the picture with its title under it and no frame, as windows in
    Mission Control: the picture says what the page is, the title which one. */
@@ -452,6 +538,11 @@ html, body {
   box-shadow: var(--plate-shadow);
 }
 .preview-icon img { width: 57%; height: 57%; }
+/* The first letter shows when there is no icon, or Chrome did not hand it
+   over (dom.js siteIcon). */
+.preview-icon img + b,
+.preview-icon [data-icon="missing"] img { display: none; }
+.preview-icon [data-icon="missing"] img + b { display: block; }
 .preview-icon b {
   font-size: 1.5rem;
   font-weight: 700;
@@ -474,6 +565,7 @@ html, body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 .site-badge img { width: 16px; height: 16px; }
+.site-badge[data-icon="missing"] { visibility: hidden; }
 .preview:has(.thumbnail.loaded) .site-badge { display: grid; }
 .preview:has(.thumbnail.loaded) .preview-icon { visibility: hidden; }
 
@@ -651,6 +743,8 @@ html, body {
 @media (forced-colors: active) {
   .tip { border: 1px solid CanvasText; }
   .tip::before { display: none; }
+  /* High contrast: the system's own checkbox, whose check it draws itself. */
+  .ctrl input { appearance: auto; border: revert; background: revert; }
 }
 
 /* Respect the OS "reduce motion" setting: no entrance, selection or exit motion.

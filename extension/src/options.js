@@ -8,6 +8,7 @@ async function main() {
   const preselect = document.getElementById('preselect-previous');
   const showTips = document.getElementById('show-tips');
   const groupBySite = document.getElementById('group-by-site');
+  const groupStyle = document.getElementById('group-style');
   try {
     localizeStaticText();
     const { version } = chrome.runtime.getManifest();
@@ -16,6 +17,7 @@ async function main() {
     preselect.checked = settings.preselectPrevious;
     showTips.checked = settings.showTips;
     groupBySite.checked = settings.groupBySite;
+    groupStyle.value = settings.groupStyle === 'rows' ? 'rows' : 'panels';
   } finally {
     reveal(preselect);
   }
@@ -26,6 +28,9 @@ async function main() {
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
     });
   }
+  groupStyle.addEventListener('change', async () => {
+    if (await saveSettings({ groupStyle: groupStyle.value })) announce(t('optionSaved') || 'Saved.');
+  });
   // Refresh after the user changes a shortcut in the tab opened from here
   // (Chrome has no event for it): on coming back to this tab or window.
   document.addEventListener('visibilitychange', () => {

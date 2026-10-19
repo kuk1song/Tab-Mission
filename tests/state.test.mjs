@@ -327,42 +327,50 @@ describe('applyFilters — preselectPrevious setting', () => {
 
 describe('applyFilters — group by site', () => {
   // Eight tabs in one window, in tab-bar order (index); by last use: 8 (the
-  // current tab), 3, 2, 6, 7, 5, 4, 1.
+  // current tab), 3, 2, 6, 7, 5, 4, 1. a.test has three tabs, b.test and
+  // c.test two, d.test one.
   const strip = [
     ['https://a.test/1', 1], ['https://b.test/1', 6], ['https://a.test/2', 7], ['https://c.test/1', 2],
     ['https://b.test/2', 3], ['https://a.test/3', 5], ['https://d.test/1', 4], ['https://c.test/2', 8],
   ];
   const ids = (list) => list.map((tab) => tab.id);
+  const shape = () => state.groups.map(({ recent, other, host, count }) => [recent ? 'recent' : other ? 'other' : host, count]);
   beforeEach(() => {
     state.allTabs = strip.map(([url, lastAccessed], i) => makeTab(i + 1, { url, index: i, lastAccessed }));
     state.currentTabId = 8;
   });
 
-  // Three tiles fit in a row here, so the recent row holds three and the
-  // eight tabs (more than two rows) are grouped.
+  // Three tiles fit in a row here, so the recent row holds three.
   const grouped = (overrides = {}) => ui({ groupBySite: true, columns: 3, ...overrides });
 
-  it('puts one row of recent tabs first, then each site\'s tabs in tab-bar order', () => {
+  it('puts one row of recent tabs first, then each site with two tabs or more in tab-bar order, then the rest', () => {
     applyFilters(grouped({ preselectPrevious: true }));
-    expect(state.groups.map(({ recent, host, count }) => [Boolean(recent), host, count])).toEqual([
-      [true, '', 3], [false, 'a.test', 3], [false, 'b.test', 2], [false, 'c.test', 2], [false, 'd.test', 1],
-    ]);
+    expect(shape()).toEqual([['recent', 3], ['a.test', 3], ['b.test', 2], ['c.test', 2], ['other', 1]]);
     // Recent: the previous tab first, the current tab second.
     expect(ids(state.filteredTabs.slice(0, 3))).toEqual([3, 8, 2]);
     expect(ids(state.filteredTabs.slice(3))).toEqual([1, 3, 6, 2, 5, 4, 8, 7]);
     expect(state.filteredTabs[state.selectedIndex].id).toBe(3);
+    expect(state.columns).toBe(3);
   });
 
-  it('fills the recent row with as many tiles as fit, at most five, and groups only past two rows', () => {
-    applyFilters(ui({ groupBySite: true, columns: 8 })); // five recent: 8 tabs are not past two rows
-    expect(state.groups).toBe(null);
+  it('fills the recent row with as many tiles as fit, at most five', () => {
+    applyFilters(ui({ groupBySite: true, columns: 8 }));
+    expect(state.groups[0].count).toBe(RECENT_MAX);
     applyFilters(ui({ groupBySite: true, columns: 2 }));
     expect(state.groups[0].count).toBe(2);
     applyFilters(ui({ groupBySite: true })); // not measured: five
-    expect(state.groups).toBe(null);
-    state.allTabs.push(...[9, 10, 11].map((id) => makeTab(id, { url: `https://e.test/${id}`, index: id })));
-    applyFilters(ui({ groupBySite: true, columns: 8 }));
     expect(state.groups[0].count).toBe(RECENT_MAX);
+    expect(state.columns).toBe(0);
+  });
+
+  it('groups at any window size and any number of tabs', () => {
+    for (const columns of [1, 2, 5, 8]) {
+      applyFilters(ui({ groupBySite: true, columns }));
+      expect(state.groups).not.toBe(null);
+    }
+    state.allTabs = state.allTabs.slice(0, 2);
+    applyFilters(ui({ groupBySite: true, columns: 8 }));
+    expect(shape()).toEqual([['recent', 2], ['other', 2]]);
   });
 
   it('keeps the site groups where they are when you switch tabs', () => {
@@ -377,24 +385,58 @@ describe('applyFilters — group by site', () => {
 
   it('orders windows by when they were opened, and tabs by position', () => {
     state.allTabs = [
-      makeTab(1, { windowId: 2, index: 0, url: 'https://late.test/' }),
-      makeTab(2, { windowId: 1, index: 1, url: 'https://second.test/' }),
-      makeTab(3, { windowId: 1, index: 0, url: 'https://first.test/' }),
-      ...[4, 5, 6, 7].map((id) => makeTab(id, { windowId: 1, index: id, url: `https://n${id}.test/` })),
+      makeTab(1, { windowId: 2, index: 0, url: 'https://late.test/1' }),
+      makeTab(2, { windowId: 2, index: 1, url: 'https://late.test/2' }),
+      makeTab(3, { windowId: 1, index: 1, url: 'https://second.test/1' }),
+      makeTab(4, { windowId: 1, index: 0, url: 'https://first.test/1' }),
+      makeTab(5, { windowId: 1, index: 3, url: 'https://second.test/2' }),
+      makeTab(6, { windowId: 1, index: 2, url: 'https://first.test/2' }),
     ];
     applyFilters(grouped({ showAllWindows: true }));
-    expect(state.groups.slice(1, 3).map((g) => g.host)).toEqual(['first.test', 'second.test']);
-    expect(state.groups.at(-1).host).toBe('late.test');
+    expect(shape().slice(1)).toEqual([['first.test', 2], ['second.test', 2], ['late.test', 2]]);
+    expect(ids(state.filteredTabs.slice(3))).toEqual([4, 6, 3, 5, 1, 2]);
   });
 
-  it('gives tabs without a site a group of their own, after the recent one', () => {
-    state.allTabs.push(makeTab(9, { url: 'about:blank', index: 8, lastAccessed: 0 }));
+  it('puts sites with one tab and pages that are not web pages last, together, in tab-bar order', () => {
+    state.allTabs = [
+      makeTab(1, { index: 0, url: 'file:///notes.html' }),
+      makeTab(2, { index: 1, url: 'https://x.test/' }),
+      makeTab(3, { index: 2, url: 'chrome://extensions/' }),
+      makeTab(4, { index: 3, url: 'https://y.test/1' }),
+      makeTab(5, { index: 4, url: 'https://y.test/2' }),
+      makeTab(6, { index: 5, url: 'chrome://extensions/' }),
+      makeTab(7, { index: 6, url: 'about:blank' }),
+    ];
     applyFilters(grouped());
-    expect(state.groups.filter((g) => g.recent)).toEqual([expect.objectContaining({ start: 0 })]);
-    expect(state.groups.at(-1)).toEqual({ host: '', start: 3 + 8, count: 1 });
+    expect(shape()).toEqual([['recent', 3], ['y.test', 2], ['other', 5]]);
+    expect(ids(state.filteredTabs.slice(5))).toEqual([1, 2, 3, 6, 7]);
   });
 
-  it('is off while searching, in the site view, with two rows of tabs or fewer, or with the setting off', () => {
+  it('has no last group when every site has two tabs or more', () => {
+    state.allTabs = state.allTabs.filter((tab) => tab.id !== 7); // d.test
+    applyFilters(grouped());
+    expect(shape().map(([name]) => name)).toEqual(['recent', 'a.test', 'b.test', 'c.test']);
+  });
+
+  it('packs panels row by row: each row takes the next sites that fit', () => {
+    // Five columns; sites of 3, 3, 2, 2 and 2 tabs, in tab-bar order.
+    state.allTabs = [['p', 3], ['q', 3], ['r', 2], ['s', 2], ['t', 2]]
+      .flatMap(([site, n]) => Array.from({ length: n }, () => `https://${site}.test/`))
+      .map((url, i) => makeTab(i + 1, { url: `${url}${i}`, index: i }));
+    const sites = () => shape().slice(1).map(([name]) => name);
+    applyFilters(ui({ groupBySite: true, groupStyle: 'panels', columns: 5 }));
+    expect(sites()).toEqual(['p.test', 'r.test', 'q.test', 's.test', 't.test']);
+    applyFilters(ui({ groupBySite: true, groupStyle: 'panels', columns: 4 }));
+    expect(sites()).toEqual(['p.test', 'q.test', 'r.test', 's.test', 't.test']);
+    applyFilters(ui({ groupBySite: true, groupStyle: 'rows', columns: 5 })); // rows: tab-bar order
+    expect(sites()).toEqual(['p.test', 'q.test', 'r.test', 's.test', 't.test']);
+    // The tiles follow their groups.
+    applyFilters(ui({ groupBySite: true, groupStyle: 'panels', columns: 5 }));
+    const r = state.groups.find((g) => g.host === 'r.test');
+    expect(state.filteredTabs.slice(r.start, r.start + r.count).every((tab) => tab.url.startsWith('https://r.test/'))).toBe(true);
+  });
+
+  it('is off while searching, in the site view, or with the setting off', () => {
     applyFilters(grouped({ searchTerm: 'a.test' }));
     expect(state.groups).toBe(null);
     state.siteHost = 'a.test';
@@ -402,9 +444,6 @@ describe('applyFilters — group by site', () => {
     expect(state.groups).toBe(null);
     state.siteHost = '';
     applyFilters(grouped({ groupBySite: false }));
-    expect(state.groups).toBe(null);
-    state.allTabs = state.allTabs.slice(0, 6);
-    applyFilters(grouped());
     expect(state.groups).toBe(null);
   });
 });

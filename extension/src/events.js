@@ -78,9 +78,10 @@ export function initializeEventListeners() {
 
   initializeGridListeners();
 
-  // Grouped by site, the recent row holds as many tiles as fit, so a resize
-  // that changes that number redraws the grid. Dragging the window's edge
-  // fires many resizes, and most keep it.
+  // Grouped by site, the recent row holds as many tiles as fit and panels
+  // span the grid's columns, so a resize that changes the number of tiles in
+  // a row redraws the grid. Dragging the window's edge fires many resizes,
+  // and most keep it.
   window.addEventListener('resize', () => {
     if (shownColumns !== undefined && tilesPerRow() !== shownColumns) scheduleFilterChange();
   });
@@ -138,6 +139,7 @@ function readUiState() {
     showAllWindows: toggleAllWindows ? toggleAllWindows.checked : false,
     preselectPrevious: state.preselectPrevious,
     groupBySite: state.groupBySite,
+    groupStyle: state.groupStyle,
     columns: shownColumns,
   };
 }
@@ -192,7 +194,13 @@ function updateScopeIndicators(uiState) {
   token.hidden = !state.siteHost;
   if (state.siteHost) {
     document.getElementById('scope-label').textContent = site.label;
-    document.getElementById('scope-icon').src = site.icon;
+    const icon = document.getElementById('scope-icon');
+    // Without the site's icon (see siteIcon in dom.js), a letter.
+    icon.onerror = () => {
+      icon.onerror = null;
+      icon.src = createPlaceholderIcon(site.host);
+    };
+    icon.src = site.icon;
     searchEl.placeholder = t('searchSitePlaceholder', [site.label]) || `Search ${site.label} tabs…`;
   } else {
     searchEl.placeholder = t('searchPlaceholder') || 'Search tabs (title or URL)…';

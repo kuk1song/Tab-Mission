@@ -210,7 +210,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Prima le schede più recenti, poi tutte le schede raggruppate per sito nell'ordine della barra delle schede, che non cambia quando passi da una scheda all'altra.",
+    "message": "Prima le schede più recenti, poi tutte le schede raggruppate per sito nell'ordine della barra delle schede, che non cambia quando passi da una scheda all'altra. I siti con una sola scheda vengono per ultimi, insieme.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionHelpHeading": {
@@ -314,7 +314,23 @@
     "description": "Tab Mission, grouped by site: label above the most recent tabs."
   },
   "groupOther": {
-    "message": "Altre pagine",
-    "description": "Tab Mission, grouped by site: label above tabs without a site, such as local files."
+    "message": "Altro",
+    "description": "Tab Mission, grouped by site: heading of the last group, which holds the sites with one tab and pages that are not web pages, such as local files."
+  },
+  "optionGroupStyle": {
+    "message": "Stile dei gruppi (in prova)",
+    "description": "Settings page: label of the choice of how the site groups are drawn, while two styles are on trial."
+  },
+  "optionGroupStyleNote": {
+    "message": "Pannelli: i siti piccoli affiancati; righe: ogni sito ha righe tutte sue.",
+    "description": "Settings page: one line under the group style choice."
+  },
+  "optionGroupStylePanels": {
+    "message": "Pannelli",
+    "description": "Settings page: group style option, each site in a panel."
+  },
+  "optionGroupStyleRows": {
+    "message": "Righe",
+    "description": "Settings page: group style option, each site on rows of its own."
   }
 }
