@@ -28,13 +28,13 @@ test('loads a relative og:image and serves it from the session cache on reopen',
   // (covers.js) and its card shows the page's image.
   await ext.openWindow(['beta', 'alpha', 'gamma']);
   let page = await ext.open();
-  await expect(page.locator('img.thumbnail.loaded[src$="/img/alpha.svg"]')).toHaveCount(1);
+  await expect(page.locator('img.thumbnail.loaded[data-from$="/img/alpha.svg"]')).toHaveCount(1);
   await ext.pressToClose(page, 'Escape');
   const cached = await ext.sw.evaluate(() => chrome.storage.session.get('previewCache').then(({ previewCache }) =>
     Object.values(previewCache || {}).some((e) => e.img?.endsWith('/img/alpha.svg'))));
   expect(cached).toBe(true);
   page = await ext.open();
-  await expect(page.locator('img.thumbnail[src$="/img/alpha.svg"]')).toHaveCount(1);
+  await expect(page.locator('img.thumbnail.loaded[data-from$="/img/alpha.svg"]')).toHaveCount(1);
 });
 
 // Sleeping tabs are covered by the unit tests (applyFilters, isSleeping):
@@ -134,4 +134,37 @@ test('the toolbar button opens Tab Mission; clicked again, it fades out as for t
   await ext.expectClosed();
   await expect.poll(() => ext.sw.evaluate(() => chrome.storage.session.get('fadeSeen').then((r) => r.fadeSeen))).toBe(true);
   expect(await ext.activeTitle(windowId)).toBe(gamma.title);
+});
+
+test('a page\'s image is requested without the site\'s cookies or a referrer', async ({ ext }) => {
+  // The cookie page (not first, so it gets no picture of its own) sets a
+  // cookie for its site; its image comes from the same site.
+  await ext.openWindow(['beta', 'cookie', 'gamma']);
+  const page = await ext.open();
+  await expect(page.locator('img.thumbnail.loaded[data-from$="/img/cookie-wide.svg"]')).toHaveCount(1);
+  const seen = await page.evaluate((url) => fetch(url).then((r) => r.json()), ext.url('seen').replace('/seen.html', '/seen'));
+  expect(seen.length).toBeGreaterThan(0);
+  expect(seen.at(-1)).toEqual({ cookie: null, referer: null });
+});
+
+test('clicking × again where it was closes the next tab too, as on Chrome\'s tab strip', async ({ ext }) => {
+  const { tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma', 'tube1']);
+  const page = await ext.open();
+  await page.locator('#grid:not(.entering)').waitFor(); // the cards rest where the clicks go
+  const card = page.locator('.tile').nth(1);
+  await pointAt(page, card); // selects it, so its × shows
+  await expect(card).toHaveClass(/selected/);
+  const box = await card.locator('.tile-close').boundingBox();
+  // Two quick clicks in one place, the second once the next card has moved
+  // under the pointer (the browser counts it as a double click).
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down({ clickCount: 1 });
+  await page.mouse.up({ clickCount: 1 });
+  await expect(page.locator('.tile')).toHaveCount(3);
+  await expect(page.locator('.tile.selected .tile-close')).toBeVisible();
+  await page.mouse.down({ clickCount: 2 });
+  await page.mouse.up({ clickCount: 2 });
+  await expect(page.locator('.tile')).toHaveCount(2);
+  const open = await ext.sw.evaluate((ids) => chrome.tabs.query({}).then((t) => ids.filter((id) => t.some((x) => x.id === id)).length), Object.values(tabIds));
+  expect(open).toBe(2);
 });

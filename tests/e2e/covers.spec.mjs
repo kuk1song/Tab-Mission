@@ -22,7 +22,8 @@ test('the card of a page you looked at shows a picture of it; others keep their 
   expect(size[0]).toBeGreaterThan(0);
   expect(size[1] / size[0]).toBeLessThanOrEqual(10 / 16 + 0.01);
   const alpha = page.locator(`.tile[data-tab-id="${tabIds.alpha}"] img.thumbnail`);
-  await expect(alpha).toHaveAttribute('src', /\/img\/alpha\.svg$/);
+  await expect(alpha).toHaveAttribute('data-from', /\/img\/alpha\.svg$/);
+  await expect(alpha).toHaveClass(/\bloaded\b/);
   await expect(alpha).not.toHaveClass(/\bcover\b/);
 });
 
@@ -66,8 +67,8 @@ test('without a picture, a card shows the page\'s own image unless it is a squar
   const img = (id) => page.locator(`.tile[data-tab-id="${tabIds[id]}"] img.thumbnail`);
   await expect(img('alpha')).toHaveClass(/\bloaded\b/); // 1200 × 630
   await expect(img('photo')).toHaveClass(/\bloaded\b/); // 600 × 800
-  // A square logo, as og:image or as a touch icon, leaves the title card.
-  await expect(img('logo')).toHaveAttribute('src', /logo-square\.svg$/);
+  // A square logo, as og:image or as a touch icon, leaves the icon card.
+  await expect(img('logo')).toHaveAttribute('data-from', /logo-square\.svg$/);
   await expect(img('logo')).toBeHidden();
   await expect(img('logo')).not.toHaveClass(/\bloaded\b/);
   await expect(page.locator(`.tile[data-tab-id="${tabIds.icon}"]`)).toHaveAttribute('data-thumb', 'done');
@@ -117,6 +118,7 @@ test('a page held up by a slow image is pictured while it still loads', async ({
     const [win] = await chrome.windows.getAll({ windowTypes: ['normal'] }).then((w) => w.filter((x) => x.focused));
     return (await chrome.tabs.create({ windowId: win.id, url, active: true })).id;
   }, ext.url('slow'));
-  await expect.poll(() => coverOf(ext, slow).then((c) => c?.url), { timeout: 6000 }).toBe(ext.url('slow'));
+  // Within 8 s: the image holding up its load arrives at 10 s.
+  await expect.poll(() => coverOf(ext, slow).then((c) => c?.url), { timeout: 8000 }).toBe(ext.url('slow'));
   expect(await ext.sw.evaluate((id) => chrome.tabs.get(id).then((t) => t.status), slow)).toBe('loading');
 });

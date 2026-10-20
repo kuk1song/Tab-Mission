@@ -1,6 +1,6 @@
 // events.js
 import { state, applyFilters, moveSelection, moveSelectionByRects, currentSiteHost, countSiteTabs } from './state.js';
-import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection } from './dom.js';
+import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection, markInView } from './dom.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isCapturableUrl, faviconUrl, createPlaceholderIcon } from './utils.js';
@@ -360,19 +360,17 @@ function closeOverview(fast = false) {
     return;
   }
 
-  const gridEl = document.getElementById('grid');
-  let totalTiles = 0;
-  if (gridEl) {
-    const tiles = Array.from(gridEl.querySelectorAll('.tile'));
-    totalTiles = tiles.length;
-    tiles.forEach((tile, index) => {
-      // Reverse index so the last tile starts first
-      const reverseIndex = totalTiles - 1 - index;
-      // Match the opening stagger pattern (batches of 10, 20ms each)
-      const staggerDelay = (reverseIndex % 10) * 20;
-      tile.style.setProperty('--stagger-out', `${staggerDelay}ms`);
-    });
-  }
+  // Only the tiles in view animate out (with hundreds of tabs, animating
+  // all of them cost a long frame).
+  const tiles = markInView().filter((el) => el.classList.contains('tile'));
+  const totalTiles = tiles.length;
+  tiles.forEach((tile, index) => {
+    // Reverse index so the last tile starts first
+    const reverseIndex = totalTiles - 1 - index;
+    // Match the opening stagger pattern (batches of 10, 20ms each)
+    const staggerDelay = (reverseIndex % 10) * 20;
+    tile.style.setProperty('--stagger-out', `${staggerDelay}ms`);
+  });
 
   if (rootEl) {
     rootEl.classList.add('closing');
