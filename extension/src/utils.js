@@ -8,6 +8,30 @@ export function getHostname(url) {
   }
 }
 
+// A tab whose page has not committed yet (its site has not answered) has
+// no address, only the one it is going to: Tab.url "may be an empty string
+// if the tab has not yet committed" (chrome.tabs), and Tab.pendingUrl is
+// "the URL the tab is navigating to, before it has committed". Tab Mission
+// shows, searches and groups such a tab by that address, as the address bar
+// shows it.
+export function withPendingAddress(tab) {
+  return tab.url || !tab.pendingUrl ? tab : { ...tab, url: tab.pendingUrl };
+}
+
+// A web page's address without its scheme, "www.", query or fragment
+// (news.example/2026/10/story.html), for a card whose page has no title
+// yet; nothing for other pages.
+export function pageAddress(url) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return '';
+  }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+  return u.host.replace(/^www\./, '') + (u.pathname === '/' ? '' : u.pathname);
+}
+
 // Where a page is, as its card says under the title: what Chrome's address
 // bar shows, shortened. A web page: its host without "www.", as the group
 // headings and the site view name it. A browser page: its scheme and host

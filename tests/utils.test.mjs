@@ -8,6 +8,8 @@ import {
   faviconUrl,
   dominantColor,
   createPlaceholderIcon,
+  pageAddress,
+  withPendingAddress,
 } from '../extension/src/utils.js';
 
 describe('getHostname', () => {
@@ -17,6 +19,31 @@ describe('getHostname', () => {
   it('falls back to the raw string for non-URLs', () => {
     expect(getHostname('not a url')).toBe('not a url');
     expect(getHostname('')).toBe('');
+  });
+});
+
+describe('pageAddress', () => {
+  it('writes a web page as its host and path, for a card with no title yet', () => {
+    expect(pageAddress('https://www.news.example/2026/10/story.html?ref=a#top')).toBe('news.example/2026/10/story.html');
+    expect(pageAddress('http://localhost:3000/app')).toBe('localhost:3000/app');
+    expect(pageAddress('https://example.com/')).toBe('example.com');
+  });
+  it('is empty for other pages and what is not an address', () => {
+    expect(pageAddress('chrome://settings/')).toBe('');
+    expect(pageAddress('')).toBe('');
+  });
+});
+
+describe('withPendingAddress', () => {
+  it('gives a tab whose page has not committed the address it is going to', () => {
+    const tab = { id: 1, url: '', pendingUrl: 'https://news.example/story', title: '' };
+    expect(withPendingAddress(tab)).toEqual({ ...tab, url: 'https://news.example/story' });
+  });
+  it('leaves other tabs as they are, one moving on to another page included', () => {
+    const moving = { id: 2, url: 'https://a.example/', pendingUrl: 'https://b.example/' };
+    expect(withPendingAddress(moving)).toBe(moving);
+    const blank = { id: 3, url: '' };
+    expect(withPendingAddress(blank)).toBe(blank);
   });
 });
 

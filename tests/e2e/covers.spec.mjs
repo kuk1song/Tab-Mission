@@ -83,6 +83,22 @@ test('without a picture, a card shows the page\'s own image unless it is a squar
   expect(await img('icon').getAttribute('src')).toBe(null);
 });
 
+// A tab whose site has not answered yet has only the address it is going to
+// (cards.spec); its card looks for the page's own image there, which comes
+// once the site answers.
+test('a card opened before its site answers shows the page\'s own image once it does', async ({ ext }) => {
+  const { windowId } = await ext.openWindow(['beta']);
+  const url = ext.url('alpha').replace('/alpha.html', '/held/alpha.html');
+  const id = await ext.sw.evaluate(({ windowId, url }) => chrome.tabs.create({ windowId, url, active: false }).then((t) => t.id), { windowId, url });
+  await expect.poll(() => ext.sw.evaluate((id) => chrome.tabs.get(id).then((t) => [t.url, t.pendingUrl]), id)).toEqual(['', url]);
+  const page = await ext.open();
+  const img = page.locator(`.tile[data-tab-id="${id}"] img.thumbnail`);
+  await expect(img).toHaveCount(1);
+  await page.evaluate((release) => fetch(release), url.replace('/held/alpha.html', '/release'));
+  await expect(img).toHaveAttribute('data-from', /\/img\/alpha\.svg$/);
+  await expect(img).toHaveClass(/\bloaded\b/);
+});
+
 test('pictures last through a browser restart, and those of pages no longer open go', async ({ ext }) => {
   const { tabIds } = await ext.openWindow(['beta', 'gamma']);
   // A picture of beta, then back to gamma.

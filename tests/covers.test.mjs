@@ -302,6 +302,19 @@ describe('covers', () => {
     expect(Object.keys(chrome.data.coverIndex)).toEqual(['11']); // kept for tab 31
   });
 
+  it('tidying keeps the picture of a page a tab is still on its way to', async () => {
+    switchTo(page(11));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    // After a restart, the page is coming back in tab 31, which has no
+    // address until its page commits, only the one it is going to.
+    chrome._tabs.clear();
+    show(page(31, { url: '', pendingUrl: page(11).url, status: 'loading' }));
+    vi.resetModules();
+    covers = await import('../extension/src/covers.js');
+    await covers.tidyCovers();
+    expect(Object.keys(chrome.data.coverIndex)).toEqual(['11']);
+  });
+
   it('tidying keeps each tab\'s own picture and the newest of a page without one, and drops the rest', async () => {
     const url = 'https://site.test/same';
     chrome.data.coverIndex = {

@@ -1,5 +1,5 @@
 // state.js
-import { getHostname, isSleeping, isCapturableUrl } from './utils.js';
+import { getHostname, isSleeping, isCapturableUrl, withPendingAddress } from './utils.js';
 
 export const state = {
   allTabs: [],
@@ -27,7 +27,7 @@ export const DEFAULT_COLUMNS = 5;
 
 export async function fetchAllTabs() {
   try {
-    state.allTabs = await chrome.tabs.query({});
+    state.allTabs = (await chrome.tabs.query({})).map(withPendingAddress);
     const current = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
     state.currentWindowId = current?.id || null;
   } catch (err) {

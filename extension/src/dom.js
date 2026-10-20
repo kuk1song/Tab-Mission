@@ -1,7 +1,7 @@
 // dom.js
 import { state, DEFAULT_COLUMNS } from './state.js';
 import { activateTab, closeTab, setSiteScope } from './events.js';
-import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor, addressLabel } from './utils.js';
+import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor, addressLabel, pageAddress } from './utils.js';
 import { observeTiles } from './thumbnail.js';
 import { t } from './i18n.js';
 import { selectionMoved } from './tips.js';
@@ -295,7 +295,7 @@ function createMetaElement(tab) {
 
   const title = document.createElement('div');
   title.className = 'title';
-  title.textContent = tab.title || t('untitled') || 'Untitled';
+  title.textContent = tab.title || pageAddress(tab.url) || t('untitled') || 'Untitled';
   meta.appendChild(title);
 
   const url = document.createElement('div');
