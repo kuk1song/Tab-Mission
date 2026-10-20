@@ -36,9 +36,11 @@ describe('addressLabel', () => {
     expect(addressLabel('chrome-extension://otherid/popup.html', names)).toBe('Extension page');
     expect(addressLabel('file:///Users/me/notes.html', names)).toBe('Local file');
   });
-  it('says nothing for data and blob addresses, or what is not an address', () => {
+  it('says nothing for an address without a host, or what is not an address', () => {
     expect(addressLabel('data:text/html,<p>x', names)).toBe('');
     expect(addressLabel('blob:https://example.com/123', names)).toBe('');
+    expect(addressLabel('javascript:void(0)', names)).toBe('');
+    expect(addressLabel('vbscript:msgbox(1)', names)).toBe('');
     expect(addressLabel('not a url', names)).toBe('');
     expect(addressLabel(undefined, names)).toBe('');
   });

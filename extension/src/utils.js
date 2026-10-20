@@ -13,8 +13,8 @@ export function getHostname(url) {
 // headings and the site view name it. A browser page: its scheme and host
 // (chrome://extensions). about: pages as they are. Tab Mission's own pages,
 // another extension's and local files: names.own, names.extension and
-// names.file (names.host is Tab Mission's own host). Anything else (data:,
-// blob:): nothing.
+// names.file (names.host is Tab Mission's own host). Any other address
+// without a host (data:, blob:, javascript:): nothing.
 export function addressLabel(url, names) {
   let u;
   try {
@@ -32,10 +32,6 @@ export function addressLabel(url, names) {
       return u.href;
     case 'chrome-extension:':
       return u.host === names.host ? names.own : names.extension;
-    case 'data:':
-    case 'blob:':
-    case 'javascript:':
-      return '';
     default:
       return u.host ? `${u.protocol}//${u.host}` : '';
   }
