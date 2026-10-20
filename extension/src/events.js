@@ -46,8 +46,8 @@ export function initializeEventListeners() {
     });
   }
 
-  // The gear opens Tab Mission's own settings page (open behaviour, and the
-  // shortcuts with a link to change them).
+  // The gear opens Tab Mission's own settings page (the shortcut with a link
+  // to change it, selection, grouping, tips).
   if (openSettingsBtn) {
     openSettingsBtn.addEventListener('click', () => {
       try {

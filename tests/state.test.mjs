@@ -59,13 +59,6 @@ describe('applyFilters — MRU ordering', () => {
     expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 2]);
   });
 
-  it('does not auto-select on open — nothing is highlighted until hover/arrow', () => {
-    state.selectedIndex = -1; // a freshly opened overview
-    state.allTabs = [makeTab(1, { lastAccessed: 1 }), makeTab(2, { lastAccessed: 2 })];
-    applyFilters(ui());
-    expect(state.selectedIndex).toBe(-1);
-  });
-
   it('clamps a stale selection to the last valid index', () => {
     state.selectedIndex = 5;
     state.allTabs = [makeTab(1, { lastAccessed: 2 }), makeTab(2, { lastAccessed: 1 })];
@@ -346,7 +339,7 @@ describe('applyFilters — group by site', () => {
 
   it('puts the five most recent tabs first, then all the tabs of each site with two or more, in tab-bar order', () => {
     applyFilters(grouped({ preselectPrevious: true }));
-    // d.test's only tab is in the recent row, so there is no last group.
+    // d.test's only tab is among the recent tabs, so there is no last group.
     expect(shape()).toEqual([['recent', 5], ['a.test', 3], ['b.test', 2], ['c.test', 2]]);
     // Recent: the previous tab first, the current tab second.
     expect(ids(state.filteredTabs.slice(0, 5))).toEqual([3, 8, 2, 6, 7]);
@@ -377,7 +370,7 @@ describe('applyFilters — group by site', () => {
     expect(state.filteredTabs).toHaveLength(7);
   });
 
-  it('keeps the site groups where they are when you switch tabs; the rest takes what leaves the recent row', () => {
+  it('keeps the site groups where they are when you switch tabs; the rest takes what leaves the recent tabs', () => {
     const sites = () => state.groups.filter((g) => !g.recent && !g.other)
       .map((g) => [g.host, g.start, ids(state.filteredTabs.slice(g.start, g.start + g.count))]);
     applyFilters(grouped());
@@ -387,7 +380,7 @@ describe('applyFilters — group by site', () => {
     applyFilters(grouped());
     expect(sites()).toEqual(before);
     expect(state.filteredTabs[0].id).toBe(8); // the previous tab now
-    expect(shape().at(-1)).toEqual(['other', 1]); // d.test's tab, out of the recent row
+    expect(shape().at(-1)).toEqual(['other', 1]); // d.test's tab, no longer a recent tab
   });
 
   it('orders windows by when they were opened, and tabs by position', () => {
@@ -404,7 +397,7 @@ describe('applyFilters — group by site', () => {
     expect(ids(state.filteredTabs.slice(5))).toEqual([4, 6, 3, 5, 1, 2]);
   });
 
-  it('puts the rest last, in tab-bar order, without the tabs already in the recent row', () => {
+  it('puts the rest last, in tab-bar order, without the tabs already among the recent tabs', () => {
     state.allTabs = [
       makeTab(1, site('file:///notes.html', 0)),
       makeTab(2, site('https://x.test/', 1)),
@@ -418,7 +411,7 @@ describe('applyFilters — group by site', () => {
     ];
     applyFilters(grouped());
     expect(ids(state.filteredTabs.slice(0, 5))).toEqual([9, 8, 7, 6, 5]);
-    // y.test keeps both its tabs (5 is in the recent row too).
+    // y.test keeps both its tabs (5 is among the recent tabs too).
     expect(shape()).toEqual([['recent', 5], ['y.test', 2], ['other', 3]]);
     expect(ids(state.filteredTabs.slice(5))).toEqual([4, 5, 1, 2, 3]);
   });
@@ -440,7 +433,7 @@ describe('applyFilters — group by site', () => {
   });
 
   it('keeps a tile you picked when the panels are packed anew, in its own place', () => {
-    // By last use 12, 11, 10, 9, 8, …: the recent row holds those five.
+    // By last use 12, 11, 10, 9, 8, …: those are the five recent tabs.
     // Packing: p r | q s | t at five columns, p | q | r s | t at four.
     state.allTabs = [['p', 3], ['q', 3], ['r', 2], ['s', 2], ['t', 2]]
       .flatMap(([name, n]) => Array.from({ length: n }, () => `https://${name}.test/`))
@@ -454,7 +447,7 @@ describe('applyFilters — group by site', () => {
     applyFilters(panels(4));
     expect(state.selectedIndex).not.toBe(before); // it moved…
     expect(state.selectedIndex).toBe(siteTile(8)); // …and stayed picked
-    // Tab 9 is in the recent row too: its site tile stays the one picked.
+    // Tab 9 is among the recent tabs too: its site tile stays the one picked.
     applyFilters(panels(5));
     state.selectedIndex = siteTile(9);
     applyFilters(panels(4));

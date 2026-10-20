@@ -12,8 +12,8 @@ export const TRY_IT_KEYS = { open: 'tryItOpen', back: 'tryItBack' };
 // Set on a new install: each step's tip shows until the step is done, at most
 // TIP_SHOWS times (users who already know Tab Mission have no count, so they
 // see tips only with "Show tips" on).
-export const TIPS_KEY = 'tipsLeft';
-export const TIP_SHOWS = 3;
+const TIPS_KEY = 'tipsLeft';
+const TIP_SHOWS = 3;
 
 // One key per step, so recording needs no read: the write goes out at once
 // and lands even when the overview closes right after a switch (at once with

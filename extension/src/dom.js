@@ -1,5 +1,5 @@
 // dom.js
-import { state, RECENT_MAX } from './state.js';
+import { state, DEFAULT_COLUMNS } from './state.js';
 import { activateTab, closeTab, setSiteScope } from './events.js';
 import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor, addressLabel } from './utils.js';
 import { observeTiles } from './thumbnail.js';
@@ -112,7 +112,7 @@ export function render() {
   // A keystroke that leaves the same tiles (most do, with many tabs) only
   // moves the selection: putting hundreds of tiles back costs a layout.
   // Panels span columns, so a change in their number redraws them too.
-  const columns = state.groups ? state.columns || RECENT_MAX : 0;
+  const columns = state.groups ? state.columns || DEFAULT_COLUMNS : 0;
   const now = JSON.stringify([state.groups, state.filteredTabs.map((tab) => tab.id), columns]);
   if (now !== shown) {
     shown = now;
@@ -208,7 +208,7 @@ function createTile(tab, index) {
   const close = document.createElement('span');
   close.className = 'tile-close';
   close.textContent = '×';
-  close.title = t('closeTabTitle') || 'Close tab';
+  close.title = t('closeTabTitle') || 'Close tab (or middle-click)';
   close.setAttribute('aria-hidden', 'true');
   tile.appendChild(close);
 
@@ -311,14 +311,14 @@ function createEmptyMessage() {
   emptyMessage.className = 'empty';
   emptyMessage.textContent = state.allTabs.length === 0
     ? (t('emptyNoTabs') || 'No tabs found.')
-    : (t('emptyNoMatch') || 'No tabs match.');
+    : (t('emptyNoMatch') || 'No matching tabs.');
   // Inside the site scope, name the scope and offer one click to search
   // every tab instead. (Without a query, e.g. after closing the site's last
   // tab, the generic message above stays.)
   if (state.siteHost && state.allTabs.length > 0) {
     const site = state.siteHost.replace(/^www\./, '');
     if (document.getElementById('search')?.value.trim()) {
-      emptyMessage.textContent = t('emptyNoMatchInSite', [site]) || `No ${site} tabs match.`;
+      emptyMessage.textContent = t('emptyNoMatchInSite', [site]) || `No ${site} tabs match your search.`;
     }
     const widen = document.createElement('button');
     widen.className = 'empty-widen';

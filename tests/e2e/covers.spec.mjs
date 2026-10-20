@@ -56,7 +56,7 @@ test('the shortcut pictures the page you are leaving', async ({ ext, context }) 
   const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
   await ext.pressDefaultShortcut(gamma);
   await opened;
-  // Within a second: the next follow-up picture is due 3 s after the first.
+  // Within a second: the next follow-up picture is due 2.5 s after the first.
   await expect.poll(indexAt, { timeout: 1000 }).toBeGreaterThan(before);
 });
 

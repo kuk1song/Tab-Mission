@@ -141,7 +141,7 @@
   },
   "welcomeAllSet": {
     "message": "全部完成，开始使用吧。",
-    "description": "Welcome page checklist: shown once all three steps are done."
+    "description": "Welcome page checklist: shown once both steps are done."
   },
   "welcomeTipsTitle": {
     "message": "更多技巧",
@@ -183,11 +183,11 @@
   },
   "optionOpenHeading": {
     "message": "打开 Tab Mission 时",
-    "description": "Options: heading of the open behaviour section."
+    "description": "Settings page: heading of the section on how Tab Mission opens and shows the tabs."
   },
   "optionShortcutsHeading": {
     "message": "快捷键",
-    "description": "Options: shortcuts heading."
+    "description": "Settings page: shortcuts heading."
   },
   "optionSaved": {
     "message": "已保存。",
@@ -210,7 +210,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "最近用过的 5 个标签页排在最前；其后每个有多个标签页的网站一组，顺序与标签栏一致，切换标签页不会改变它；其余的排在最后。",
+    "message": "最近用过的 5 个标签页排在最前；其后每个有多个标签页的网站一组，切换标签页不会改变它；其余的排在最后。",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionHelpHeading": {
@@ -231,7 +231,7 @@
   },
   "optionVersion": {
     "message": "版本 $version$",
-    "description": "Settings page: version under the title.",
+    "description": "Settings page: the version, in the closing line.",
     "placeholders": {
       "version": {
         "content": "$1",
@@ -300,7 +300,7 @@
     }
   },
   "tipOpen": {
-    "message": "随时按 $shortcut$ 就能打开",
+    "message": "随时按 $shortcut$ 打开 Tab Mission",
     "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with a click (the toolbar button or the welcome page's button).",
     "placeholders": {
       "shortcut": {

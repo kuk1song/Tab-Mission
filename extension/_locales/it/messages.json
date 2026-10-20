@@ -141,7 +141,7 @@
   },
   "welcomeAllSet": {
     "message": "Tutto pronto.",
-    "description": "Welcome page checklist: shown once all three steps are done."
+    "description": "Welcome page checklist: shown once both steps are done."
   },
   "welcomeTipsTitle": {
     "message": "Altri suggerimenti",
@@ -183,11 +183,11 @@
   },
   "optionOpenHeading": {
     "message": "Quando si apre Tab Mission",
-    "description": "Options: heading of the open behaviour section."
+    "description": "Settings page: heading of the section on how Tab Mission opens and shows the tabs."
   },
   "optionShortcutsHeading": {
     "message": "Scorciatoie da tastiera",
-    "description": "Options: shortcuts heading."
+    "description": "Settings page: shortcuts heading."
   },
   "optionSaved": {
     "message": "Salvato.",
@@ -210,7 +210,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Prima le cinque schede più recenti, poi un gruppo per ogni sito con più schede, nell'ordine della barra delle schede, che non cambia quando passi da una scheda all'altra. Le altre vengono per ultime.",
+    "message": "Prima le cinque schede più recenti, poi un gruppo per ogni sito con più schede, che non cambia quando passi da una scheda all'altra. Le altre vengono per ultime.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionHelpHeading": {
@@ -231,7 +231,7 @@
   },
   "optionVersion": {
     "message": "Versione $version$",
-    "description": "Settings page: version under the title.",
+    "description": "Settings page: the version, in the closing line.",
     "placeholders": {
       "version": {
         "content": "$1",

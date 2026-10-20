@@ -11,7 +11,7 @@ export const state = {
   selfWindowId: null, // the overview popup itself; its own tab is never listed
   siteHost: '', // non-empty while showing only one site's tabs
   preselectPrevious: true, // mirrors the setting of the same name
-  groupBySite: false, // mirrors the setting of the same name
+  groupBySite: true, // mirrors the setting of the same name
   // With groupBySite, while browsing: the parts of filteredTabs, in order
   // ({ host, start, count }; the first one { recent }, the last one
   // { other } when there is one), else null.
@@ -22,6 +22,8 @@ export const state = {
 // Group by site: this many recent tabs first, at any window size (a narrow
 // window wraps them), then the sites and the rest.
 export const RECENT_MAX = 5;
+// Tiles per row when the grid could not be measured.
+export const DEFAULT_COLUMNS = 5;
 
 export async function fetchAllTabs() {
   try {
@@ -125,7 +127,7 @@ export function applyFilters(uiState) {
   state.groups = null;
   state.columns = uiState.columns || 0;
   if (uiState.groupBySite && !searching && !state.siteHost) {
-    const { entries, groups } = groupBySite(tabs, RECENT_MAX, uiState.columns || RECENT_MAX);
+    const { entries, groups } = groupBySite(tabs, RECENT_MAX, uiState.columns || DEFAULT_COLUMNS);
     tabs = entries;
     state.groups = groups;
   }
@@ -156,15 +158,16 @@ export function applyFilters(uiState) {
 }
 
 // The selected tile before a new view: its tab, and whether it was the copy
-// in the recent row (grouped by site, a recent tab has two tiles).
+// among the recent tabs (grouped by site, a recent tab of a site with two
+// tabs or more has two tiles).
 function pickedTile() {
   const tab = state.filteredTabs[state.selectedIndex];
   if (!tab) return null;
   return { id: tab.id, recent: Boolean(state.groups) && state.selectedIndex < state.groups[0].count };
 }
 
-// The same tile in the new view: the copy in the same place (recent row or
-// not) when there is one, else the tab's other tile.
+// The same tile in the new view: the copy in the same place (among the
+// recent tabs or not) when there is one, else the tab's other tile.
 function indexOfTile({ id, recent }) {
   const recentEnd = state.groups ? state.groups[0].count : 0;
   const indexes = state.filteredTabs.flatMap((tab, i) => (tab.id === id ? [i] : []));
@@ -175,13 +178,13 @@ function indexOfTile({ id, recent }) {
 // were opened (by id), tabs by position, a site where its first tab is;
 // within a site, its tabs by position. A site gets a group of its own with
 // two tabs or more, all of them, so a group never changes as you switch
-// tabs (a recent tab shows twice: copied to the top, not moved, as Gajos et
-// al. 2006 found works best). The rest (sites with one tab, pages that are
+// tabs (a recent tab shows twice: copied to the top, not moved, which Gajos
+// et al. 2006 found causes the least confusion). The rest (sites with one tab, pages that are
 // not web pages) share the last group, also by position, without the tabs
-// already shown in the recent row: so a window of a few one-tab sites shows
-// each tab once. With packColumns, the sites are packed into rows of that
-// many columns (packRows), each as wide as its tabs.
-export function groupBySite(tabs, recentCount = RECENT_MAX, packColumns = 0) {
+// already among the recent tabs: so a window of a few one-tab sites shows
+// each tab once. The sites are packed into rows of `columns` columns
+// (packRows), each as wide as its tabs.
+function groupBySite(tabs, recentCount, columns) {
   const recent = tabs.slice(0, recentCount);
   const strip = [...tabs].sort((a, b) => a.windowId - b.windowId || a.index - b.index);
   const sites = new Map();
@@ -194,13 +197,12 @@ export function groupBySite(tabs, recentCount = RECENT_MAX, packColumns = 0) {
   const entries = [...recent];
   const shown = new Set(recent.map((tab) => tab.id));
   const other = [];
-  let own = [];
+  const own = [];
   for (const [host, siteTabs] of sites) {
     if (!host || siteTabs.length < 2) other.push(...siteTabs.filter((tab) => !shown.has(tab.id)));
     else own.push([host, siteTabs]);
   }
-  if (packColumns) own = packRows(own, packColumns);
-  for (const [host, siteTabs] of own) {
+  for (const [host, siteTabs] of packRows(own, columns)) {
     groups.push({ host, start: entries.length, count: siteTabs.length });
     entries.push(...siteTabs);
   }

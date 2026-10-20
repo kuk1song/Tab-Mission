@@ -3,7 +3,7 @@ import { test, expect, PAGES, selectedTitle, pointAt } from './fixtures.mjs';
 // "Group tabs by site" (on by default; off on the settings page): the five
 // most recent tabs first, then all the tabs of each site with two or more (in
 // tab-bar order, packed row by row), which stays put as you switch, then the
-// rest, without the tabs already in the recent row. It applies at any window
+// rest, without the tabs already among the recent tabs. It applies at any window
 // size and any number of tabs. The fixture turns it off for the other specs;
 // these turn it on.
 const VISITED = ['alpha', 'doc1', 'tube1', 'code1', 'beta', 'tube2', 'notes1', 'gamma', 'code2', 'notes2', 'tube3'];
@@ -76,7 +76,7 @@ test('a few tabs are grouped too, one-tab sites are not repeated, and a click sh
   const { windowId } = await ext.openWindow(['alpha', 'tube1', 'tube2']);
   await ext.sw.evaluate((windowId) => chrome.tabs.create({ windowId, url: 'about:blank', active: false }), windowId);
   const page = await ext.open();
-  // alpha and the blank page are in the recent row, so there is no last group.
+  // alpha and the blank page are among the recent tabs, so there is no last group.
   expect((await groups(page)).map((g) => [g.name, g.titles.length])).toEqual([['recent', 4], ['tube.test', 2]]);
 
   // tube1 is in the recent group and under its site; click the site's tile.
@@ -98,7 +98,7 @@ test('a few tabs are grouped too, one-tab sites are not repeated, and a click sh
 test('the shortcut pressed again goes back, and closing a tab removes both of its tiles', async ({ ext }) => {
   const { windowId } = await ext.openWindow(VISITED);
   let page = await ext.open();
-  // notes2, the previous tab, has a tile in the recent row and one under its site.
+  // notes2, the previous tab, has a tile among the recent tabs and one under its site.
   const notes2 = page.locator('#grid .tile', { hasText: PAGES.notes2.title });
   await expect(notes2).toHaveCount(2);
   // The × of the site's tile, under the pointer (only a selected tile's × is there).
@@ -175,12 +175,12 @@ test('every tile on the same columns, panels as wide as their tabs and side by s
     const recentLefts = [...grid.querySelectorAll('.tile-group.recent .tile')].map((el) => box(el).left);
     return { columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length, sites, tiles, recentLefts };
   });
-  expect(shown.columns).toBeGreaterThanOrEqual(4);
+  expect(shown.columns).toBe(5);
   for (const site of shown.sites) expect(site.span).toBe(`span ${Math.min(site.tiles, shown.columns)}`);
   expect(new Set(shown.sites.map((s) => s.top)).size).toBeLessThan(shown.sites.length); // some side by side
   const widths = shown.tiles.map((t) => t.width);
   expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
-  // Five recent tabs cover every column at four or five columns.
+  // The five recent tabs cover every column.
   for (const { left } of shown.tiles) expect(shown.recentLefts.some((l) => Math.abs(l - left) < 1)).toBe(true);
   for (const row of new Set(shown.sites.map((s) => s.top))) {
     expect(new Set(shown.sites.filter((s) => s.top === row).map((s) => s.height)).size).toBe(1);

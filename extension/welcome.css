@@ -1,5 +1,5 @@
-/* Welcome page. It follows the system's light or dark appearance, with the
-   same colors as the settings page (options.css). */
+/* Welcome page. It follows the system's light or dark appearance, with
+   colors close to the settings page's (options.css). */
 :root {
   color-scheme: light dark;
   --bg: #f4f4f7;
