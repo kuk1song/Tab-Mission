@@ -77,7 +77,6 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
 
 describe('covers', () => {
@@ -189,7 +188,7 @@ describe('covers', () => {
     expect(chrome.shots).toHaveLength(0);
     await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0]);
     expect(chrome.shots).toHaveLength(1);
-    expect(chrome.data['cover:11']).toBeDefined();
+    expect(chrome.data['cover:11']).toEqual({ url: 'https://site.test/11', img: 'data:image/webp;base64,SMALL' });
     await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[1]);
     expect(chrome.shots).toHaveLength(2);
   });
@@ -203,7 +202,7 @@ describe('covers', () => {
     shrinkImpl = async () => 'data:image/webp;base64,SMALL';
     await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0]);
     expect(chrome.shots).toHaveLength(2);
-    expect(chrome.data['cover:11']).toBeDefined();
+    expect(chrome.data['cover:11']).toEqual({ url: 'https://site.test/11', img: 'data:image/webp;base64,SMALL' });
   });
 
   it('never pictures incognito tabs, browser pages, popups, minimized or unfocused windows', async () => {
@@ -214,6 +213,9 @@ describe('covers', () => {
       [page(14), { state: 'minimized' }],
       [page(15), { focused: false }],
     ];
+    // The popup has focus, as Tab Mission's window has while open, so only
+    // its type keeps it out.
+    chrome._windows.get(2).focused = true;
     for (const [tab, win] of cases) {
       Object.assign(chrome._windows.get(1), { focused: true, state: 'normal' }, win);
       switchTo(tab);
@@ -247,7 +249,7 @@ describe('covers', () => {
     show(page(11));
     await covers.coverFrontTab();
     expect(chrome.shots).toHaveLength(1);
-    expect(chrome.data['cover:11']).toBeDefined();
+    expect(chrome.data['cover:11']).toEqual({ url: 'https://site.test/11', img: 'data:image/webp;base64,SMALL' });
     // Pressed inside Tab Mission's own window, no browser window is in front.
     chrome._windows.get(1).focused = false;
     chrome._windows.get(2).focused = true;
@@ -381,7 +383,7 @@ describe('covers', () => {
     switchTo(page(12));
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
     expect(chrome.data['cover:11']).toBeUndefined();
-    expect(chrome.data['cover:12']).toBeDefined();
+    expect(chrome.data['cover:12']).toEqual({ url: 'https://site.test/12', img: 'data:image/webp;base64,SMALL' });
     expect(Object.keys(chrome.data.coverIndex)).toEqual(['12']);
   });
 });

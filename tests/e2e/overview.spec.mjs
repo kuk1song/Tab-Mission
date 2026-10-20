@@ -26,13 +26,18 @@ test('loads a relative og:image and serves it from the session cache on reopen',
   // alpha is in front only for a moment (not first, as the window's first
   // tab is in front while the pages load), so it gets no picture of its own
   // (covers.js) and its card shows the page's image.
-  await ext.openWindow(['beta', 'alpha', 'gamma']);
+  const { tabIds } = await ext.openWindow(['beta', 'alpha', 'gamma']);
   let page = await ext.open();
   await expect(page.locator('img.thumbnail.loaded[data-from$="/img/alpha.svg"]')).toHaveCount(1);
   await ext.pressToClose(page, 'Escape');
   const cached = await ext.sw.evaluate(() => chrome.storage.session.get('previewCache').then(({ previewCache }) =>
     Object.values(previewCache || {}).some((e) => e.img?.endsWith('/img/alpha.svg'))));
   expect(cached).toBe(true);
+  // The page no longer names its image, so only the cache can show it.
+  await ext.sw.evaluate((tabId) => chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => document.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"], link[rel="image_src"]').forEach((el) => el.remove()),
+  }), tabIds.alpha);
   page = await ext.open();
   await expect(page.locator('img.thumbnail.loaded[data-from$="/img/alpha.svg"]')).toHaveCount(1);
 });
@@ -59,7 +64,7 @@ test('the checkboxes and the site button have no hover text; icon-only buttons d
   await expect(page.locator('#scope-hint')).toBeVisible();
   const titles = await page.evaluate(() => [...document.querySelectorAll('.toolbar-toggles label, #scope-hint')].map((el) => el.title));
   expect(titles).toEqual(['', '', '']);
-  for (const id of ['#open-settings', '#reset-window']) await expect(page.locator(id)).not.toHaveAttribute('title', '');
+  for (const id of ['#open-settings', '#reset-window']) await expect(page.locator(id)).toHaveAttribute('title', /\S/);
 });
 
 test('all windows never lists the overview; erasing the query returns to the previous tab', async ({ ext }) => {
@@ -71,8 +76,10 @@ test('all windows never lists the overview; erasing the query returns to the pre
   await expect.poll(() => selectedTitle(page)).toBe(beta.title);
   await page.locator('#toggle-all-windows').click();
   await expect(page.locator('#search')).toBeFocused();
-  const overviewTabId = await ext.sw.evaluate(() =>
-    chrome.tabs.query({ url: chrome.runtime.getURL('overview.html') + '*' }).then((t) => t[0].id));
+  // The other windows are listed (the welcome page's), the overview's not.
+  const [welcomeTabId, overviewTabId] = await ext.sw.evaluate(() => Promise.all(['welcome.html', 'overview.html*'].map((page) =>
+    chrome.tabs.query({ url: chrome.runtime.getURL(page) }).then((t) => t[0].id))));
+  await expect(page.locator(`.tile[data-tab-id="${welcomeTabId}"]`)).toHaveCount(1);
   await expect(page.locator(`.tile[data-tab-id="${overviewTabId}"]`)).toHaveCount(0);
 });
 
@@ -97,6 +104,7 @@ test('a click where an unselected card hides its × switches to the tab, never c
   const page = await ext.open();
   const card = page.locator(`.tile[data-tab-id="${tabIds.alpha}"]`);
   await expect(card).not.toHaveClass(/selected/);
+  await page.locator('#grid:not(.entering)').waitFor(); // the card rests where the click goes
   const box = await card.locator('.tile-close').boundingBox();
   // One move and the click: too little movement for the pointer to take over.
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2).catch(() => {});
@@ -110,6 +118,8 @@ test('Esc clears the query first, then closes without switching', async ({ ext }
   await page.keyboard.type('alp');
   await page.keyboard.press('Escape');
   await expect(page.locator('#search')).toHaveValue('');
+  // Closing starts in the key's own handler (closeOverview marks #root).
+  await expect(page.locator('#root')).not.toHaveClass(/closing/);
   expect(ext.overviewPages()).toHaveLength(1);
   await ext.pressToClose(page, 'Escape');
   expect(await ext.activeTitle(windowId)).toBe(gamma.title);
@@ -143,8 +153,9 @@ test('a page\'s image is requested without the site\'s cookies or a referrer', a
   const page = await ext.open();
   await expect(page.locator('img.thumbnail.loaded[data-from$="/img/cookie-wide.svg"]')).toHaveCount(1);
   const seen = await page.evaluate((url) => fetch(url).then((r) => r.json()), ext.url('seen').replace('/seen.html', '/seen'));
+  // Every request for it (the page itself does not load it).
   expect(seen.length).toBeGreaterThan(0);
-  expect(seen.at(-1)).toEqual({ cookie: null, referer: null });
+  for (const request of seen) expect(request).toEqual({ cookie: null, referer: null });
 });
 
 test('clicking × again where it was closes the next tab too, as on Chrome\'s tab strip', async ({ ext }) => {

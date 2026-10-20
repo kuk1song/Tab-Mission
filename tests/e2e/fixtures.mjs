@@ -143,6 +143,29 @@ function launch(profile, { launchArgs = [], showScrollbars = false } = {}) {
   });
 }
 
+// Each page picture the worker asks Chrome for (covers.js), written to its
+// console: when it was asked, and when it came back (how big) or failed.
+// A failed test carries the console (swConsole), so it shows whether a
+// capture was asked for at all, never came back, or came back. The call is
+// passed through unchanged.
+function recordCaptures(worker) {
+  return worker.evaluate(() => {
+    const capture = chrome.tabs.captureVisibleTab.bind(chrome.tabs);
+    const time = () => new Date().toISOString().slice(11, 23);
+    chrome.tabs.captureVisibleTab = async (windowId, options) => {
+      console.debug(`${time()} capture of window ${windowId} asked`);
+      try {
+        const data = await capture(windowId, options);
+        console.debug(`${time()} capture of window ${windowId} came back, ${data.length} characters`);
+        return data;
+      } catch (error) {
+        console.debug(`${time()} capture of window ${windowId} failed: ${error.message}`);
+        throw error;
+      }
+    };
+  });
+}
+
 export const test = base.extend({
   // Extra Chromium switches (e.g. a simulated screen) and whether to draw
   // scrollbars (Playwright hides them in headless mode by default).
@@ -170,13 +193,25 @@ export const test = base.extend({
     await context.close();
   },
 
-  sw: async ({ context }, use) => {
+  // What the service workers write to their console (a page picture Chrome
+  // refuses is logged there), attached to a test that fails.
+  swConsole: async ({}, use, testInfo) => {
+    const lines = [];
+    await use(lines);
+    if (testInfo.status !== testInfo.expectedStatus && lines.length) {
+      await testInfo.attach('service worker console', { body: lines.join('\n'), contentType: 'text/plain' });
+    }
+  },
+
+  sw: async ({ context, swConsole }, use) => {
     let [worker] = context.serviceWorkers();
     worker ??= await context.waitForEvent('serviceworker');
+    worker.on('console', (message) => swConsole.push(`${message.type()}: ${message.text()}`));
+    await recordCaptures(worker);
     await use(worker);
   },
 
-  ext: async ({ context, sw, site, profile, launchArgs }, use) => {
+  ext: async ({ context, sw, swConsole, site, profile, launchArgs }, use) => {
     // The welcome page opens on install; it doubles as the extension page
     // that sends "shortcut presses" to background.js.
     await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html')), { timeout: 15_000 }).toBe(true);
@@ -223,6 +258,7 @@ export const test = base.extend({
               if (t.status === 'complete' && t.title && !t.title.startsWith('http')) return;
               await new Promise((r) => setTimeout(r, 50));
             }
+            throw new Error(`tab ${id} did not load`);
           };
           for (const id of Object.values(tabIds)) await loaded(id);
           // Visit in order with distinct lastAccessed times.
@@ -230,9 +266,30 @@ export const test = base.extend({
             await chrome.tabs.update(id, { active: true });
             await new Promise((r) => setTimeout(r, 30));
           }
+          // Focus can come after update resolves (on Windows focus is real):
+          // wait until Chrome reports this window as the last focused one,
+          // which is how Tab Mission finds the current window.
           await chrome.windows.update(win.id, { focused: true });
+          for (let i = 0; ; i++) {
+            const last = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+            if (last.id === win.id) break;
+            if (i === 100) throw new Error(`window ${win.id} never got focus (last focused: ${last.id})`);
+            await new Promise((r) => setTimeout(r, 50));
+          }
           return { windowId: win.id, tabIds };
         }, { urls, ids });
+      },
+
+      // Open a tab at this address (a browser page, about:blank) in a window,
+      // in the background unless active, and wait until Chrome reports the
+      // address: a new tab has none until its page commits (Tab.url "may be an
+      // empty string if the tab has not yet committed", chrome.tabs docs), and
+      // Tab Mission reads the tabs once, when it opens. Returns the tab id.
+      async openTab(windowId, address, { active = false } = {}) {
+        const id = await sw.evaluate(({ windowId, address, active }) =>
+          chrome.tabs.create({ windowId, url: address, active }).then((t) => t.id), { windowId, address, active });
+        await expect.poll(() => sw.evaluate((id) => chrome.tabs.get(id).then((t) => t.url), id)).toBe(address);
+        return id;
       },
 
       // A real key press that Chrome's own shortcut handling sees, unlike
@@ -299,6 +356,8 @@ export const test = base.extend({
         const again = await launch(profile, { launchArgs: [...launchArgs, '--restore-last-session'] });
         let [worker] = again.serviceWorkers();
         worker ??= await again.waitForEvent('serviceworker');
+        worker.on('console', (message) => swConsole.push(`restarted ${message.type()}: ${message.text()}`));
+        await recordCaptures(worker);
         return { context: again, sw: worker };
       },
 
@@ -327,10 +386,6 @@ export const test = base.extend({
 
       activeTitle(windowId) {
         return sw.evaluate((windowId) => chrome.tabs.query({ active: true, windowId }).then((t) => t[0]?.title), windowId);
-      },
-
-      popupCount() {
-        return sw.evaluate(() => chrome.windows.getAll({ windowTypes: ['popup'] }).then((w) => w.length));
       },
     };
     await use(ext);

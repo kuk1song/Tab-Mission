@@ -182,7 +182,7 @@ describe('applyFilters — search finds a tab wherever it is', () => {
   it('drops the automatic selection when the query is erased', () => {
     state.allTabs = [makeTab(1, { title: 'a', lastAccessed: 2 }), makeTab(2, { title: 'a', lastAccessed: 1 })];
     applyFilters(ui({ searchTerm: 'a' }));
-    expect(state.selectedIndex).not.toBe(-1);
+    expect(state.selectedIndex).toBe(0); // the best match
     applyFilters(ui({ searchTerm: '' }));
     expect(state.defaultIndex).toBe(-1);
     expect(state.selectedIndex).toBe(-1); // so the shortcut closes again

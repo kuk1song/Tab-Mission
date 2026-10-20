@@ -8,8 +8,10 @@ const giveTips = (ext) => ext.sw.evaluate(() => chrome.storage.local.set({ tipsL
 const tipsLeft = (ext) => ext.sw.evaluate(() => chrome.storage.local.get('tipsLeft').then((r) => r.tipsLeft));
 const shortcutText = (ext) => ext.sw.evaluate(async () =>
   (await chrome.commands.getAll()).find((c) => c.name === 'open-overview').shortcut.replace(/\+/g, ' + '));
-// The tip shows once the cards have settled (700 ms after opening).
-const settle = (page) => page.waitForTimeout(1000);
+// A tip that is due shows as the cards settle: main.js ends the entrance
+// and calls showTip, which places it at once, in one step. Once the grid is
+// no longer entering, the tip is there or will not come.
+const settle = (page) => page.locator('#grid:not(.entering)').waitFor();
 
 // Open Tab Mission with the real shortcut, pressed in the window's current tab.
 async function openWithShortcut(ext, context, windowId) {
@@ -56,6 +58,9 @@ test('opened with the shortcut, a tip points at the previous tab, with no button
   expect(Math.abs(arrowX - (card.x + card.width / 2))).toBeLessThan(2);
   expect(passesPointer).toBe(true);
   await expect(overview.locator('.tip')).toHaveCount(1);
+  // Still shown, not fading out (an element fading out still counts as
+  // visible to toBeVisible).
+  await expect(tip).not.toHaveClass(/\bout\b/);
 });
 
 test('the card tip stays while the pointer moves on its card, and goes once the selection leaves it', async ({ ext, context }) => {

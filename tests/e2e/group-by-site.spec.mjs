@@ -13,6 +13,16 @@ const RECENT = ['notes2', 'tube3', 'code2', 'gamma', 'notes1'];
 // notes.test: two each; docs.office.test has one tab, so doc1 goes last.
 const SITES = ['localhost', 'tube.test', 'code.test', 'notes.test'];
 
+// A Tab Mission window 800 px wide holds four tiles a row on every CI
+// system, with classic scrollbars (Windows) or without, and fits the Windows
+// runner's 1024 px screen. Opened at that size (its saved size), it needs no
+// resize first.
+async function openAt800(ext) {
+  await ext.sw.evaluate(() => chrome.storage.local.set({ overviewBounds: { width: 800, height: 600 } }));
+  return ext.open();
+}
+const columnsOf = (page) => page.evaluate(() => getComputedStyle(document.getElementById('grid')).gridTemplateColumns.split(' ').length);
+
 test.beforeEach(async ({ ext }) => {
   await ext.sw.evaluate(() => chrome.storage.local.remove('groupBySite')); // as users have it
 });
@@ -30,13 +40,15 @@ function groups(page) {
 
 test('grouped by site by default: five recent tabs, then sites that stay put after a switch, then the rest', async ({ ext }) => {
   const { windowId } = await ext.openWindow(VISITED);
-  let page = await ext.open();
+  let page = await openAt800(ext);
   await page.locator('#grid:not(.entering)').waitFor(); // the entrance has played
+  expect(await columnsOf(page)).toBe(4);
   const before = await groups(page);
-  // The sites between the two; as panels, packed row by row, so their order
-  // depends on the window's width (state.test covers it).
-  expect(before.map((g) => g.name)).toEqual(['recent', ...before.slice(1, -1).map((g) => g.name), 'other']);
-  expect(before.slice(1, -1).map((g) => g.name).sort()).toEqual([...SITES].sort());
+  // The sites between the two, as panels packed row by row in four columns:
+  // localhost (3) alone, as no other site fits the column left, tube.test (3)
+  // alone, then code.test and notes.test (2 each) side by side. Other widths
+  // pack them otherwise (state.test).
+  expect(before.map((g) => g.name)).toEqual(['recent', ...SITES, 'other']);
   // Headings: the site's icon and its number of tabs; the rest has a count.
   const count = Object.fromEntries(before.map((g) => [g.name, g.count]));
   expect(count).toEqual({ recent: null, localhost: '3', 'tube.test': '3', 'code.test': '2', 'notes.test': '2', other: '1' });
@@ -70,6 +82,42 @@ test('grouped by site by default: five recent tabs, then sites that stay put aft
   const after = await groups(page);
   expect(after.slice(1)).toEqual(before.slice(1));
   expect(after[0].titles[0]).toBe(PAGES.tube3.title);
+});
+
+// What the plain grid's specs check, here with a tab's two tiles: the card
+// tip and the shortcut pressed over a tile (tips.spec, window.spec).
+test('grouped, the card tip points at the selected tile, and the shortcut goes to the tile you point at', async ({ ext, context }) => {
+  const { windowId } = await ext.openWindow(VISITED);
+  await ext.sw.evaluate(() => chrome.storage.local.set({ tipsLeft: { open: 3, back: 3 } }));
+  // Opened with the real shortcut, from the current tab.
+  const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
+  await ext.pressDefaultShortcut(context.pages().find((p) => p.url() === ext.url('tube3')));
+  const page = await opened;
+  // The tiles first: the grid is marked as entering before they are drawn,
+  // so until then it would pass for settled.
+  await page.locator('#grid .tile').first().waitFor();
+  await page.locator('#grid:not(.entering)').waitFor();
+  // The previous tab has a tile among the recent tabs and one in its site's
+  // panel: the recent one is selected, and the tip points at it.
+  const selected = page.locator('#grid .tile.selected');
+  await expect(selected).toHaveCount(1);
+  expect(await selectedTitle(page)).toBe(PAGES.notes2.title);
+  expect(await selected.evaluate((el) => Boolean(el.closest('.tile-group.recent')))).toBe(true);
+  const tip = page.locator('.tip');
+  await expect(tip).toHaveAttribute('data-anchor', 'card');
+  const card = await selected.boundingBox();
+  const arrowX = await tip.evaluate((el) => el.getBoundingClientRect().left + parseFloat(el.style.getPropertyValue('--arrow-x')));
+  expect(Math.abs(arrowX - (card.x + card.width / 2))).toBeLessThan(2);
+  // Pointed at in its site's panel, a tab is selected there, and the
+  // shortcut switches to it.
+  const target = page.locator('#grid .tile-group:not(.recent) .tile', { hasText: PAGES.tube1.title });
+  await target.scrollIntoViewIfNeeded();
+  await pointAt(page, target);
+  await expect(target).toHaveClass(/selected/);
+  await expect(page.locator('#grid .tile.selected')).toHaveCount(1);
+  await ext.pressDefaultShortcut(page);
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.tube1.title);
 });
 
 test('a few tabs are grouped too, one-tab sites are not repeated, and a click shows on the tile you clicked', async ({ ext }) => {
@@ -154,13 +202,7 @@ test('the settings page switch turns it off', async ({ ext, context }) => {
 // width and sits on the same column lines; panels in a row are equally tall.
 test('every tile on the same columns, panels as wide as their tabs and side by side', async ({ ext }) => {
   await ext.openWindow(VISITED);
-  const page = await ext.open();
-  // A known width, wide enough for five columns.
-  await ext.sw.evaluate(async () => {
-    const [win] = await chrome.windows.getAll({ windowTypes: ['popup'] });
-    await chrome.windows.update(win.id, { width: 1280 });
-  });
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.getElementById('grid')).gridTemplateColumns.split(' ').length)).toBe(5);
+  const page = await openAt800(ext);
   await page.locator('#grid:not(.entering)').waitFor(); // the entrance scales the tiles
   const shown = await page.evaluate(() => {
     const grid = document.getElementById('grid');
@@ -175,7 +217,7 @@ test('every tile on the same columns, panels as wide as their tabs and side by s
     const recentLefts = [...grid.querySelectorAll('.tile-group.recent .tile')].map((el) => box(el).left);
     return { columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length, sites, tiles, recentLefts };
   });
-  expect(shown.columns).toBe(5);
+  expect(shown.columns).toBe(4);
   for (const site of shown.sites) expect(site.span).toBe(`span ${Math.min(site.tiles, shown.columns)}`);
   expect(new Set(shown.sites.map((s) => s.top)).size).toBeLessThan(shown.sites.length); // some side by side
   const widths = shown.tiles.map((t) => t.width);
@@ -189,14 +231,21 @@ test('every tile on the same columns, panels as wide as their tabs and side by s
 
 test('resizing the window keeps the groups and the five recent tabs, and redraws only when a row holds a different number of tiles', async ({ ext }) => {
   await ext.openWindow(VISITED);
-  const page = await ext.open();
+  const page = await openAt800(ext);
   await page.locator('#grid:not(.entering)').waitFor();
-  const resize = (dw) => ext.sw.evaluate(async (dw) => {
-    const [win] = await chrome.windows.getAll({ windowTypes: ['popup'] });
-    await chrome.windows.update(win.id, { width: win.width + dw });
-  }, dw);
+  const frames = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // Resize by dw, wait until the page has the new width, then two frames:
+  // a redraw it sets off runs in the next one (events.js).
+  const resize = async (dw) => {
+    const width = await page.evaluate(() => innerWidth);
+    await ext.sw.evaluate(async (dw) => {
+      const [win] = await chrome.windows.getAll({ windowTypes: ['popup'] });
+      await chrome.windows.update(win.id, { width: win.width + dw });
+    }, dw);
+    await expect.poll(() => page.evaluate(() => innerWidth)).toBe(width + dw);
+    await frames();
+  };
   const recent = () => page.locator('#grid .tile-group.recent .tile').count();
-  const columns = () => page.evaluate(() => getComputedStyle(document.getElementById('grid')).gridTemplateColumns.split(' ').length);
   // A redraw puts new groups into the grid (measuring the row adds and
   // removes a bare probe, which does not count).
   await page.evaluate(() => {
@@ -205,30 +254,20 @@ test('resizing the window keeps the groups and the five recent tabs, and redraws
       if (records.some((r) => [...r.addedNodes].some((n) => n.classList?.contains('tile-group')))) window.redraws++;
     }).observe(document.getElementById('grid'), { childList: true });
   });
-  // Start at a known width, well inside five columns.
-  await ext.sw.evaluate(async () => {
-    const [win] = await chrome.windows.getAll({ windowTypes: ['popup'] });
-    await chrome.windows.update(win.id, { width: 1280 });
-  });
-  await expect.poll(columns).toBe(5);
-  await page.waitForTimeout(200);
-  await page.evaluate(() => { window.redraws = 0; });
-  const before = await columns();
+  expect(await columnsOf(page)).toBe(4);
   expect(await recent()).toBe(5);
-  for (const dw of [6, 6, 6, -6, -6, -6]) {
-    await resize(dw);
-    await page.waitForTimeout(100);
-  }
+  // A few pixels either way keep four tiles a row: nothing is redrawn.
+  for (const dw of [6, 6, 6, -6, -6, -6]) await resize(dw);
   expect(await page.evaluate(() => window.redraws)).toBe(0);
   // Narrower by more than a tile: fewer columns, redrawn, still grouped,
   // still five recent tabs; and the same back at the first width.
-  await resize(-500);
-  await expect.poll(columns).toBeLessThan(before);
+  await resize(-300);
+  expect(await columnsOf(page)).toBeLessThan(4);
   expect(await page.evaluate(() => window.redraws)).toBeGreaterThan(0);
   await expect(page.locator('#grid.grouped')).toHaveCount(1);
   expect(await recent()).toBe(5);
-  await resize(500);
-  await expect.poll(columns).toBe(before);
+  await resize(300);
+  expect(await columnsOf(page)).toBe(4);
   await expect(page.locator('#grid.grouped')).toHaveCount(1);
   expect(await recent()).toBe(5);
 });

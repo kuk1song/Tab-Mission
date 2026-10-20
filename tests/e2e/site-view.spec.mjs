@@ -59,6 +59,7 @@ test('leaving: Backspace at the start keeps the text, Shift+Tab, the ×, then Es
   const token = page.locator('#scope-token');
 
   await page.keyboard.press('Tab');
+  await expect(token).toBeVisible();
   await page.keyboard.type('cs');
   await page.locator('#search').evaluate((el) => el.setSelectionRange(0, 0));
   await page.keyboard.press('Backspace');
@@ -67,14 +68,17 @@ test('leaving: Backspace at the start keeps the text, Shift+Tab, the ×, then Es
 
   await page.locator('#search').fill('');
   await page.keyboard.press('Tab');
+  await expect(token).toBeVisible();
   await page.keyboard.press('Shift+Tab');
   await expect(token).toBeHidden();
 
   await page.keyboard.press('Tab');
+  await expect(token).toBeVisible();
   await page.locator('#scope-clear').click();
   await expect(token).toBeHidden();
 
   await page.keyboard.press('Tab');
+  await expect(token).toBeVisible();
   await page.keyboard.type('cs');
   await page.keyboard.press('Escape');
   await expect(page.locator('#search')).toHaveValue('');
@@ -113,10 +117,8 @@ test('the site view follows the window toggle, and so does the hint count', asyn
 test('Tab offers the site view on web pages only', async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta']);
   // The current tab is a browser page, and another tab has the same address.
-  await ext.sw.evaluate(async (windowId) => {
-    await chrome.tabs.create({ windowId, url: 'chrome://version/', active: false });
-    await chrome.tabs.create({ windowId, url: 'chrome://version/', active: true });
-  }, windowId);
+  await ext.openTab(windowId, 'chrome://version/');
+  await ext.openTab(windowId, 'chrome://version/', { active: true });
   const page = await ext.open();
   await expect(page.locator('#grid .tile')).toHaveCount(4);
   await expect(page.locator('#scope-hint')).toBeHidden();

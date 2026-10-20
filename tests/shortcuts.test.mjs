@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { shortcutKeys, openShortcutSettings } from '../extension/src/shortcuts.js';
 
 describe('shortcutKeys', () => {
@@ -21,7 +21,6 @@ describe('shortcutKeys', () => {
 });
 
 describe('openShortcutSettings', () => {
-  afterEach(() => vi.unstubAllGlobals());
 
   it("opens Chrome's shortcuts page in a new tab", async () => {
     const create = vi.fn(async () => ({}));

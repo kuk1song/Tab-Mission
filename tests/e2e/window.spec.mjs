@@ -79,14 +79,24 @@ test('a key hands the selection back to the keyboard', async ({ ext }) => {
   expect(await selectedTitle(page)).toBe(PAGES.gamma.title);
 });
 
-test('two presses in a row open exactly one overview', async ({ ext }) => {
+test('two presses in a row open exactly one overview', async ({ ext, context }) => {
   await ext.openWindow(['alpha', 'beta']);
+  await ext.sw.evaluate(() => {
+    self.__popups = 0;
+    chrome.windows.onCreated.addListener((win) => { if (win.type === 'popup') self.__popups++; });
+  });
+  const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
   await ext.welcome.evaluate(() => {
     chrome.runtime.sendMessage({ action: 'openOverview' }).catch(() => {});
     chrome.runtime.sendMessage({ action: 'openOverview' }).catch(() => {});
   });
-  await expect.poll(() => ext.overviewPages().length).toBe(1);
-  await expect.poll(() => ext.popupCount(), { timeout: 2_000 }).toBe(1);
+  const page = await opened;
+  await page.locator('#grid .tile').first().waitFor();
+  // By the time it shows its tiles, a second window would have been created,
+  // and a second press handed to this one would switch tabs and close it.
+  expect(await ext.sw.evaluate(() => self.__popups)).toBe(1);
+  await expect(page.locator('#root')).not.toHaveClass(/closing/);
+  expect(ext.overviewPages()).toHaveLength(1);
 });
 
 test('a window id left from an earlier browser session never closes a user window', async ({ ext }) => {
@@ -116,14 +126,14 @@ test('the overview remembers its size and position', async ({ ext }) => {
   await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('overviewBounds').then((r) => r.overviewBounds?.width))).toBe(target.width);
   await ext.pressToClose(page, 'Escape');
   await ext.open();
-  const { width, height } = await popup();
-  expect({ width, height }).toEqual({ width: target.width, height: target.height });
+  const { left, top, width, height } = await popup();
+  expect({ left, top, width, height }).toEqual(target);
 });
 
 // Chrome stops an idle service worker after about 30 seconds; the next press
 // must find the open overview again (its id is kept in session storage).
 test('after the service worker restarts, the shortcut still acts on the open overview', async ({ ext, context }) => {
-  await ext.openWindow(['alpha', 'beta']);
+  const { windowId } = await ext.openWindow(['alpha', 'beta']);
   const page = await ext.open();
   const cdp = await context.newCDPSession(page);
   const { targetInfos } = await cdp.send('Target.getTargets');
@@ -133,6 +143,10 @@ test('after the service worker restarts, the shortcut still acts on the open ove
     .some((t) => t.targetId === worker.targetId)).toBe(false);
   await ext.press();
   await ext.expectClosed();
+  // The overview itself took the press: it switched to the previous tab.
+  // (Had the message not reached it, background.js would only have closed
+  // its window.)
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
   const popups = await ext.welcome.evaluate(() => chrome.windows.getAll({ windowTypes: ['popup'] }).then((w) => w.length));
   expect(popups).toBe(0);
 });
@@ -169,16 +183,15 @@ test('the real default shortcut opens the overview, and pressed again goes back 
   });
   const page = context.pages().find((p) => p.url().includes('/beta.html'));
 
-  // An unassigned combination does nothing.
+  // An unassigned combination does nothing; keys are handled in order, so
+  // by the time the shortcut pressed next has opened the overview, a command
+  // from the first would have come.
   await ext.pressKeys(page, { key: 'y', code: 'KeyY', keyCode: 89, macKeyCode: 16, modifiers: 2 | 8 });
-  await page.waitForTimeout(500);
-  expect(await ext.sw.evaluate(() => self.__commands)).toEqual([]);
-  expect(ext.overviewPages()).toHaveLength(0);
-
   const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
   await ext.pressDefaultShortcut(page);
   const overview = await opened;
   expect(await ext.sw.evaluate(() => self.__commands)).toEqual(['open-overview']);
+  expect(ext.overviewPages()).toHaveLength(1);
   await overview.locator('#grid .tile').first().waitFor();
 
   // Pressed in the overview, it switches to the pre-selected previous tab.
