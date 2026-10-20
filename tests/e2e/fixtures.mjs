@@ -143,6 +143,29 @@ function launch(profile, { launchArgs = [], showScrollbars = false } = {}) {
   });
 }
 
+// Each page picture the worker asks Chrome for (covers.js), written to its
+// console: when it was asked, and when it came back (how big) or failed.
+// A failed test carries the console (swConsole), so it shows whether a
+// capture was asked for at all, never came back, or came back. The call is
+// passed through unchanged.
+function recordCaptures(worker) {
+  return worker.evaluate(() => {
+    const capture = chrome.tabs.captureVisibleTab.bind(chrome.tabs);
+    const time = () => new Date().toISOString().slice(11, 23);
+    chrome.tabs.captureVisibleTab = async (windowId, options) => {
+      console.debug(`${time()} capture of window ${windowId} asked`);
+      try {
+        const data = await capture(windowId, options);
+        console.debug(`${time()} capture of window ${windowId} came back, ${data.length} characters`);
+        return data;
+      } catch (error) {
+        console.debug(`${time()} capture of window ${windowId} failed: ${error.message}`);
+        throw error;
+      }
+    };
+  });
+}
+
 export const test = base.extend({
   // Extra Chromium switches (e.g. a simulated screen) and whether to draw
   // scrollbars (Playwright hides them in headless mode by default).
@@ -184,6 +207,7 @@ export const test = base.extend({
     let [worker] = context.serviceWorkers();
     worker ??= await context.waitForEvent('serviceworker');
     worker.on('console', (message) => swConsole.push(`${message.type()}: ${message.text()}`));
+    await recordCaptures(worker);
     await use(worker);
   },
 
@@ -333,6 +357,7 @@ export const test = base.extend({
         let [worker] = again.serviceWorkers();
         worker ??= await again.waitForEvent('serviceworker');
         worker.on('console', (message) => swConsole.push(`restarted ${message.type()}: ${message.text()}`));
+        await recordCaptures(worker);
         return { context: again, sw: worker };
       },
 
