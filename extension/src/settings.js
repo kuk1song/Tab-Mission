@@ -11,6 +11,11 @@ const DEFAULTS = {
   // install, until learned and at most a few times (tips.js). On (settings
   // page): every time.
   showTips: false,
+  // On by default (off on the settings page): while browsing with more than
+  // two rows of tabs, one row of the most recent tabs, then all tabs grouped
+  // by site in tab-strip order (state.js). Not "artMode": updates delete that
+  // old key (background.js).
+  groupBySite: true,
 };
 
 /**

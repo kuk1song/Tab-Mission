@@ -7,6 +7,7 @@ import { shortcutKeys, openShortcutSettings } from './shortcuts.js';
 async function main() {
   const preselect = document.getElementById('preselect-previous');
   const showTips = document.getElementById('show-tips');
+  const groupBySite = document.getElementById('group-by-site');
   try {
     localizeStaticText();
     const { version } = chrome.runtime.getManifest();
@@ -14,12 +15,13 @@ async function main() {
     const [settings] = await Promise.all([loadSettings(), showShortcuts()]);
     preselect.checked = settings.preselectPrevious;
     showTips.checked = settings.showTips;
+    groupBySite.checked = settings.groupBySite;
   } finally {
     reveal(preselect);
   }
   // Each switch saves at once; the switch shows the new state and screen
   // readers also hear "Saved."
-  for (const [input, key] of [[preselect, 'preselectPrevious'], [showTips, 'showTips']]) {
+  for (const [input, key] of [[preselect, 'preselectPrevious'], [groupBySite, 'groupBySite'], [showTips, 'showTips']]) {
     input.addEventListener('change', async () => {
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
     });

@@ -26,6 +26,7 @@ async function main() {
   if (toggleSleeping) toggleSleeping.checked = settings.showSleeping;
   if (toggleAllWindows) toggleAllWindows.checked = settings.showAllWindows;
   state.preselectPrevious = settings.preselectPrevious;
+  state.groupBySite = settings.groupBySite;
 
   // Opened by the "current site" shortcut: show only this site's tabs.
   if (params.get('scope') === 'site') {
