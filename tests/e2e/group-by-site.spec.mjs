@@ -233,6 +233,27 @@ test('resizing the window keeps the groups and the five recent tabs, and redraws
   expect(await recent()).toBe(5);
 });
 
+// The window fades in scaled down a little (rootFadeIn), and the grid can be
+// drawn during it: the tiles that fit in a row are counted from the layout,
+// so a draw then packs the panels as any later one does.
+test('the opening fade does not change how many tiles a row holds', async ({ ext }) => {
+  await ext.openWindow(VISITED);
+  const page = await ext.open();
+  await ext.sw.evaluate(async () => {
+    const [win] = await chrome.windows.getAll({ windowTypes: ['popup'] });
+    await chrome.windows.update(win.id, { width: 1280 });
+  });
+  const columns = () => page.evaluate(() => getComputedStyle(document.getElementById('grid')).gridTemplateColumns.split(' ').length);
+  await expect.poll(columns).toBe(5);
+  // Held scaled down, more than the fade does, then drawn again (a search and back).
+  await page.addStyleTag({ content: '#root { animation: none; transform: scale(0.8); }' });
+  await page.locator('#search').fill('a');
+  await expect(page.locator('#grid.grouped')).toHaveCount(0);
+  await page.locator('#search').fill('');
+  await expect(page.locator('#grid.grouped')).toHaveCount(1);
+  expect(await columns()).toBe(5);
+});
+
 test('a site icon Chrome does not hand over leaves no broken image', async ({ ext }) => {
   await ext.openWindow(['tube1', 'tube2', 'alpha']);
   const page = await ext.open();

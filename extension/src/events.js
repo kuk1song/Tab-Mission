@@ -149,7 +149,8 @@ const GROUPED = { gap: 24, padding: 16 };
 
 // How many tiles fit in a row while grouped by site, measured before the
 // grid is drawn that way: the minimum tile width (--tile-min) with the
-// grouped gap and padding, whatever the grid shows now.
+// grouped gap and padding, whatever the grid shows now. Both widths come
+// from the layout, which the window's fade-in (a scale) leaves alone.
 function tilesPerRow() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return undefined;
@@ -158,7 +159,7 @@ function tilesPerRow() {
   const probe = document.createElement('div');
   probe.style.cssText = 'position: absolute; visibility: hidden; width: var(--tile-min)';
   gridEl.append(probe);
-  const tile = probe.getBoundingClientRect().width;
+  const tile = parseFloat(getComputedStyle(probe).width);
   const width = gridEl.clientWidth - 2 * GROUPED.padding;
   probe.remove();
   const { gap } = GROUPED;
