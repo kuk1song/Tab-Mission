@@ -4,6 +4,10 @@ import { test, expect } from './fixtures.mjs';
 // while the page was in front, kept on disk and shown on its card.
 const coverOf = (ext, tabId) =>
   ext.sw.evaluate((key) => chrome.storage.local.get(key).then((r) => r[key] ?? null), `cover:${tabId}`);
+// Until a card's own image has been looked for, one may still come: the
+// window writes what it found (or null) to the preview cache (thumbnail.js).
+const lookedUp = (ext, tabId) => expect.poll(() => ext.sw.evaluate((id) =>
+  chrome.storage.session.get('previewCache').then((r) => id in (r.previewCache ?? {})), String(tabId))).toBe(true);
 
 test('the card of a page you looked at shows a picture of it; others keep their own image', async ({ ext }) => {
   const { tabIds } = await ext.openWindow(['beta', 'alpha', 'gamma']);
@@ -40,6 +44,7 @@ test('a tab that moves to another page gets a new picture, and an old one is nev
   }), `cover:${tabIds.beta}`);
   const page = await ext.open();
   await expect(page.locator(`.tile[data-tab-id="${tabIds.gamma}"] img.thumbnail.cover.loaded`)).toHaveCount(1);
+  await lookedUp(ext, tabIds.beta); // so its cover is no longer pending
   await expect(page.locator(`.tile[data-tab-id="${tabIds.beta}"] img.thumbnail.cover`)).toHaveCount(0);
 });
 
@@ -50,14 +55,15 @@ test('the shortcut pictures the page you are leaving', async ({ ext, context }) 
   // Polled closely, so the press below comes well before that follow-up.
   await expect.poll(indexAt, { timeout: 10_000, intervals: [50] }).toBeGreaterThan(0);
   const before = await indexAt();
-  // Past Chrome's capture limit, so the press can take its picture at once.
-  await new Promise((r) => setTimeout(r, 700));
   const gamma = context.pages().find((p) => p.url() === ext.url('gamma'));
   const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
   await ext.pressDefaultShortcut(gamma);
   await opened;
-  // Within a second: the next follow-up picture is due 2.5 s after the first.
-  await expect.poll(indexAt, { timeout: 1000 }).toBeGreaterThan(before);
+  // Within a second, and before the follow-up, which comes 2.5 s after the
+  // first picture at the soonest (it is set once that picture is stored).
+  let after;
+  await expect.poll(async () => (after = await indexAt()), { timeout: 1000 }).toBeGreaterThan(before);
+  expect(after - before).toBeLessThan(2500);
 });
 
 test('without a picture, a card shows the page\'s own image unless it is a square logo', async ({ ext }) => {
@@ -71,7 +77,7 @@ test('without a picture, a card shows the page\'s own image unless it is a squar
   await expect(img('logo')).toHaveAttribute('data-from', /logo-square\.svg$/);
   await expect(img('logo')).toBeHidden();
   await expect(img('logo')).not.toHaveClass(/\bloaded\b/);
-  await expect(page.locator(`.tile[data-tab-id="${tabIds.icon}"]`)).toHaveAttribute('data-thumb', 'done');
+  await lookedUp(ext, tabIds.icon);
   expect(await img('icon').getAttribute('src')).toBe(null);
 });
 
@@ -91,33 +97,47 @@ test('pictures last through a browser restart, and those of pages no longer open
 
   const { context, sw } = await ext.restart();
   try {
-    const restored = await sw.evaluate((url) => chrome.tabs.query({ url }).then((t) => t[0]?.id), ext.url('beta'));
-    expect(restored).toBeDefined();
-    expect(restored).not.toBe(tabIds.beta); // the same page in a new tab
-    // Opened with the shortcut in the restored window, Tab Mission shows
-    // beta's picture from before the restart.
+    // The restored tabs, once their pages are back (a tab has no address
+    // before its page commits).
+    const tabOf = (url) => sw.evaluate((url) => chrome.tabs.query({ url }).then((t) => t[0]?.id ?? null), url);
+    await expect.poll(() => tabOf(ext.url('beta'))).not.toBeNull();
+    await expect.poll(() => tabOf(ext.url('gamma'))).not.toBeNull();
+    const restored = { beta: await tabOf(ext.url('beta')), gamma: await tabOf(ext.url('gamma')) };
+    expect(restored.beta).not.toBe(tabIds.beta); // the same page in a new tab
+    // As when the browser was quit: gamma in front, in the focused window.
+    // (Loaded with --load-extension, the extension is installed anew at each
+    // start and its welcome page opens in front; a real restart does not.)
+    await sw.evaluate(async (id) => {
+      const tab = await chrome.tabs.update(id, { active: true });
+      await chrome.windows.update(tab.windowId, { focused: true });
+    }, restored.gamma);
+    // gamma gets its own picture in the restored window; beta has none yet.
+    await expect.poll(() => coverOf({ sw }, restored.gamma).then((c) => c?.url), { timeout: 10_000 }).toBe(ext.url('gamma'));
+    // Opened with the shortcut there, Tab Mission shows beta's picture from
+    // before the restart, and keeps only the pictures of open pages: beta's
+    // old one (its tab has none of its own) and gamma's new one.
     await expect.poll(() => context.pages().some((p) => p.url() === ext.url('gamma'))).toBe(true);
     const gamma = context.pages().find((p) => p.url() === ext.url('gamma'));
     const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
     await ext.pressDefaultShortcut(gamma);
     const page = await opened;
-    const beta = page.locator(`.tile[data-tab-id="${restored}"] img.thumbnail.cover`);
+    const beta = page.locator(`.tile[data-tab-id="${restored.beta}"] img.thumbnail.cover`);
     await expect(beta).toHaveClass(/\bloaded\b/);
     expect(await beta.getAttribute('src')).toBe(picture);
     await expect.poll(() => sw.evaluate(() => chrome.storage.local.get('coverIndex').then(({ coverIndex }) =>
-      Object.values(coverIndex).map((e) => e.url).sort()))).toEqual([ext.url('beta'), ext.url('gamma')]);
+      Object.entries(coverIndex).map(([id, e]) => [id, e.url]).sort()))).toEqual([
+      [String(tabIds.beta), ext.url('beta')], [String(restored.gamma), ext.url('gamma')],
+    ].sort());
   } finally {
     await context.close();
   }
 });
 
 test('a page held up by a slow image is pictured while it still loads', async ({ ext }) => {
-  await ext.openWindow(['beta']);
+  const { windowId } = await ext.openWindow(['beta']);
   // Opened and switched to here, so the wait for its load stays in the test.
-  const slow = await ext.sw.evaluate(async (url) => {
-    const [win] = await chrome.windows.getAll({ windowTypes: ['normal'] }).then((w) => w.filter((x) => x.focused));
-    return (await chrome.tabs.create({ windowId: win.id, url, active: true })).id;
-  }, ext.url('slow'));
+  const slow = await ext.sw.evaluate(({ windowId, url }) =>
+    chrome.tabs.create({ windowId, url, active: true }).then((t) => t.id), { windowId, url: ext.url('slow') });
   // Within 8 s: the image holding up its load arrives at 10 s.
   await expect.poll(() => coverOf(ext, slow).then((c) => c?.url), { timeout: 8000 }).toBe(ext.url('slow'));
   expect(await ext.sw.evaluate((id) => chrome.tabs.get(id).then((t) => t.status), slow)).toBe('loading');

@@ -223,6 +223,7 @@ export const test = base.extend({
               if (t.status === 'complete' && t.title && !t.title.startsWith('http')) return;
               await new Promise((r) => setTimeout(r, 50));
             }
+            throw new Error(`tab ${id} did not load`);
           };
           for (const id of Object.values(tabIds)) await loaded(id);
           // Visit in order with distinct lastAccessed times.
@@ -230,9 +231,30 @@ export const test = base.extend({
             await chrome.tabs.update(id, { active: true });
             await new Promise((r) => setTimeout(r, 30));
           }
+          // Focus can come after update resolves (on Windows focus is real):
+          // wait until Chrome reports this window as the last focused one,
+          // which is how Tab Mission finds the current window.
           await chrome.windows.update(win.id, { focused: true });
+          for (let i = 0; ; i++) {
+            const last = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+            if (last.id === win.id) break;
+            if (i === 100) throw new Error(`window ${win.id} never got focus (last focused: ${last.id})`);
+            await new Promise((r) => setTimeout(r, 50));
+          }
           return { windowId: win.id, tabIds };
         }, { urls, ids });
+      },
+
+      // Open a tab at this address (a browser page, about:blank) in a window,
+      // in the background unless active, and wait until Chrome reports the
+      // address: a new tab has none until its page commits (Tab.url "may be an
+      // empty string if the tab has not yet committed", chrome.tabs docs), and
+      // Tab Mission reads the tabs once, when it opens. Returns the tab id.
+      async openTab(windowId, address, { active = false } = {}) {
+        const id = await sw.evaluate(({ windowId, address, active }) =>
+          chrome.tabs.create({ windowId, url: address, active }).then((t) => t.id), { windowId, address, active });
+        await expect.poll(() => sw.evaluate((id) => chrome.tabs.get(id).then((t) => t.url), id)).toBe(address);
+        return id;
       },
 
       // A real key press that Chrome's own shortcut handling sees, unlike
@@ -327,10 +349,6 @@ export const test = base.extend({
 
       activeTitle(windowId) {
         return sw.evaluate((windowId) => chrome.tabs.query({ active: true, windowId }).then((t) => t[0]?.title), windowId);
-      },
-
-      popupCount() {
-        return sw.evaluate(() => chrome.windows.getAll({ windowTypes: ['popup'] }).then((w) => w.length));
       },
     };
     await use(ext);

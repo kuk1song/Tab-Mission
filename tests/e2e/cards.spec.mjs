@@ -9,7 +9,7 @@ const tile = (page, tabId) => page.locator(`.tile[data-tab-id="${tabId}"]`);
 test('a page without a picture shows its site icon on a plate in the icon\'s color; one that is not a web page, its first letter', async ({ ext }) => {
   // beta, the window's first tab, may be pictured while the others load.
   const { windowId, tabIds } = await ext.openWindow(['beta', 'red', 'gamma']);
-  const blank = await ext.sw.evaluate((windowId) => chrome.tabs.create({ windowId, url: 'about:blank', active: false }).then((t) => t.id), windowId);
+  const blank = await ext.openTab(windowId, 'about:blank');
   const page = await ext.open();
   const red = tile(page, tabIds.red);
   // The icon comes from Chrome's own store, not from the site.
@@ -49,17 +49,29 @@ test('a card with a picture shows the site icon on its corner, and the selected 
 test('the window follows the system appearance, and nothing is blurred', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
-  const look = () => page.evaluate(() => ({
-    bg: getComputedStyle(document.body).backgroundColor,
-    fg: getComputedStyle(document.querySelector('.tile .title')).color,
-    scheme: getComputedStyle(document.documentElement).colorScheme,
-  }));
+  // A title of a tile that is not selected (the selected one takes the
+  // accent), and the --fg token it should take, as a color.
+  const look = () => page.evaluate(() => {
+    const token = document.createElement('i');
+    token.style.color = 'var(--fg)';
+    document.body.append(token);
+    const fg = getComputedStyle(token).color;
+    token.remove();
+    return {
+      bg: getComputedStyle(document.body).backgroundColor,
+      title: getComputedStyle(document.querySelector('.tile:not(.selected) .title')).color,
+      fg,
+      scheme: getComputedStyle(document.documentElement).colorScheme,
+    };
+  });
   await page.emulateMedia({ colorScheme: 'light' });
   const light = await look();
   await page.emulateMedia({ colorScheme: 'dark' });
   const dark = await look();
   expect(light.bg).toBe('rgb(244, 244, 247)');
   expect(dark.bg).toBe('rgb(22, 22, 24)'); // a neutral grey, not the old navy
+  expect(light.title).toBe(light.fg);
+  expect(dark.title).toBe(dark.fg);
   expect(light.fg).not.toBe(dark.fg);
   expect(light.scheme).toBe('light dark');
   const blurred = await page.evaluate(() => [...document.querySelectorAll('*')]
@@ -70,19 +82,11 @@ test('the window follows the system appearance, and nothing is blurred', async (
 
 test('the line under the title says where the page is, as the address bar does', async ({ ext }) => {
   const { windowId, tabIds } = await ext.openWindow(['alpha', 'tube1']);
-  const ids = await ext.sw.evaluate(async (windowId) => {
-    const version = await chrome.tabs.create({ windowId, url: 'chrome://version/', active: false });
-    const blank = await chrome.tabs.create({ windowId, url: 'about:blank', active: false });
-    const [welcome] = await chrome.tabs.query({ url: chrome.runtime.getURL('welcome.html') });
-    return { version: version.id, blank: blank.id, welcome: welcome.id };
-  }, windowId);
-  // Tab Mission reads the tabs once, when it opens, and a new tab has no
-  // address until its page commits (Tab.url "may be an empty string if the
-  // tab has not yet committed", chrome.tabs docs): open it once Chrome
-  // reports both.
-  const urlOf = (id) => ext.sw.evaluate((id) => chrome.tabs.get(id).then((t) => t.url), id);
-  await expect.poll(() => urlOf(ids.version)).toBe('chrome://version/');
-  await expect.poll(() => urlOf(ids.blank)).toBe('about:blank');
+  const ids = {
+    version: await ext.openTab(windowId, 'chrome://version/'),
+    blank: await ext.openTab(windowId, 'about:blank'),
+    welcome: await ext.sw.evaluate(() => chrome.tabs.query({ url: chrome.runtime.getURL('welcome.html') }).then(([t]) => t.id)),
+  };
   const page = await ext.open();
   await page.locator('#toggle-all-windows').check(); // the welcome page is in another window
   const line = (id) => page.locator(`.tile[data-tab-id="${id}"] .url`);

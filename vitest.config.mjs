@@ -6,5 +6,7 @@ export default defineConfig({
     // chrome.* APIs in its test), so the lightweight node environment is enough.
     environment: 'node',
     include: ['tests/**/*.test.mjs'],
+    // A stubbed chrome is put back before each test, even after a failure.
+    unstubGlobals: true,
   },
 });

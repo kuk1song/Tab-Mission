@@ -76,7 +76,6 @@ describe('faviconUrl', () => {
   it('asks Chrome\'s favicon store for the page', () => {
     vi.stubGlobal('chrome', { runtime: { getURL: (path) => `chrome-extension://id${path}` } });
     expect(faviconUrl('https://a.test/x?y=1')).toBe('chrome-extension://id/_favicon/?pageUrl=https%3A%2F%2Fa.test%2Fx%3Fy%3D1&size=32');
-    vi.unstubAllGlobals();
   });
 });
 

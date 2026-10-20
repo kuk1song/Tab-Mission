@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { recordTryIt, readTryIt, startTips, noteTipShown } from '../extension/src/tryit.js';
 
 function fakeChrome() {
@@ -17,7 +17,6 @@ beforeEach(() => {
   chrome = fakeChrome();
   vi.stubGlobal('chrome', chrome);
 });
-afterEach(() => vi.unstubAllGlobals());
 
 describe('tryit.js', () => {
   const tick = () => new Promise((r) => setTimeout(r, 0));

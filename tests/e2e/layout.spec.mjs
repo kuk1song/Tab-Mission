@@ -3,6 +3,10 @@ import { test, expect } from './fixtures.mjs';
 
 // Tile geometry for every tile: preview aspect ratio, and whether the title
 // row spills out of the tile.
+// Once the window has settled: while it fades in, it is scaled down a little
+// (rootFadeIn), and an overflow of a few pixels would not show.
+const settled = (page) => page.locator('#grid:not(.entering)').waitFor();
+
 function measure(page) {
   return page.evaluate(() => {
     const tiles = [...document.querySelectorAll('.tile')];
@@ -25,6 +29,7 @@ test('40 tabs: tiles keep 16:10 previews and whole titles from 320 to 1280 px, g
   for (const groupBySite of [true, false]) {
     await ext.sw.evaluate((groupBySite) => chrome.storage.local.set({ groupBySite }), groupBySite);
     const page = await ext.open();
+    await settled(page);
     await expect(page.locator('#grid.grouped')).toHaveCount(groupBySite ? 1 : 0);
     for (const width of [320, 360, 700, 1280]) {
       await page.setViewportSize({ width, height: 700 });
@@ -37,6 +42,7 @@ test('40 tabs: tiles keep 16:10 previews and whole titles from 320 to 1280 px, g
 test('the toolbar never overflows at narrow widths', async ({ ext }) => {
   await ext.openWindow(['tube1', 'tube2', 'alpha']);
   const page = await ext.open();
+  await settled(page);
   for (const width of [320, 480, 760]) {
     await page.setViewportSize({ width, height: 600 });
     const out = await page.evaluate(() => [...document.querySelectorAll('.toolbar *')]
@@ -52,6 +58,7 @@ test('the toolbar never overflows at narrow widths', async ({ ext }) => {
 test('the toolbar actions stay together at the right edge', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta']);
   const page = await ext.open();
+  await settled(page);
   await expect(page.locator('#shortcut-hint kbd')).toHaveCount(1);
   const it = JSON.parse(readFileSync('extension/_locales/it/messages.json', 'utf8'));
   await page.evaluate(([windows, sleeping]) => {

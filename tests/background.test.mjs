@@ -82,8 +82,9 @@ describe('background.js', () => {
   it('opens one overview popup for two presses in a row', async () => {
     chrome.listeners.onCommand('open-overview');
     chrome.listeners.onCommand('open-overview');
-    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
-    await new Promise((r) => setTimeout(r, 20));
+    // The fake answers at once and background.js sets no timers, so one turn
+    // of the event loop runs both presses to the end.
+    await new Promise((r) => setImmediate(r));
     expect(chrome.windows.create).toHaveBeenCalledTimes(1);
     expect(chrome.windows.create.mock.calls[0][0]).toMatchObject({ type: 'popup', url: 'chrome-extension://test/overview.html' });
   });
