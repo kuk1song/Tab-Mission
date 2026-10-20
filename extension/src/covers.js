@@ -118,9 +118,10 @@ function canCover(tab, loading = false) {
   return Boolean(tab?.active && ready && !tab.incognito && isCapturableUrl(tab.url));
 }
 
-// Resolves true when a picture was stored, and 'loading' or 'blank' when the
-// page in front was not captured, or its picture not kept, only because it
-// has not finished loading or painting (the follow-ups try again).
+// Resolves true when a picture was stored, and 'loading', 'blank' or
+// 'failed' when the page in front was not captured, or its picture not
+// kept, only because it has not finished loading or painting or Chrome
+// refused the capture (the follow-ups try again).
 async function capture(tabId, { front = false, loading = false } = {}) {
   const tab = await chrome.tabs.get(tabId);
   if (!canCover(tab, loading)) return canCover(tab, true) ? 'loading' : false;
@@ -141,7 +142,13 @@ async function capture(tabId, { front = false, loading = false } = {}) {
   // Every capture takes from the budget, even if its picture is dropped below.
   const at = performance.now();
   budgets.set(tabId, { left: Math.max(0, capturesLeft(tabId, at) - 1), at });
-  const raw = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 85 });
+  let raw;
+  try {
+    raw = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 85 });
+  } catch (error) {
+    console.warn('Tab Mission: could not picture the tab:', error?.message ?? error);
+    return 'failed';
+  }
   // Switched away, moved to another window or on to another page meanwhile:
   // the picture may show something else.
   if (!unchanged(await chrome.tabs.get(tabId))) return false;
