@@ -200,3 +200,22 @@ test('the real default shortcut opens the overview, and pressed again goes back 
   expect(await ext.sw.evaluate(() => self.__commands)).toEqual(['open-overview', 'open-overview']);
   expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
 });
+
+// Chrome gives a tab opened in the background the time it was opened as its
+// lastAccessed, so it would pass for the tab you were on last.
+test('a tab opened in the background is not the previous tab until you have been on it', async ({ ext }) => {
+  const { windowId, tabIds } = await ext.openWindow(['alpha', 'beta']);
+  const gamma = await ext.openTab(windowId, ext.url('gamma')); // from beta, say with a middle click
+  let page = await ext.open();
+  expect(await selectedTitle(page)).toBe(PAGES.alpha.title);
+  await ext.press(); // pressed again: back to alpha
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
+  // Once you have been on gamma, it is like any other tab.
+  await ext.sw.evaluate((id) => chrome.tabs.update(id, { active: true }), gamma);
+  await expect.poll(() => ext.activeTitle(windowId)).toBe(PAGES.gamma.title);
+  await ext.sw.evaluate((id) => chrome.tabs.update(id, { active: true }), tabIds.beta);
+  await expect.poll(() => ext.activeTitle(windowId)).toBe(PAGES.beta.title);
+  page = await ext.open();
+  expect(await selectedTitle(page)).toBe(PAGES.gamma.title);
+});

@@ -1,6 +1,7 @@
 // background.js
 import { recordTryIt, startTips } from './src/tryit.js';
 import { coverFrontTab, startCovers, tidyCovers } from './src/covers.js';
+import { trackUnseenTabs } from './src/unseen.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -259,6 +260,10 @@ async function createOverviewWindow(scope, source) {
 
 // Pictures of the pages you look at, for their cards (src/covers.js).
 startCovers();
+
+// Tabs opened in the background and not shown yet, which are not the
+// previous tab (src/unseen.js).
+trackUnseenTabs();
 
 // Listen for the commands to open/toggle the overview. A keyboard command
 // also ticks the welcome page's first step; the toolbar button below does
