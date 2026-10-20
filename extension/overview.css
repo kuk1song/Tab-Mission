@@ -368,14 +368,14 @@ html, body {
    gaps (::before: 8 px at the sides, 12 px above and below), so it never
    pushes them off those lines; the column gap is wider than the plain
    grid's to hold two panel edges and 8 px between them (events.js
-   GROUPED), and at the usual window widths a row still holds as many
-   tiles. Panels in a row are as tall as the tallest. */
+   GROUPED); a row holds five tiles from about 880 to 1950 px wide, as the
+   plain grid does across that range. Panels in a row are as tall as the tallest. */
 .grid.grouped {
   grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
   grid-auto-flow: row;
   align-items: stretch;
   gap: 36px 24px;
-  padding: 20px 22px 28px;
+  padding: 20px 16px 28px;
 }
 .tile-group {
   position: relative;

@@ -145,7 +145,7 @@ function readUiState() {
 
 // The grid's column gap and side padding while grouped by site, as in
 // overview.css (wider than the plain grid's, to hold the panels' edges).
-const GROUPED = { gap: 24, padding: 22 };
+const GROUPED = { gap: 24, padding: 16 };
 
 // How many tiles fit in a row while grouped by site, measured before the
 // grid is drawn that way: the minimum tile width (--tile-min) with the

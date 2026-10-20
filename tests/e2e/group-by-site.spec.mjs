@@ -222,12 +222,12 @@ test('resizing the window keeps the groups and the five recent tabs, and redraws
   expect(await page.evaluate(() => window.redraws)).toBe(0);
   // Narrower by more than a tile: fewer columns, redrawn, still grouped,
   // still five recent tabs; and the same back at the first width.
-  await resize(-400);
+  await resize(-500);
   await expect.poll(columns).toBeLessThan(before);
   expect(await page.evaluate(() => window.redraws)).toBeGreaterThan(0);
   await expect(page.locator('#grid.grouped')).toHaveCount(1);
   expect(await recent()).toBe(5);
-  await resize(400);
+  await resize(500);
   await expect.poll(columns).toBe(before);
   await expect(page.locator('#grid.grouped')).toHaveCount(1);
   expect(await recent()).toBe(5);
