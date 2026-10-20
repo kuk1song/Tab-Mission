@@ -68,20 +68,27 @@ test('the window follows the system appearance, and nothing is blurred', async (
   expect(blurred).toEqual([]);
 });
 
-// about:blank is left to the unit test: a blank tab opened in the background
-// may have no address yet (on Windows CI it had none).
 test('the line under the title says where the page is, as the address bar does', async ({ ext }) => {
   const { windowId, tabIds } = await ext.openWindow(['alpha', 'tube1']);
   const ids = await ext.sw.evaluate(async (windowId) => {
     const version = await chrome.tabs.create({ windowId, url: 'chrome://version/', active: false });
+    const blank = await chrome.tabs.create({ windowId, url: 'about:blank', active: false });
     const [welcome] = await chrome.tabs.query({ url: chrome.runtime.getURL('welcome.html') });
-    return { version: version.id, welcome: welcome.id };
+    return { version: version.id, blank: blank.id, welcome: welcome.id };
   }, windowId);
+  // Tab Mission reads the tabs once, when it opens, and a new tab has no
+  // address until its page commits (Tab.url "may be an empty string if the
+  // tab has not yet committed", chrome.tabs docs): open it once Chrome
+  // reports both.
+  const urlOf = (id) => ext.sw.evaluate((id) => chrome.tabs.get(id).then((t) => t.url), id);
+  await expect.poll(() => urlOf(ids.version)).toBe('chrome://version/');
+  await expect.poll(() => urlOf(ids.blank)).toBe('about:blank');
   const page = await ext.open();
   await page.locator('#toggle-all-windows').check(); // the welcome page is in another window
   const line = (id) => page.locator(`.tile[data-tab-id="${id}"] .url`);
   await expect(line(tabIds.tube1)).toHaveText('tube.test'); // www.tube.test
   await expect(line(tabIds.alpha)).toHaveText('localhost');
   await expect(line(ids.version)).toHaveText('chrome://version');
+  await expect(line(ids.blank)).toHaveText('about:blank');
   await expect(line(ids.welcome)).toHaveText('Tab Mission');
 });
