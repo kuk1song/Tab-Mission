@@ -271,13 +271,18 @@ export const test = base.extend({
             const tab = await chrome.tabs.create({ windowId: win.id, url: urls[i], active: false });
             tabIds[ids[i]] = tab.id;
           }
+          // Each page is waited for until it loads, as long as the test may
+          // run: a page that never loads fails the test at its timeout. One
+          // still loading after 5 s is named in the worker's console, which a
+          // failed test carries (on Windows CI, two of 24 new tabs once had
+          // not started loading after 5 s).
           const loaded = async (id) => {
-            for (let i = 0; i < 100; i++) {
+            for (let i = 1; ; i++) {
               const t = await chrome.tabs.get(id);
               if (t.status === 'complete' && t.title && !t.title.startsWith('http')) return;
+              if (i === 100) console.warn(`tab ${id} not loaded after 5 s: ${t.status}, ${JSON.stringify(t.url || t.pendingUrl)}, ${JSON.stringify(t.title)}`);
               await new Promise((r) => setTimeout(r, 50));
             }
-            throw new Error(`tab ${id} did not load`);
           };
           for (const id of Object.values(tabIds)) await loaded(id);
           // Visit in order with distinct lastAccessed times.
