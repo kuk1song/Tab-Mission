@@ -96,3 +96,24 @@ test('the line under the title says where the page is, as the address bar does',
   await expect(line(ids.blank)).toHaveText('about:blank');
   await expect(line(ids.welcome)).toHaveText('Tab Mission');
 });
+
+// A tab whose site has not answered yet has no address or title, only the
+// address it is going to (Tab.pendingUrl): its card shows that address, and
+// search and grouping by site use it.
+test('a tab still waiting for its site shows where it is going, and search and grouping find it there', async ({ ext }) => {
+  await ext.sw.evaluate(() => chrome.storage.local.remove('groupBySite')); // grouped, as users have it
+  const { windowId } = await ext.openWindow(['alpha', 'tube1']);
+  const waiting = ext.url('tube1').replace('/tube1.html', '/held/watch.html'); // tube1's site
+  const id = await ext.sw.evaluate(({ windowId, url }) => chrome.tabs.create({ windowId, url, active: false }).then((t) => t.id), { windowId, url: waiting });
+  await expect.poll(() => ext.sw.evaluate((id) => chrome.tabs.get(id).then((t) => [t.url, t.title, t.pendingUrl]), id)).toEqual(['', '', waiting]);
+  const page = await ext.open();
+  // In tube1's site's panel, beside it.
+  const panel = page.locator('#grid .tile-group:not(.recent)', { has: page.locator(`.tile[data-tab-id="${id}"]`) });
+  await expect(panel.locator('.group-name')).toHaveText('tube.test');
+  const tile = panel.locator(`.tile[data-tab-id="${id}"]`);
+  await expect(tile.locator('.title')).toHaveText(`${new URL(waiting).host.replace(/^www\./, '')}/held/watch.html`);
+  await expect(tile.locator('.url')).toHaveText('tube.test');
+  await page.keyboard.type('watch');
+  await expect(page.locator('#grid .tile')).toHaveCount(1);
+  await expect(page.locator(`#grid .tile[data-tab-id="${id}"]`)).toHaveCount(1);
+});

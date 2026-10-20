@@ -52,11 +52,25 @@ const HOSTS = {
 const seen = [];
 
 function startSite() {
+  // A site that answers only when the test says so (GET /release): a tab
+  // sent to /held/<id>.html stays on its way, with no address yet, only the
+  // one it is going to (Tab.pendingUrl), until then.
+  const held = [];
   const server = http.createServer((req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
     if (path === '/seen') {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(seen));
+      return;
+    }
+    if (path === '/release') {
+      for (const send of held.splice(0)) send();
+      res.end();
+      return;
+    }
+    if (path.startsWith('/held/')) {
+      // The tab may be gone by then (an earlier test's).
+      held.push(() => res.destroyed || sendPage(res, path.slice('/held'.length)));
       return;
     }
     if (path === '/img/cookie-wide.svg') seen.push({ cookie: req.headers.cookie ?? null, referer: req.headers.referer ?? null });
@@ -75,16 +89,21 @@ function startSite() {
       res.end(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="${fill}"/></svg>`);
       return;
     }
-    const id = path.replace(/^\//, '').replace(/\.html$/, '');
-    const page = PAGES[id] ?? { title: `Tab ${id}` };
-    const og = (page.og ? `<meta property="og:image" content="${page.og}">` : '')
-      + (page.touch ? `<link rel="apple-touch-icon" href="${page.touch}">` : '');
-    const slow = page.slow ? '<img src="/slow/1.svg">' : '';
-    const icon = page.icon ? `<link rel="icon" href="${page.icon}">` : '';
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...(page.setsCookie ? { 'set-cookie': 'session=1; Path=/; SameSite=Lax' } : {}) });
-    res.end(`<!doctype html><html><head><title>${page.title}</title>${og}${icon}</head><body><h1>${page.title}</h1>${slow}</body></html>`);
+    sendPage(res, path);
   });
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
+}
+
+// /<id>.html from PAGES.
+function sendPage(res, path) {
+  const id = path.replace(/^\//, '').replace(/\.html$/, '');
+  const page = PAGES[id] ?? { title: `Tab ${id}` };
+  const og = (page.og ? `<meta property="og:image" content="${page.og}">` : '')
+    + (page.touch ? `<link rel="apple-touch-icon" href="${page.touch}">` : '');
+  const slow = page.slow ? '<img src="/slow/1.svg">' : '';
+  const icon = page.icon ? `<link rel="icon" href="${page.icon}">` : '';
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...(page.setsCookie ? { 'set-cookie': 'session=1; Path=/; SameSite=Lax' } : {}) });
+  res.end(`<!doctype html><html><head><title>${page.title}</title>${og}${icon}</head><body><h1>${page.title}</h1>${slow}</body></html>`);
 }
 
 // One command to the browser's own DevTools endpoint (not a page's), found

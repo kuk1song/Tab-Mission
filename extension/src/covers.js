@@ -213,9 +213,12 @@ export function overBudget(index, maxBytes) {
 export function tidyCovers() {
   return update(async (index) => {
     const tabs = await chrome.tabs.query({});
-    const urls = new Map(tabs.map((tab) => [String(tab.id), tab.url]));
+    // A tab still on its way to its page (after a restart, say) counts with
+    // the address it is going to.
+    const address = (tab) => tab.url || tab.pendingUrl;
+    const urls = new Map(tabs.map((tab) => [String(tab.id), address(tab)]));
     const own = new Set(Object.keys(index).filter((id) => urls.get(id) === index[id].url));
-    const wanted = new Set(tabs.filter((tab) => !tab.incognito && !own.has(String(tab.id))).map((tab) => tab.url));
+    const wanted = new Set(tabs.filter((tab) => !tab.incognito && !own.has(String(tab.id))).map(address));
     const newest = Object.entries(index).sort(([, a], [, b]) => b.at - a.at);
     return newest.filter(([id, entry]) => !own.has(id) && !wanted.delete(entry.url)).map(([id]) => id);
   });
