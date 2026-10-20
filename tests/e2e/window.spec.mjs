@@ -19,18 +19,18 @@ test('with "pre-select the previous tab" off, nothing is selected and the shortc
   expect(await ext.activeTitle(windowId)).toBe(PAGES.gamma.title);
 });
 
-test('the pre-selected tile enters at its selected size, so it does not grow afterwards', async ({ ext }) => {
+test('the pre-selected tile enters at its resting size, so it does not change afterwards', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
   const sizes = await page.evaluate(() => {
     const tile = document.querySelector('.tile.selected');
     tile.getAnimations().forEach((a) => a.finish());
-    const entered = getComputedStyle(tile).transform;
+    const entered = tile.getBoundingClientRect().width;
     document.getElementById('grid').classList.remove('entering');
-    return { entered, resting: getComputedStyle(tile).transform };
+    return { entered, resting: tile.getBoundingClientRect().width };
   });
+  expect(sizes.entered).toBeGreaterThan(0);
   expect(sizes.entered).toBe(sizes.resting);
-  expect(sizes.resting).not.toBe('none');
 });
 
 test('point at a tile and press the shortcut to switch to it', async ({ ext }) => {

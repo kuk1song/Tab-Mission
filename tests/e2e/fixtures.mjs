@@ -22,6 +22,7 @@ export const PAGES = {
   alpha: { title: 'Page alpha docs', og: '/img/alpha.svg' },
   logo: { title: 'Page logo docs', og: '/img/logo-square.svg' },
   photo: { title: 'Page photo docs', og: '/img/photo-portrait.svg' },
+  red: { title: 'Page red docs, with a title long enough to need two lines on a card and more', icon: '/img/icon-red.svg' },
   icon: { title: 'Page icon docs', touch: '/img/touch-square.svg' },
   // Painted at once, but its load is held up by an image for 10 s.
   slow: { title: 'Page slow docs', slow: true },
@@ -57,9 +58,10 @@ function startSite() {
     }
     if (path.startsWith('/img/')) {
       // A social preview's shape, a logo's or a portrait photo's.
-      const [w, h] = path.includes('square') ? [180, 180] : path.includes('portrait') ? [600, 800] : [1200, 630];
+      const [w, h] = path.includes('square') ? [180, 180] : path.includes('portrait') ? [600, 800] : path.includes('icon') ? [32, 32] : [1200, 630];
+      const fill = path.includes('red') ? '#e0202a' : '#4a6';
       res.writeHead(200, { 'content-type': 'image/svg+xml' });
-      res.end(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="#4a6"/></svg>`);
+      res.end(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="${fill}"/></svg>`);
       return;
     }
     const id = path.replace(/^\//, '').replace(/\.html$/, '');
@@ -67,8 +69,9 @@ function startSite() {
     const og = (page.og ? `<meta property="og:image" content="${page.og}">` : '')
       + (page.touch ? `<link rel="apple-touch-icon" href="${page.touch}">` : '');
     const slow = page.slow ? '<img src="/slow/1.svg">' : '';
+    const icon = page.icon ? `<link rel="icon" href="${page.icon}">` : '';
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    res.end(`<!doctype html><html><head><title>${page.title}</title>${og}</head><body><h1>${page.title}</h1>${slow}</body></html>`);
+    res.end(`<!doctype html><html><head><title>${page.title}</title>${og}${icon}</head><body><h1>${page.title}</h1>${slow}</body></html>`);
   });
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
 }

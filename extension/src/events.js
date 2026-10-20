@@ -3,7 +3,7 @@ import { state, applyFilters, moveSelection, moveSelectionByRects, currentSiteHo
 import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection } from './dom.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
-import { isValidIconUrl, createPlaceholderIcon } from './utils.js';
+import { isCapturableUrl, faviconUrl, createPlaceholderIcon } from './utils.js';
 import { recordTryIt } from './tryit.js';
 import { hideTip } from './tips.js';
 
@@ -214,9 +214,7 @@ function currentSite(uiState = readUiState()) {
   const host = state.siteHost || currentSiteHost();
   const currentTab = state.allTabs.find((tab) => tab.id === state.currentTabId);
   const count = countSiteTabs(host, uiState);
-  const icon = currentTab?.favIconUrl && isValidIconUrl(currentTab.favIconUrl)
-    ? currentTab.favIconUrl
-    : createPlaceholderIcon(host);
+  const icon = isCapturableUrl(currentTab?.url) ? faviconUrl(currentTab.url) : createPlaceholderIcon(host);
   return { host, label: host.replace(/^www\./, ''), icon, count };
 }
 

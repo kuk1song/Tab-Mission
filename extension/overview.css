@@ -1,15 +1,67 @@
+/* The Tab Mission window follows the system's light or dark appearance, with
+   the settings page's colors. Every color is a token here. */
 :root {
-  --bg: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 50%, #1a1a2e 100%);
-  --bg-overlay: rgba(15, 15, 25, 0.8);
-  --fg: #f0f0f0;
-  --muted: #a0a0aa;
-  --accent: #00d4ff;
-  --accent-glow: rgba(0, 212, 255, 0.3);
-  --tile-bg: rgba(255, 255, 255, 0.05);
-  --tile-bg-selected: rgba(0, 212, 255, 0.1);
-  --border-color: rgba(255, 255, 255, 0.12);
-  --shadow-subtle: 0 2px 20px rgba(0, 0, 0, 0.3);
-  --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.4);
+  color-scheme: light dark;
+  --bg: #f4f4f7;
+  --bg-image: none;
+  --bg-overlay: transparent;
+  --fg: #1d1d26;
+  --muted: #5b5b6b;
+  --accent: #00749e;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(0, 116, 158, 0.12);
+  --border-color: rgba(20, 20, 40, 0.12);
+  --border-strong: rgba(20, 20, 40, 0.24);
+  --surface: #ffffff;
+  --surface-focus: #ffffff;
+  --toolbar-bg: rgba(255, 255, 255, 0.6);
+  --hover: rgba(20, 20, 40, 0.06);
+  --key-bg: #ececf1;
+  --preview-bg: #e8e8ee;
+  --preview-line: rgba(20, 20, 40, 0.08);
+  --preview-shadow: 0 4px 14px rgba(20, 30, 50, 0.16);
+  /* The icon card: a plate on a background tinted with the site's color. */
+  --plate-base: #ffffff;
+  --plate-base-2: #f4f6f9;
+  --plate-mix-1: 26%;
+  --plate-mix-2: 12%;
+  --plate-bg: rgba(255, 255, 255, 0.94);
+  --plate-shadow: 0 6px 16px rgba(20, 30, 50, 0.14), inset 0 0 0 1px rgba(20, 30, 50, 0.06);
+  --overlay: rgba(20, 20, 40, 0.72); /* white text on it: 4.5:1 or more over any picture */
+  --overlay-fg: #ffffff;
+  --danger: #e5484d;
+  --shadow-elevated: 0 8px 40px rgba(20, 30, 50, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a2e;
+    --bg-image: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 50%, #1a1a2e 100%);
+    --bg-overlay: rgba(15, 15, 25, 0.8);
+    --fg: #f0f0f0;
+    --muted: #a0a0aa;
+    --accent: #00d4ff;
+    --accent-fg: #0b1020;
+    --accent-soft: rgba(0, 212, 255, 0.14);
+    --border-color: rgba(255, 255, 255, 0.12);
+    --border-strong: rgba(255, 255, 255, 0.22);
+    --surface: rgba(255, 255, 255, 0.05);
+    --surface-focus: rgba(255, 255, 255, 0.08);
+    --toolbar-bg: rgba(255, 255, 255, 0.02);
+    --hover: rgba(255, 255, 255, 0.08);
+    --key-bg: rgba(255, 255, 255, 0.1);
+    --preview-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f1e 100%);
+    --preview-line: rgba(255, 255, 255, 0.08);
+    --preview-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    --plate-base: #141826;
+    --plate-base-2: #0e1018;
+    --plate-mix-1: 42%;
+    --plate-mix-2: 16%;
+    --plate-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+    --overlay: rgba(0, 0, 0, 0.6);
+    --overlay-fg: #f0f0f0;
+    --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.4);
+  }
 }
 
 html, body {
@@ -17,7 +69,7 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
-  background: #1a1a2e; /* Use a solid, dark color that matches the theme */
+  background: var(--bg);
   color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden; /* Prevent body from scrolling */
@@ -28,7 +80,7 @@ html, body {
   flex-direction: column;
   height: 100vh;
   max-height: 100vh;
-  background: var(--bg);
+  background: var(--bg-image), var(--bg);
   position: relative;
   border-radius: 20px;
   border: 1px solid var(--border-color);
@@ -46,7 +98,6 @@ html, body {
   right: 0;
   bottom: 0;
   background: var(--bg-overlay);
-  backdrop-filter: blur(30px) saturate(150%);
   z-index: -1;
 }
 
@@ -73,9 +124,8 @@ html, body {
   align-items: center;
   gap: 10px 12px;
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--toolbar-bg);
   border-bottom: 1px solid var(--border-color);
-  backdrop-filter: blur(20px);
 }
 
 /* The search field takes all free width so its placeholder is never cut off
@@ -92,7 +142,7 @@ html, body {
   padding: 0 10px 0 12px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface);
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -100,8 +150,8 @@ html, body {
    indicator (WCAG 2.4.7 counts it) and the accent stays for the selected
    tile, the one thing Enter and the shortcut act on. */
 .search-field:focus-within {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-strong);
+  background: var(--surface-focus);
 }
 
 #search {
@@ -136,7 +186,7 @@ html, body {
   height: 26px;
   padding: 0 2px 0 8px;
   border-radius: 7px;
-  background: rgba(0, 212, 255, 0.14);
+  background: var(--accent-soft);
   color: var(--fg);
   font-size: 0.8125rem;
   font-weight: 500;
@@ -157,7 +207,7 @@ html, body {
   line-height: 1;
   cursor: pointer;
 }
-.scope-clear:hover { color: var(--fg); background: rgba(255, 255, 255, 0.1); }
+.scope-clear:hover { color: var(--fg); background: var(--hover); }
 
 /* Quiet right-aligned hint, shown only while the box is empty. */
 .scope-hint {
@@ -176,12 +226,11 @@ html, body {
   font-size: 0.75rem;
   white-space: nowrap;
   cursor: pointer;
-  opacity: 0.75;
-  transition: opacity 0.15s, background 0.15s;
+  transition: background 0.15s;
 }
 .scope-hint[hidden] { display: none; }
 #scope-hint-label { overflow: hidden; text-overflow: ellipsis; }
-.scope-hint:hover { opacity: 1; background: rgba(255, 255, 255, 0.06); }
+.scope-hint:hover { background: var(--hover); }
 .scope-hint kbd {
   padding: 0 5px;
   border: 1px solid var(--border-color);
@@ -205,7 +254,7 @@ html, body {
 }
 
 #shortcut-hint kbd {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--key-bg);
   padding: 2px 6px;
   border-radius: 4px;
   font-family: monospace;
@@ -251,7 +300,8 @@ html, body {
   --tile-min: clamp(9.375rem, 17cqi, 18.75rem);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--tile-min)), 1fr));
-  gap: 12px;
+  /* Rows a little further apart than columns: a title sits under each picture. */
+  gap: 16px 12px;
   padding: 8px 12px 12px;
   overflow-y: auto; /* Allow vertical scrolling ONLY on the grid */
   overflow-x: hidden; /* Prevent horizontal scrolling */
@@ -284,7 +334,7 @@ html, body {
   display: grid;
   grid-template-columns: repeat(auto-fill, min(100%, var(--tile-min)));
   grid-auto-rows: max-content;
-  gap: 12px;
+  gap: 16px 12px;
   width: calc(var(--n) * var(--tile-min) + (var(--n) - 1) * 12px);
   max-width: 100%;
 }
@@ -300,21 +350,20 @@ html, body {
   color: var(--muted);
 }
 
+/* A card is the picture with its title under it and no frame, as windows in
+   Mission Control: the picture says what the page is, the title which one. */
 .tile {
   display: flex;
   flex-direction: column;
-  background: var(--tile-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  overflow: hidden;
+  min-width: 0;
+  background: none;
+  border: none;
   cursor: pointer;
-  backdrop-filter: blur(20px);
-  transition: all 350ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  box-shadow: var(--shadow-subtle);
+  transition: transform 150ms ease;
   position: relative; /* anchors the close control */
-  --tile-scale: 1; /* the resting scale; the entrance animation ends on it */
+  --tile-scale: 1; /* the scale the entrance animation ends on */
   /* A <button> does not inherit these by default. */
-  padding: 6px 6px 0;
+  padding: 0;
   font: inherit;
   color: inherit;
   text-align: left;
@@ -332,18 +381,15 @@ html, body {
    (dom.js), so the one highlighted tile is always the one Enter and the
    shortcut act on. */
 
-.tile.selected {
-  --tile-scale: 1.05;
-  transform: scale(var(--tile-scale));
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent), 0 0 30px var(--accent-glow);
-  background: var(--tile-bg-selected);
-  z-index: 20;
-}
-.tile.activating { 
-  transition: transform 100ms ease, box-shadow 100ms ease;
-  transform: scale(0.98); 
-  box-shadow: 0 0 0 3px var(--accent-glow) inset; 
+/* The selected card: a ring around its picture and its title in the accent
+   color (a highlight, as in a collection, not a focus ring: focus stays in the
+   search box). */
+.tile.selected { z-index: 20; }
+.tile.selected .preview { outline: 3px solid var(--accent); outline-offset: 3px; }
+.tile.selected .title { color: var(--accent); }
+.tile.activating {
+  transition: transform 100ms ease;
+  transform: scale(0.98);
 }
 
 /* Preview area styles */
@@ -353,11 +399,13 @@ html, body {
   /* overflow: hidden makes the automatic minimum height 0, so without this
      the flex column could squash the preview below its 16:10 shape. */
   flex-shrink: 0;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f1e 100%);
+  box-sizing: border-box;
+  background: var(--preview-bg);
   overflow: hidden;
   position: relative;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--preview-line);
+  box-shadow: var(--preview-shadow);
 }
 
 .thumbnail {
@@ -367,7 +415,7 @@ html, body {
   height: 100%;
   object-fit: cover;
   transition: opacity 0.3s ease-out;
-  /* Invisible until loaded; the placeholder text underneath shows meanwhile. */
+  /* Invisible until loaded; the icon card underneath shows meanwhile. */
   opacity: 0;
 }
 
@@ -380,55 +428,67 @@ html, body {
   object-position: top;
 }
 
-.text-preview {
+/* Without a picture: the site's icon on a plate, on a background tinted with
+   the icon's own color (--c, set by thumbnail.js; until then a color from the
+   hostname), as the tiles of Chrome's and Firefox's New Tab pages. A page
+   without an icon (a browser page, a local file) shows its first letter. */
+.preview-icon {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 14px 16px;
-  text-align: left;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg,
+    color-mix(in oklab, var(--c) var(--plate-mix-1), var(--plate-base)),
+    color-mix(in oklab, var(--c) var(--plate-mix-2), var(--plate-base-2)));
 }
-
-.preview-title {
-  color: #ffffff;
-  font-size: 0.8125rem;
+.preview-icon > span {
+  width: clamp(2.5rem, 30%, 3.5rem);
+  aspect-ratio: 1;
+  border-radius: 28%;
+  display: grid;
+  place-items: center;
+  background: var(--plate-bg);
+  box-shadow: var(--plate-shadow);
+}
+.preview-icon img { width: 57%; height: 57%; }
+.preview-icon b {
+  font-size: 1.5rem;
   font-weight: 700;
-  line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  word-break: break-word;
+  line-height: 1;
+  /* Darker than the tint, for 3:1 or more on the white plate at every hue. */
+  color: color-mix(in oklab, var(--c) 60%, #000000);
 }
 
-.preview-url {
-  color: #a0aec0;
-  font-family: monospace;
-  font-size: 0.625rem;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* With a picture, the site's icon sits on its corner instead. */
+.site-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  display: none;
+  place-items: center;
+  background: var(--plate-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+.site-badge img { width: 16px; height: 16px; }
+.preview:has(.thumbnail.loaded) .site-badge { display: grid; }
+.preview:has(.thumbnail.loaded) .preview-icon { visibility: hidden; }
 
 /* Sleeping (discarded) tabs: muted, with a small badge. */
 .tile.sleeping .preview { filter: saturate(0.6) brightness(0.85); }
 .badge-sleeping {
   position: absolute;
   right: 8px;
-  bottom: 8px; /* clear of the placeholder title (top left) and the close button (top right) */
+  bottom: 8px; /* clear of the site badge (bottom left) and the close button (top right) */
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
-  color: var(--muted);
+  background: var(--overlay);
+  color: var(--overlay-fg);
   font-size: 0.625rem;
   letter-spacing: 0.02em;
 }
-/* Keep the placeholder's hostname clear of the badge. */
-.tile.sleeping .preview-url { max-width: calc(100% - 4.5rem); }
 
 /* Close control: shown on the selected tile (the pointer selects the tile
    under it). */
@@ -442,8 +502,8 @@ html, body {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.6);
-  color: var(--fg);
+  background: var(--overlay);
+  color: var(--overlay-fg);
   font-size: 0.9375rem;
   line-height: 1;
   opacity: 0;
@@ -454,12 +514,12 @@ html, body {
    it moves onto), so a click on a hidden × switches instead of closing. */
 .tile:not(.selected) .tile-close { pointer-events: none; }
 .tile.selected .tile-close { opacity: 0.85; }
-.tile-close:hover { opacity: 1; background: #e5484d; }
+.tile-close:hover { opacity: 1; background: var(--danger); color: #ffffff; }
 
 .empty {
   padding: 40px;
   text-align: center;
-  color: #9aa0a6;
+  color: var(--muted);
   font-size: 0.875rem;
   line-height: 2;
   grid-column: 1 / -1;
@@ -469,7 +529,7 @@ html, body {
   padding: 6px 14px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface);
   color: var(--fg);
   font: inherit;
   font-size: 0.8125rem;
@@ -515,46 +575,29 @@ html, body {
   pointer-events: none;
 }
 
-.meta { 
+.meta {
   flex-shrink: 0;
-  padding: 12px 16px 16px; 
+  padding: 10px 2px 2px;
   display: flex;
   flex-direction: column;
-  gap: 8px; 
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(10px);
+  gap: 2px;
 }
 
-.title-row { 
-  display: flex; 
-  align-items: center; 
-  gap: 8px; 
-  min-width: 0; 
-}
-
-.favicon { 
-  width: 16px; 
-  height: 16px; 
-  border-radius: 3px; 
-  background: #2a2f3b; 
-  flex: 0 0 auto; 
-}
-
+/* Up to two lines, so tabs of one site can be told apart by their titles. */
 .title {
   color: var(--fg);
-  font-size: 0.875rem;
-  line-height: 1.4;
+  font-size: 0.8125rem;
+  line-height: 1.35;
   font-weight: 600;
   letter-spacing: -0.01em;
-  white-space: nowrap; 
-  overflow: hidden; 
-  text-overflow: ellipsis; 
-  min-width: 0;
-  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
 }
 
-.url { 
-  padding-left: 24px; /* aligns with the title, past the favicon */
+.url {
   font-size: 0.6875rem; 
   color: var(--muted); 
   white-space: nowrap; 
@@ -574,7 +617,7 @@ html, body {
   padding: 8px 14px;
   border-radius: 10px;
   background: var(--accent);
-  color: #0b1020;
+  color: var(--accent-fg);
   font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.4;
@@ -621,9 +664,6 @@ html, body {
   .tip {
     animation: none !important;
     transition: none !important;
-  }
-  .tile.selected {
-    transform: none;
   }
   .tip.out { visibility: hidden; }
 }

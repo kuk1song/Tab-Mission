@@ -8,15 +8,6 @@ export function getHostname(url) {
   }
 }
 
-export function isValidIconUrl(url) {
-  try {
-    const u = new URL(url);
-    return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'data:';
-  } catch {
-    return false;
-  }
-}
-
 export function isCapturableUrl(url) {
   if (!url) return false;
   try {
@@ -37,12 +28,32 @@ function hueOf(seed) {
   return Array.from(seed || '').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
 }
 
-// Placeholder backdrop for tiles without a preview image: a dark vertical
-// gradient tinted per hostname. Pure CSS, so building hundreds of tiles costs
-// nothing (the old per-tile canvas + JPEG encode blocked the main thread).
-export function generateGradient(seed) {
-  const hue = hueOf(seed);
-  return `linear-gradient(180deg, hsl(${hue}, 30%, 25%), hsl(${hue}, 30%, 15%))`;
+// A color for a site from its name, for its icon card until the icon's own
+// color is known (and for pages without an icon).
+export function hueColor(seed) {
+  return `hsl(${hueOf(seed)} 45% 55%)`;
+}
+
+// A site's icon from Chrome's own favicon store (the "favicon" permission):
+// no network request, and it works for sleeping tabs. Chrome keeps 16 and
+// 32 px icons and scales them, so it is shown small.
+export function faviconUrl(pageUrl, size = 32) {
+  return `${chrome.runtime.getURL('/_favicon/')}?pageUrl=${encodeURIComponent(pageUrl)}&size=${size}`;
+}
+
+// An icon's main color: the average of its opaque, colored pixels (white,
+// black and grey are skipped, as Chrome's own fallback icons do), or null when
+// it has too few of them. RGBA data, as from getImageData.
+export function dominantColor(data) {
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const max = Math.max(data[i], data[i + 1], data[i + 2]);
+    const min = Math.min(data[i], data[i + 1], data[i + 2]);
+    if (data[i + 3] < 200 || max - min < 40) continue;
+    r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+  }
+  if (n < 12) return null;
+  return `rgb(${Math.round(r / n)} ${Math.round(g / n)} ${Math.round(b / n)})`;
 }
 
 export function createPlaceholderIcon(hostname) {

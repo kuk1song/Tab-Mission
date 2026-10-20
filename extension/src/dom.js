@@ -1,7 +1,7 @@
 // dom.js
 import { state } from './state.js';
 import { activateTab, closeTab, setSiteScope } from './events.js';
-import { getHostname, isValidIconUrl, isSleeping, generateGradient, createPlaceholderIcon } from './utils.js';
+import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor } from './utils.js';
 import { observeTiles } from './thumbnail.js';
 import { t } from './i18n.js';
 import { selectionMoved } from './tips.js';
@@ -166,24 +166,27 @@ function createTile(tab, index) {
 
 function createPreviewElement(tab) {
   const hostname = getHostname(tab.url);
-  const title = tab.title || t('untitled') || 'Untitled';
-
   const preview = document.createElement('div');
   preview.className = 'preview';
-  preview.style.backgroundImage = generateGradient(hostname);
+  // The icon card's color until thumbnail.js has the icon's own.
+  preview.style.setProperty('--c', hueColor(hostname || tab.title));
 
-  // Placeholder text (title top-left, hostname bottom-left). It stays visible
-  // until a real preview image loads over it, and remains for pages without one.
-  const textPreview = document.createElement('div');
-  textPreview.className = 'text-preview';
-  const previewTitle = document.createElement('div');
-  previewTitle.className = 'preview-title';
-  previewTitle.textContent = title;
-  const previewUrl = document.createElement('div');
-  previewUrl.className = 'preview-url';
-  previewUrl.textContent = hostname;
-  textPreview.append(previewTitle, previewUrl);
-  preview.appendChild(textPreview);
+  // Shown until a picture loads over it, and for pages without one: the
+  // site's icon from Chrome's own store (no network request), or the first
+  // letter of a page that is not a web page.
+  const icon = document.createElement('div');
+  icon.className = 'preview-icon';
+  icon.setAttribute('aria-hidden', 'true'); // the title says it; a letter is not part of the name
+  const plate = document.createElement('span');
+  if (isCapturableUrl(tab.url)) {
+    plate.appendChild(siteIcon(tab.url));
+  } else {
+    const letter = document.createElement('b');
+    letter.textContent = Array.from(tab.title || hostname || '?')[0].toUpperCase();
+    plate.appendChild(letter);
+  }
+  icon.appendChild(plate);
+  preview.appendChild(icon);
 
   const img = document.createElement('img');
   img.className = 'thumbnail';
@@ -191,6 +194,14 @@ function createPreviewElement(tab) {
   img.decoding = 'async';
   img.referrerPolicy = 'no-referrer';
   preview.appendChild(img);
+
+  // With a picture, the site's icon on its corner.
+  if (isCapturableUrl(tab.url)) {
+    const badge = document.createElement('span');
+    badge.className = 'site-badge';
+    badge.appendChild(siteIcon(tab.url));
+    preview.appendChild(badge);
+  }
 
   if (isSleeping(tab)) {
     const badge = document.createElement('span');
@@ -202,33 +213,21 @@ function createPreviewElement(tab) {
   return preview;
 }
 
+function siteIcon(url) {
+  const img = document.createElement('img');
+  img.alt = '';
+  img.src = faviconUrl(url);
+  return img;
+}
+
 function createMetaElement(tab) {
   const meta = document.createElement('div');
   meta.className = 'meta';
 
-  const titleRow = document.createElement('div');
-  titleRow.className = 'title-row';
-
-  const favicon = document.createElement('img');
-  favicon.className = 'favicon';
-  favicon.alt = '';
-
-  if (tab.favIconUrl && isValidIconUrl(tab.favIconUrl)) {
-    favicon.src = tab.favIconUrl;
-    favicon.onerror = () => {
-      favicon.src = createPlaceholderIcon(getHostname(tab.url));
-    };
-  } else {
-    favicon.src = createPlaceholderIcon(getHostname(tab.url));
-  }
-  titleRow.appendChild(favicon);
-
   const title = document.createElement('div');
   title.className = 'title';
   title.textContent = tab.title || t('untitled') || 'Untitled';
-  titleRow.appendChild(title);
-
-  meta.appendChild(titleRow);
+  meta.appendChild(title);
 
   const url = document.createElement('div');
   url.className = 'url';
