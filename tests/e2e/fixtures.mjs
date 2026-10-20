@@ -170,13 +170,24 @@ export const test = base.extend({
     await context.close();
   },
 
-  sw: async ({ context }, use) => {
+  // What the service workers write to their console (a page picture Chrome
+  // refuses is logged there), attached to a test that fails.
+  swConsole: async ({}, use, testInfo) => {
+    const lines = [];
+    await use(lines);
+    if (testInfo.status !== testInfo.expectedStatus && lines.length) {
+      await testInfo.attach('service worker console', { body: lines.join('\n'), contentType: 'text/plain' });
+    }
+  },
+
+  sw: async ({ context, swConsole }, use) => {
     let [worker] = context.serviceWorkers();
     worker ??= await context.waitForEvent('serviceworker');
+    worker.on('console', (message) => swConsole.push(`${message.type()}: ${message.text()}`));
     await use(worker);
   },
 
-  ext: async ({ context, sw, site, profile, launchArgs }, use) => {
+  ext: async ({ context, sw, swConsole, site, profile, launchArgs }, use) => {
     // The welcome page opens on install; it doubles as the extension page
     // that sends "shortcut presses" to background.js.
     await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html')), { timeout: 15_000 }).toBe(true);
@@ -321,6 +332,7 @@ export const test = base.extend({
         const again = await launch(profile, { launchArgs: [...launchArgs, '--restore-last-session'] });
         let [worker] = again.serviceWorkers();
         worker ??= await again.waitForEvent('serviceworker');
+        worker.on('console', (message) => swConsole.push(`restarted ${message.type()}: ${message.text()}`));
         return { context: again, sw: worker };
       },
 

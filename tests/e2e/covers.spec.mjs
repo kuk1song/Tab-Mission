@@ -59,10 +59,12 @@ test('the shortcut pictures the page you are leaving', async ({ ext, context }) 
   const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
   await ext.pressDefaultShortcut(gamma);
   await opened;
-  // Within a second, and before the follow-up, which comes 2.5 s after the
-  // first picture at the soonest (it is set once that picture is stored).
+  // A new picture, before the follow-up could take it: that one comes 2.5 s
+  // after the first picture at the soonest (it is set once that picture is
+  // stored). The press's capture may first wait its turn (Chrome allows two
+  // a second).
   let after;
-  await expect.poll(async () => (after = await indexAt()), { timeout: 1000 }).toBeGreaterThan(before);
+  await expect.poll(async () => (after = await indexAt()), { intervals: [50] }).toBeGreaterThan(before);
   expect(after - before).toBeLessThan(2500);
 });
 
