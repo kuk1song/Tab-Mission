@@ -141,7 +141,7 @@
   },
   "welcomeAllSet": {
     "message": "You're all set.",
-    "description": "Welcome page checklist: shown once all three steps are done."
+    "description": "Welcome page checklist: shown once both steps are done."
   },
   "welcomeTipsTitle": {
     "message": "More tips",
@@ -183,11 +183,11 @@
   },
   "optionOpenHeading": {
     "message": "When Tab Mission opens",
-    "description": "Options: heading of the open behaviour section."
+    "description": "Settings page: heading of the section on how Tab Mission opens and shows the tabs."
   },
   "optionShortcutsHeading": {
     "message": "Keyboard shortcuts",
-    "description": "Options: shortcuts heading."
+    "description": "Settings page: shortcuts heading."
   },
   "optionSaved": {
     "message": "Saved.",
@@ -210,7 +210,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Your most recent tabs come first, then all tabs grouped by site in tab bar order, which switching tabs doesn't change.",
+    "message": "Your five most recent tabs come first, then a group for each site with several tabs, which switching tabs doesn't change. The rest come last.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionHelpHeading": {
@@ -231,7 +231,7 @@
   },
   "optionVersion": {
     "message": "Version $version$",
-    "description": "Settings page: version under the title.",
+    "description": "Settings page: the version, in the closing line.",
     "placeholders": {
       "version": {
         "content": "$1",
@@ -314,7 +314,15 @@
     "description": "Tab Mission, grouped by site: label above the most recent tabs."
   },
   "groupOther": {
-    "message": "Other pages",
-    "description": "Tab Mission, grouped by site: label above tabs without a site, such as local files."
+    "message": "Other",
+    "description": "Tab Mission, grouped by site: heading of the last group, the tabs not shown above it (sites with one tab, pages that are not web pages such as local files)."
+  },
+  "addressExtension": {
+    "message": "Extension page",
+    "description": "Tab Mission card: shown under the title, where a web page shows its site, for a page of another extension."
+  },
+  "addressFile": {
+    "message": "Local file",
+    "description": "Tab Mission card: shown under the title, where a web page shows its site, for a file opened from the computer."
   }
 }

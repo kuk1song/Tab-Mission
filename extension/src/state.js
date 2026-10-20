@@ -1,5 +1,5 @@
 // state.js
-import { getHostname, isSleeping } from './utils.js';
+import { getHostname, isSleeping, isCapturableUrl } from './utils.js';
 
 export const state = {
   allTabs: [],
@@ -11,15 +11,19 @@ export const state = {
   selfWindowId: null, // the overview popup itself; its own tab is never listed
   siteHost: '', // non-empty while showing only one site's tabs
   preselectPrevious: true, // mirrors the setting of the same name
-  groupBySite: false, // mirrors the setting of the same name
+  groupBySite: true, // mirrors the setting of the same name
   // With groupBySite, while browsing: the parts of filteredTabs, in order
-  // ({ host, start, count }, the first one the recent tabs), else null.
+  // ({ host, start, count }; the first one { recent }, the last one
+  // { other } when there is one), else null.
   groups: null,
+  columns: 0, // tiles per row the groups were made for (0: not measured)
 };
 
-// Group by site: the recent tabs first (one row, at most this many), then
-// every tab again under its site.
+// Group by site: this many recent tabs first, at any window size (a narrow
+// window wraps them), then the sites and the rest.
 export const RECENT_MAX = 5;
+// Tiles per row when the grid could not be measured.
+export const DEFAULT_COLUMNS = 5;
 
 export async function fetchAllTabs() {
   try {
@@ -41,10 +45,11 @@ export async function fetchAllTabs() {
   state.currentTabId = currentTab?.id ?? null;
 }
 
-// Hostname of the tab the user was on when the overview opened.
+// Hostname of the tab the user was on when the overview opened, when it is a
+// web page: the site view is for sites, not for browser or extension pages.
 export function currentSiteHost() {
   const currentTab = state.allTabs.find((tab) => tab.id === state.currentTabId);
-  return currentTab ? getHostname(currentTab.url) : '';
+  return currentTab && isCapturableUrl(currentTab.url) ? getHostname(currentTab.url) : '';
 }
 
 // The view toggles: by default only the current window and no sleeping tabs.
@@ -70,6 +75,9 @@ export function countSiteTabs(host, uiState) {
 }
 
 export function applyFilters(uiState) {
+  // The tile picked by hand (not the automatic selection), read before the
+  // view changes.
+  const picked = state.selectedIndex === state.defaultIndex ? null : pickedTile();
   const terms = uiState.searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
   const searching = terms.length > 0;
 
@@ -107,16 +115,19 @@ export function applyFilters(uiState) {
     [tabs[0], tabs[1]] = [tabs[1], tabs[0]];
   }
 
-  // Grouped by site (browsing only, once the tabs fill more than two rows;
-  // fewer fit on screen anyway, and most would show twice): the most recent
-  // tabs stay first, one row of them, so the previous tab keeps the first
-  // slot; then all tabs again by site in tab-strip order, which switching
-  // tabs does not change. Nothing is stored. uiState.columns is how many
-  // tiles fit in a row.
+  // Grouped by site (the setting, on by default; while browsing only, as a
+  // query or the site view shows one list): the five most recent tabs stay
+  // first, so the previous tab keeps the first slot; then each site's tabs
+  // in tab-strip order, which switching tabs does not change; then the rest.
+  // It applies at any window size and any number of tabs, so resizing the
+  // window or closing a tab never switches the layout, and a resize only
+  // changes how many tiles a row holds. Nothing is stored. uiState.columns
+  // is how many tiles fit in a row: each site's panel spans as many columns
+  // as it has tiles (overview.css), and the panels are packed row by row.
   state.groups = null;
-  const recentCount = Math.max(1, Math.min(RECENT_MAX, uiState.columns || RECENT_MAX));
-  if (uiState.groupBySite && !searching && !state.siteHost && tabs.length > 2 * recentCount) {
-    const { entries, groups } = groupBySite(tabs, recentCount);
+  state.columns = uiState.columns || 0;
+  if (uiState.groupBySite && !searching && !state.siteHost) {
+    const { entries, groups } = groupBySite(tabs, RECENT_MAX, uiState.columns || DEFAULT_COLUMNS);
     tabs = entries;
     state.groups = groups;
   }
@@ -138,29 +149,90 @@ export function applyFilters(uiState) {
   } else if (selectionWasAutomatic) {
     state.selectedIndex = -1;
   } else {
-    state.selectedIndex = Math.min(state.selectedIndex, tabs.length - 1);
+    // A tile you picked stays picked when the tiles move (a toggle, panels
+    // packed anew for a different width); once its tab is gone, the tile
+    // that takes its place is (× clicked again closes the next tab).
+    const index = picked ? indexOfTile(picked) : -1;
+    state.selectedIndex = index === -1 ? Math.min(state.selectedIndex, tabs.length - 1) : index;
   }
+}
+
+// The selected tile before a new view: its tab, and whether it was the copy
+// among the recent tabs (grouped by site, a recent tab of a site with two
+// tabs or more has two tiles).
+function pickedTile() {
+  const tab = state.filteredTabs[state.selectedIndex];
+  if (!tab) return null;
+  return { id: tab.id, recent: Boolean(state.groups) && state.selectedIndex < state.groups[0].count };
+}
+
+// The same tile in the new view: the copy in the same place (among the
+// recent tabs or not) when there is one, else the tab's other tile.
+function indexOfTile({ id, recent }) {
+  const recentEnd = state.groups ? state.groups[0].count : 0;
+  const indexes = state.filteredTabs.flatMap((tab, i) => (tab.id === id ? [i] : []));
+  return indexes.find((i) => (i < recentEnd) === recent) ?? indexes[0] ?? -1;
 }
 
 // tabs in recent order. Sites follow the tab strip: windows in the order they
 // were opened (by id), tabs by position, a site where its first tab is;
-// within a site, its tabs by position.
-export function groupBySite(tabs, recentCount = RECENT_MAX) {
+// within a site, its tabs by position. A site gets a group of its own with
+// two tabs or more, all of them, so a group never changes as you switch
+// tabs (a recent tab shows twice: copied to the top, not moved, which Gajos
+// et al. 2006 found causes the least confusion). The rest (sites with one tab, pages that are
+// not web pages) share the last group, also by position, without the tabs
+// already among the recent tabs: so a window of a few one-tab sites shows
+// each tab once. The sites are packed into rows of `columns` columns
+// (packRows), each as wide as its tabs.
+function groupBySite(tabs, recentCount, columns) {
   const recent = tabs.slice(0, recentCount);
   const strip = [...tabs].sort((a, b) => a.windowId - b.windowId || a.index - b.index);
   const sites = new Map();
   for (const tab of strip) {
-    const host = getHostname(tab.url);
+    const host = isCapturableUrl(tab.url) ? getHostname(tab.url) : '';
     if (!sites.has(host)) sites.set(host, []);
     sites.get(host).push(tab);
   }
   const groups = [{ recent: true, host: '', start: 0, count: recent.length }];
   const entries = [...recent];
+  const shown = new Set(recent.map((tab) => tab.id));
+  const other = [];
+  const own = [];
   for (const [host, siteTabs] of sites) {
+    if (!host || siteTabs.length < 2) other.push(...siteTabs.filter((tab) => !shown.has(tab.id)));
+    else own.push([host, siteTabs]);
+  }
+  for (const [host, siteTabs] of packRows(own, columns)) {
     groups.push({ host, start: entries.length, count: siteTabs.length });
     entries.push(...siteTabs);
   }
+  if (other.length) {
+    other.sort((a, b) => a.windowId - b.windowId || a.index - b.index);
+    groups.push({ other: true, host: '', start: entries.length, count: other.length });
+    entries.push(...other);
+  }
   return { entries, groups };
+}
+
+// Row by row, each row takes the next sites that still fit in it, in order,
+// each as wide as its tabs (all columns at most). Same sites and columns,
+// same order: switching tabs never moves them.
+function packRows(sites, columns) {
+  const pending = [...sites];
+  const packed = [];
+  while (pending.length) {
+    let room = columns;
+    for (let i = 0; i < pending.length && room > 0;) {
+      const width = Math.min(pending[i][1].length, columns);
+      if (width <= room) {
+        room -= width;
+        packed.push(...pending.splice(i, 1));
+      } else {
+        i++;
+      }
+    }
+  }
+  return packed;
 }
 
 function firstOtherIndex(tabs) {

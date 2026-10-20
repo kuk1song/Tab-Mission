@@ -20,6 +20,7 @@ for (const scale of [1, 1.25, 1.5]) {
     test(`overview, search, site view and pages at ${scale * 100}%`, async ({ ext, context }) => {
       mkdirSync(OUT, { recursive: true });
       const name = (what) => `${OUT}/${process.platform}-${scale * 100}-${what}.png`;
+      await ext.sw.evaluate(() => chrome.storage.local.remove('groupBySite')); // as users have it
       await ext.openWindow(TABS);
       const page = await ext.open();
       await page.waitForTimeout(800); // entrance animation and previews

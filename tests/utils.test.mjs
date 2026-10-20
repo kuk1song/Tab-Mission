@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   getHostname,
+  addressLabel,
   isCapturableUrl,
   isSleeping,
   hueColor,
@@ -16,6 +17,30 @@ describe('getHostname', () => {
   it('falls back to the raw string for non-URLs', () => {
     expect(getHostname('not a url')).toBe('not a url');
     expect(getHostname('')).toBe('');
+  });
+});
+
+describe('addressLabel', () => {
+  const names = { own: 'Tab Mission', extension: 'Extension page', file: 'Local file', host: 'ownid' };
+  it('names a web page by its host, without www', () => {
+    expect(addressLabel('https://www.youtube.com/watch?v=1', names)).toBe('youtube.com');
+    expect(addressLabel('http://docs.example.com/a', names)).toBe('docs.example.com');
+  });
+  it('names a browser page by its scheme and host, as the address bar does', () => {
+    expect(addressLabel('chrome://extensions/', names)).toBe('chrome://extensions');
+    expect(addressLabel('chrome://settings/privacy', names)).toBe('chrome://settings');
+    expect(addressLabel('about:blank', names)).toBe('about:blank');
+  });
+  it("names Tab Mission's pages, other extensions' pages and local files", () => {
+    expect(addressLabel('chrome-extension://ownid/options.html', names)).toBe('Tab Mission');
+    expect(addressLabel('chrome-extension://otherid/popup.html', names)).toBe('Extension page');
+    expect(addressLabel('file:///Users/me/notes.html', names)).toBe('Local file');
+  });
+  it('says nothing for data and blob addresses, or what is not an address', () => {
+    expect(addressLabel('data:text/html,<p>x', names)).toBe('');
+    expect(addressLabel('blob:https://example.com/123', names)).toBe('');
+    expect(addressLabel('not a url', names)).toBe('');
+    expect(addressLabel(undefined, names)).toBe('');
   });
 });
 

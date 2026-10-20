@@ -34,7 +34,7 @@ async function main() {
   window.addEventListener('focus', () => showShortcuts());
 }
 
-// Show the page once the text, the saved setting and the shortcut are in
+// Show the page once the text, the saved settings and the shortcut are in
 // place. Reading the knob's style applies the saved state while transitions
 // are still off, so removing the class afterwards starts no slide.
 function reveal(preselect) {

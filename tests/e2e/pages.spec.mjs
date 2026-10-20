@@ -257,8 +257,8 @@ test("options page: the shortcut button opens Chrome's shortcuts page", async ({
 });
 
 // Contrast of each text against what is painted behind it (the page color
-// with any translucent surfaces on top; the dark gradient's lightest stop is
-// close to the page color), in both appearances and at phone width.
+// with any translucent surfaces on top), in both appearances and at phone
+// width.
 async function contrasts(page, selectors) {
   return page.evaluate((selectors) => {
     const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);

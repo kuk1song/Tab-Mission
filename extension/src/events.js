@@ -46,8 +46,8 @@ export function initializeEventListeners() {
     });
   }
 
-  // The gear opens Tab Mission's own settings page (open behaviour, and the
-  // shortcuts with a link to change them).
+  // The gear opens Tab Mission's own settings page (the shortcut with a link
+  // to change it, selection, grouping, tips).
   if (openSettingsBtn) {
     openSettingsBtn.addEventListener('click', () => {
       try {
@@ -78,9 +78,9 @@ export function initializeEventListeners() {
 
   initializeGridListeners();
 
-  // Grouped by site, the recent row holds as many tiles as fit, so a resize
-  // that changes that number redraws the grid. Dragging the window's edge
-  // fires many resizes, and most keep it.
+  // Grouped by site, panels span the grid's columns, so a resize that
+  // changes the number of tiles in a row redraws the grid. Dragging the
+  // window's edge fires many resizes, and most keep it.
   window.addEventListener('resize', () => {
     if (shownColumns !== undefined && tilesPerRow() !== shownColumns) scheduleFilterChange();
   });
@@ -143,9 +143,14 @@ function readUiState() {
 }
 
 
-// How many tiles fit in a row of the grid. Grouped by site the grid is not a
-// CSS grid, so this measures the minimum tile width (--tile-min) instead of
-// reading the grid's columns.
+// The grid's column gap and side padding while grouped by site, as in
+// overview.css (wider than the plain grid's, to hold the panels' edges).
+const GROUPED = { gap: 24, padding: 16 };
+
+// How many tiles fit in a row while grouped by site, measured before the
+// grid is drawn that way: the minimum tile width (--tile-min) with the
+// grouped gap and padding, whatever the grid shows now. Both widths come
+// from the layout, which the window's fade-in (a scale) leaves alone.
 function tilesPerRow() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return undefined;
@@ -154,11 +159,10 @@ function tilesPerRow() {
   const probe = document.createElement('div');
   probe.style.cssText = 'position: absolute; visibility: hidden; width: var(--tile-min)';
   gridEl.append(probe);
-  const tile = probe.getBoundingClientRect().width;
-  const style = getComputedStyle(gridEl);
-  const width = gridEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const tile = parseFloat(getComputedStyle(probe).width);
+  const width = gridEl.clientWidth - 2 * GROUPED.padding;
   probe.remove();
-  const gap = 12; // between tiles, as in overview.css
+  const { gap } = GROUPED;
   return tile > 0 ? Math.max(1, Math.floor((width + gap) / (tile + gap))) : undefined;
 }
 
@@ -192,7 +196,17 @@ function updateScopeIndicators(uiState) {
   token.hidden = !state.siteHost;
   if (state.siteHost) {
     document.getElementById('scope-label').textContent = site.label;
-    document.getElementById('scope-icon').src = site.icon;
+    const icon = document.getElementById('scope-icon');
+    // Set once per site, not per keystroke. Without the site's icon (see
+    // siteIcon in dom.js), a letter.
+    if (icon.dataset.host !== site.host) {
+      icon.dataset.host = site.host;
+      icon.onerror = () => {
+        icon.onerror = null;
+        icon.src = createPlaceholderIcon(site.host);
+      };
+      icon.src = site.icon;
+    }
     searchEl.placeholder = t('searchSitePlaceholder', [site.label]) || `Search ${site.label} tabs…`;
   } else {
     searchEl.placeholder = t('searchPlaceholder') || 'Search tabs (title or URL)…';

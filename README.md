@@ -19,16 +19,16 @@
 
 ---
 
-Tab Mission puts your tabs into one searchable grid, ordered by when you last used them. Summon it with a single shortcut, type a few letters, press Enter, and you are there.
+Tab Mission puts your tabs into one searchable grid, the ones you used last first. Summon it with a single shortcut, type a few letters, press Enter, and you are there.
 
 ## ✨ Features
 
 - **Instant Overview:** Your tabs in one grid, one keystroke away.
-- **Most Likely First:** The tab you most likely want, the previous one, takes the first slot; your current tab sits second; the rest follow by last use.
-- **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. A search covers all windows and sleeping tabs; without one, the grid shows what the two checkboxes say.
-- **Site View:** When the grid holds two or more tabs from the site you are on, press `Tab` in the search box to see only those (`Tab` again, `Esc`, or `Backspace` at the start of the box to leave). A global shortcut for it can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
-- **Grouped by Site:** Once your tabs fill more than two rows, one row of recent tabs comes first (the previous tab still in the first slot), then all your tabs grouped by site in tab-bar order, so switching never moves them. You can turn it off in the settings.
-- **Keyboard or Mouse:** `↑↓←→` + `Enter`, click, or point at a tab and press the shortcut again. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
+- **Most Likely First:** The tab you most likely want, the previous one, takes the first slot; your current tab sits second, then your other recent tabs.
+- **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. A search covers all windows and sleeping tabs; without one, the grid shows what the two toggles above it say.
+- **Site View:** When the grid holds two or more tabs from the website you are on, press `Tab` in the search box to see only those (`Tab` again, `Esc`, or `Backspace` at the start of the box to leave). A global shortcut for it can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
+- **Grouped by Site:** Your five most recent tabs come first (the previous tab still in the first slot), then a panel for each site with several tabs, which switching tabs never moves; the rest come last. It looks the same at any window size. You can turn it off in the settings.
+- **Keyboard or Mouse:** `↑↓←→` + `Enter`, or click. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
 - **Page Previews:** Each tab shows a small picture of the page, taken while it was in front of you and kept after a restart, with its title underneath; until it has one, the preview image the page provides (not a logo), or the site's icon on a card in the icon's color. Light or dark, as your system is.
 - **Private by Design:** No developer-run server, analytics or tracking. Tab information and page pictures stay on your computer (pictures only of tabs still open, never of incognito tabs); preview images load from their original hosts, and site icons come from Chrome's own store.
 

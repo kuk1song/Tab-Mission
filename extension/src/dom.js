@@ -1,7 +1,7 @@
 // dom.js
-import { state } from './state.js';
+import { state, DEFAULT_COLUMNS } from './state.js';
 import { activateTab, closeTab, setSiteScope } from './events.js';
-import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor } from './utils.js';
+import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor, addressLabel } from './utils.js';
 import { observeTiles } from './thumbnail.js';
 import { t } from './i18n.js';
 import { selectionMoved } from './tips.js';
@@ -111,11 +111,14 @@ export function render() {
   });
   // A keystroke that leaves the same tiles (most do, with many tabs) only
   // moves the selection: putting hundreds of tiles back costs a layout.
-  const now = JSON.stringify([state.groups, state.filteredTabs.map((tab) => tab.id)]);
+  // Panels span columns, so a change in their number redraws them too.
+  const columns = state.groups ? state.columns || DEFAULT_COLUMNS : 0;
+  const now = JSON.stringify([state.groups, state.filteredTabs.map((tab) => tab.id), columns]);
   if (now !== shown) {
     shown = now;
     gridEl.classList.toggle('grouped', Boolean(state.groups));
-    gridEl.replaceChildren(...(state.groups ? state.groups.map((group) => createGroup(group, nodes)) : nodes));
+    gridEl.style.setProperty('--columns', String(columns || 1));
+    gridEl.replaceChildren(...(state.groups ? state.groups.map((group) => createGroup(group, nodes, columns)) : nodes));
   }
 
   updateSelection();
@@ -139,22 +142,44 @@ export function markInView() {
   return els.filter((el, i) => inView[i]);
 }
 
-// A group of tiles under a small label: the recent tabs, one site's tabs,
-// or tabs without a site (local files, blank pages). It is as wide as its
-// tiles (--n), up to the grid's width.
-function createGroup({ recent, host, start, count }, nodes) {
+// A group of tiles under a heading: the recent tabs; one site's tabs, with
+// the site's icon and how many tabs it has; or the rest (sites with one tab,
+// local files, browser pages), last. It spans as many of the grid's columns
+// as it has tiles, up to all of them (the recent tabs: all of them), and the
+// sites and the rest sit on panels (overview.css).
+function createGroup({ recent, other, host, start, count }, nodes, columns) {
   const group = document.createElement('div');
-  group.className = recent ? 'tile-group recent' : 'tile-group';
+  group.className = `tile-group${recent ? ' recent' : ''}${other ? ' other' : ''}`;
   group.setAttribute('role', 'group');
   const label = recent
     ? (t('groupRecent') || 'Recent')
-    : host.replace(/^www\./, '') || t('groupOther') || 'Other pages';
+    : other ? (t('groupOther') || 'Other') : host.replace(/^www\./, '');
   group.setAttribute('aria-label', label);
-  group.style.setProperty('--n', String(count));
+  if (columns) {
+    const span = recent ? columns : Math.min(count, columns);
+    group.style.gridColumn = `span ${span}`;
+    group.style.setProperty('--span', String(span));
+  }
+
   const heading = document.createElement('div');
   heading.className = 'group-label';
-  heading.setAttribute('aria-hidden', 'true');
-  heading.textContent = label;
+  heading.setAttribute('aria-hidden', 'true'); // the group's own label says it
+  if (!recent && !other) {
+    const icon = document.createElement('span');
+    icon.className = 'group-icon';
+    icon.appendChild(siteIcon(state.filteredTabs[start].url));
+    heading.appendChild(icon);
+  }
+  const name = document.createElement('span');
+  name.className = 'group-name';
+  name.textContent = label;
+  heading.appendChild(name);
+  if (!recent) {
+    const n = document.createElement('span');
+    n.className = 'group-count';
+    n.textContent = String(count);
+    heading.appendChild(n);
+  }
   group.append(heading, ...nodes.slice(start, start + count));
   return group;
 }
@@ -183,7 +208,7 @@ function createTile(tab, index) {
   const close = document.createElement('span');
   close.className = 'tile-close';
   close.textContent = '×';
-  close.title = t('closeTabTitle') || 'Close tab';
+  close.title = t('closeTabTitle') || 'Close tab (or middle-click)';
   close.setAttribute('aria-hidden', 'true');
   tile.appendChild(close);
 
@@ -204,13 +229,10 @@ function createPreviewElement(tab) {
   icon.className = 'preview-icon';
   icon.setAttribute('aria-hidden', 'true'); // the title says it; a letter is not part of the name
   const plate = document.createElement('span');
-  if (isCapturableUrl(tab.url)) {
-    plate.appendChild(siteIcon(tab.url));
-  } else {
-    const letter = document.createElement('b');
-    letter.textContent = Array.from(tab.title || hostname || '?')[0].toUpperCase();
-    plate.appendChild(letter);
-  }
+  const letter = document.createElement('b');
+  letter.textContent = Array.from(tab.title || hostname || '?')[0].toUpperCase();
+  if (isCapturableUrl(tab.url)) plate.appendChild(siteIcon(tab.url));
+  plate.appendChild(letter); // shown without an icon (overview.css)
   icon.appendChild(plate);
   preview.appendChild(icon);
 
@@ -239,11 +261,32 @@ function createPreviewElement(tab) {
   return preview;
 }
 
+// A site's icon. Should Chrome not hand it over (the extension not yet
+// reloaded after an update that adds the favicon permission, say), the
+// element that holds it says so (data-icon="missing") instead of showing a
+// broken image: an icon card falls back to the page's first letter, a badge
+// or a heading icon disappears (overview.css).
 function siteIcon(url) {
   const img = document.createElement('img');
   img.alt = '';
+  img.addEventListener('error', () => {
+    img.parentElement?.setAttribute('data-icon', 'missing');
+  }, { once: true });
   img.src = faviconUrl(url);
   return img;
+}
+
+// The names the address line uses (utils.js addressLabel), read once.
+let addressNames = null;
+
+function addressOf(url) {
+  addressNames ??= {
+    own: chrome.runtime.getManifest().short_name || 'Tab Mission',
+    extension: t('addressExtension') || 'Extension page',
+    file: t('addressFile') || 'Local file',
+    host: new URL(chrome.runtime.getURL('')).host,
+  };
+  return addressLabel(url, addressNames);
 }
 
 function createMetaElement(tab) {
@@ -257,7 +300,7 @@ function createMetaElement(tab) {
 
   const url = document.createElement('div');
   url.className = 'url';
-  url.textContent = getHostname(tab.url);
+  url.textContent = addressOf(tab.url);
   meta.appendChild(url);
 
   return meta;
@@ -268,14 +311,14 @@ function createEmptyMessage() {
   emptyMessage.className = 'empty';
   emptyMessage.textContent = state.allTabs.length === 0
     ? (t('emptyNoTabs') || 'No tabs found.')
-    : (t('emptyNoMatch') || 'No tabs match.');
+    : (t('emptyNoMatch') || 'No matching tabs.');
   // Inside the site scope, name the scope and offer one click to search
   // every tab instead. (Without a query, e.g. after closing the site's last
   // tab, the generic message above stays.)
   if (state.siteHost && state.allTabs.length > 0) {
     const site = state.siteHost.replace(/^www\./, '');
     if (document.getElementById('search')?.value.trim()) {
-      emptyMessage.textContent = t('emptyNoMatchInSite', [site]) || `No ${site} tabs match.`;
+      emptyMessage.textContent = t('emptyNoMatchInSite', [site]) || `No ${site} tabs match your search.`;
     }
     const widen = document.createElement('button');
     widen.className = 'empty-widen';

@@ -62,6 +62,23 @@ export function observeTiles(tiles) {
   }
 }
 
+// Grouped by site, a recent tab has two tiles, often in view together. While
+// one asks for its cover, the page's own image or that image's bytes, the
+// other waits for the same answer instead of asking again. Nothing is kept
+// once answered.
+const coverReads = new Map(); // tab id -> its cover (readCover), in flight
+const imageLookups = new Map(); // tab id -> the image its page names, in flight
+const imageFetches = new Map(); // address -> fetchImage's answer, in flight
+
+function shared(map, key, start) {
+  if (!map.has(key)) {
+    const promise = start();
+    map.set(key, promise);
+    promise.finally(() => map.delete(key)).catch(() => {});
+  }
+  return map.get(key);
+}
+
 async function loadThumbnail(tab, tile) {
   tile.dataset.thumb = 'done';
   const img = tile.querySelector('.thumbnail');
@@ -71,7 +88,7 @@ async function loadThumbnail(tab, tile) {
   // A picture of the page as you last saw it (covers.js) says more than the
   // image the page declares for itself, and needs nothing from the tab, so
   // it also serves sleeping tabs.
-  const cover = await readCover(tab);
+  const cover = await shared(coverReads, tab.id, () => readCover(tab));
   if (cover) {
     img.classList.add('cover');
     img.onload = () => requestAnimationFrame(() => img.classList.add('loaded'));
@@ -104,7 +121,7 @@ async function loadThumbnail(tab, tile) {
     return;
   }
 
-  const imageUrl = webImageUrl(await extractPreviewImage(tab.id));
+  const imageUrl = await shared(imageLookups, tab.id, async () => webImageUrl(await extractPreviewImage(tab.id)));
   remember(tab, imageUrl);
   if (imageUrl) showImage(img, tab, imageUrl);
 }
@@ -149,7 +166,8 @@ const SQUARE = [0.8, 1.25]; // width to height
 
 async function showImage(img, tab, src) {
   img.dataset.from = src; // the address the page named
-  const { local, lasting } = await fetchImage(src);
+  const { blob, lasting } = await shared(imageFetches, src, () => fetchImage(src));
+  const local = blob && URL.createObjectURL(blob);
   // A dead or refused address, or an image that is not one or is a logo:
   // hide it and remember the miss so we do not retry it.
   const miss = () => {
@@ -179,9 +197,9 @@ async function showImage(img, tab, src) {
 // The image a page names is fetched without cookies or a referrer: the page
 // chooses the address, which could be one that acts on the user's account
 // elsewhere. It is then shown from memory. Images over MAX_IMAGE_BYTES, or
-// slower than IMAGE_TIMEOUT_MS, are skipped. Resolves { local } with a blob
-// URL, or { lasting } telling whether the failure will not pass (an error
-// status, a page instead of an image, an image too big).
+// slower than IMAGE_TIMEOUT_MS, are skipped. Resolves { blob }, or
+// { lasting } telling whether the failure will not pass (an error status, a
+// page instead of an image, an image too big).
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const IMAGE_TIMEOUT_MS = 10_000;
 
@@ -207,7 +225,7 @@ async function fetchImage(src) {
     }
     const blob = await response.blob();
     if (blob.size > MAX_IMAGE_BYTES) return { lasting: true };
-    return { local: URL.createObjectURL(blob) };
+    return { blob };
   } catch {
     return { lasting: false }; // offline, refused, or too slow
   } finally {

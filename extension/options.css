@@ -1,10 +1,9 @@
-/* Settings page. It follows the system's light or dark appearance; the dark
-   colors are the overview's. Each row has a label and a one-line description
-   on the left and its control on the right. */
+/* Settings page. It follows the system's light or dark appearance, with
+   colors close to the Tab Mission window's. Each row has a label and a short
+   description on the left and its control on the right. */
 :root {
   color-scheme: light dark;
   --bg: #f4f4f7;
-  --bg-image: none;
   --surface: #ffffff;
   --fg: #1d1d26;
   --muted: #5b5b6b;
@@ -18,8 +17,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1e1e2e;
-    --bg-image: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 50%, #1a1a2e 100%);
+    --bg: #161618;
     --surface: rgba(255, 255, 255, 0.045);
     --fg: #f0f0f0;
     --muted: #a0a0aa;
@@ -38,8 +36,6 @@ html, body {
   margin: 0;
   min-height: 100%;
   background-color: var(--bg);
-  background-image: var(--bg-image);
-  background-attachment: fixed;
   color: var(--fg);
 }
 
@@ -161,7 +157,7 @@ button.external::after {
   .control { width: 100%; justify-content: flex-end; }
 }
 
-/* Until options.js has filled in the text, the saved setting and the
+/* Until options.js has filled in the text, the saved settings and the
    shortcut (a few frames), the page stays hidden and the switch does not
    animate. It then appears complete: no English first, no shift as the
    shortcut arrives, no switch sliding from off to on. */

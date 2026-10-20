@@ -12,11 +12,12 @@ import { isCapturableUrl } from './utils.js';
 // closes, the rest when Tab Mission next opens (tidyCovers), and the oldest
 // first when the budget is full. Incognito tabs, browser pages and other
 // windows' tabs (a popup, a window without focus) are never captured.
-export const COVER_PREFIX = 'cover:';
-export const INDEX_KEY = 'coverIndex';
+const COVER_PREFIX = 'cover:';
+const INDEX_KEY = 'coverIndex';
 export const SETTLE_MS = 500; // after a switch or a load, let the page paint
-// Pictures again after these further delays while the tab stays in front:
-// 3 s and 15 s after the first, then none until something happens.
+// Pictures again after these further delays while the tab stays in front,
+// each after the one before (about 3 s and 15 s after the switch), then none
+// until something happens.
 export const FOLLOW_UP_MS = [2500, 12000];
 // A page in front that keeps changing (a video's address updating its time,
 // an app's routes, a page or an ad frame reloading) would start over on every
@@ -27,10 +28,10 @@ export const FOLLOW_UP_MS = [2500, 12000];
 export const BURST = 3;
 export const REFILL_MS = 20_000;
 export const CAPTURE_GAP_MS = 550; // Chrome allows two captures a second
-export const MAX_BYTES = 6 * 1024 * 1024; // of local storage's 10 MB
-export const COVER_WIDTH = 640; // a card is at most about 320 px wide
+const MAX_BYTES = 6 * 1024 * 1024; // of local storage's 10 MB
+const COVER_WIDTH = 640; // a card is at most about 320 px wide
 
-export const coverKey = (tabId) => `${COVER_PREFIX}${tabId}`;
+const coverKey = (tabId) => `${COVER_PREFIX}${tabId}`;
 
 let shrink = shrinkImage;
 let nextSlot = 0; // the earliest time (performance.now) the next capture may start

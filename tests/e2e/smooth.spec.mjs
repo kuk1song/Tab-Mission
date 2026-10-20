@@ -4,8 +4,15 @@ import { test, expect } from './fixtures.mjs';
 // animate, and a keystroke that leaves the same results does not put the
 // tiles back.
 
-test('only the tiles in view play the entrance', async ({ ext }) => {
+test('only the tiles in view play the entrance, grouped by site or not', async ({ ext }) => {
   await ext.openWindow(Array.from({ length: 40 }, (_, i) => `beta?n=${i}`));
+  for (const groupBySite of [true, false]) {
+    await ext.sw.evaluate((groupBySite) => chrome.storage.local.set({ groupBySite }), groupBySite);
+    await entranceInViewOnly(ext);
+  }
+});
+
+async function entranceInViewOnly(ext) {
   const page = await ext.open();
   const tiles = await page.locator('#grid .tile').evaluateAll((els) => {
     const view = document.getElementById('grid').getBoundingClientRect();
@@ -19,7 +26,8 @@ test('only the tiles in view play the entrance', async ({ ext }) => {
   expect(tiles.filter((t) => !t.inView).length).toBeGreaterThan(0);
   expect(tiles.filter((t) => t.inView).every((t) => t.animated)).toBe(true);
   expect(tiles.filter((t) => !t.inView).some((t) => t.animated)).toBe(false);
-});
+  await ext.pressToClose(page, 'Escape');
+}
 
 test('a keystroke that leaves the same results does not redraw the grid', async ({ ext }) => {
   await ext.openWindow(['alpha', 'tube1', 'tube2', 'tube3']);
