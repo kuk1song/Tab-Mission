@@ -380,6 +380,11 @@ describe('isBlank', () => {
     expect(isBlank(pixels(64000, (p) => (p % 7 ? [250, 250, 250] : [244, 252, 248])))).toBe(true);
     // One line of text across a 640 px wide picture, every 40th row.
     expect(isBlank(pixels(64000, (p) => (Math.floor(p / 640) % 40 === 20 ? [30, 30, 30] : [250, 250, 250])))).toBe(false);
+    // A page with only a short title: 100 x 8 px of a 640 x 400 picture.
+    const title = (p) => (p % 640 >= 8 && p % 640 < 108 && Math.floor(p / 640) >= 12 && Math.floor(p / 640) < 20);
+    expect(isBlank(pixels(256000, (p) => (title(p) ? [30, 30, 30] : [250, 250, 250])))).toBe(false);
+    // A few stray pixels, such as a text cursor, are not content.
+    expect(isBlank(pixels(256000, (p) => (p % 25000 === 1000 ? [30, 30, 30] : [250, 250, 250])))).toBe(true);
   });
 });
 
