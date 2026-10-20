@@ -214,18 +214,19 @@ export function tidyCovers() {
   });
 }
 
-// A picture of one colour throughout (a page not painted yet, or blank):
-// fewer than 1 in 200 sampled pixels differ from the first by more than a
-// faint shade. RGBA data, as from getImageData.
+// A picture of one colour throughout (a page not painted yet, or blank): at
+// most 1 in 10,000 pixels differ from the first by more than a faint shade.
+// Every pixel counts, so a page with only a short title is not blank (a
+// sample of them could miss it). RGBA data, as from getImageData.
 export function isBlank(data) {
-  const step = 4 * 16; // every 16th pixel
-  let samples = 0;
+  const allowed = data.length / 4 / 10_000;
   let differ = 0;
-  for (let i = 0; i < data.length; i += step) {
-    samples++;
-    if (Math.abs(data[i] - data[0]) > 12 || Math.abs(data[i + 1] - data[1]) > 12 || Math.abs(data[i + 2] - data[2]) > 12) differ++;
+  for (let i = 4; i < data.length; i += 4) {
+    if (Math.abs(data[i] - data[0]) > 12 || Math.abs(data[i + 1] - data[1]) > 12 || Math.abs(data[i + 2] - data[2]) > 12) {
+      if (++differ > allowed) return false;
+    }
   }
-  return differ * 200 < samples;
+  return true;
 }
 
 // Shrink a capture to card size, keeping the top of the page in the cards'
