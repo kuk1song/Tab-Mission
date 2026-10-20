@@ -170,6 +170,19 @@ describe('covers', () => {
     expect(chrome.data['cover:11'].url).toMatch(/\?t=11\d$/); // the latest page
   });
 
+  it('a capture Chrome refuses is tried again at the next follow-up', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    chrome.tabs.captureVisibleTab.mockRejectedValueOnce(new Error('Failed to capture tab: unknown error'));
+    switchTo(page(11));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    expect(chrome.data['cover:11']).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0]);
+    expect(chrome.shots).toHaveLength(1); // the refused one is not recorded by the fake
+    expect(chrome.data['cover:11']).toEqual({ url: 'https://site.test/11', img: 'data:image/webp;base64,SMALL' });
+    warn.mockRestore();
+  });
+
   it('a page still loading is left for the follow-ups, which take it as it is', async () => {
     switchTo(page(11, { status: 'loading' })); // held up by a slow image, say
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
