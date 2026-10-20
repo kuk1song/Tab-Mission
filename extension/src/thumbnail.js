@@ -1,6 +1,7 @@
 // thumbnail.js
 import { state } from './state.js';
 import { isCapturableUrl, isSleeping } from './utils.js';
+import { readCover } from './covers.js';
 
 // Preview image URLs are cached in chrome.storage.session (kept in memory and
 // cleared when the browser quits), so reopening the overview shows previews
@@ -61,6 +62,18 @@ async function loadThumbnail(tab, tile) {
   // Pages we cannot read keep the placeholder (title + hostname on a gradient).
   if (!img || !isCapturableUrl(tab.url)) return;
 
+  // A picture of the page as you last saw it (covers.js) says more than the
+  // image the page declares for itself, and needs nothing from the tab, so
+  // it also serves sleeping tabs.
+  const cover = await readCover(tab);
+  if (cover) {
+    img.classList.add('cover');
+    img.onload = () => requestAnimationFrame(() => img.classList.add('loaded'));
+    img.onerror = () => { img.style.display = 'none'; };
+    img.src = cover;
+    return;
+  }
+
   await loadCache();
   const hit = cache[tab.id];
   const sameUrl = hit && hit.url === tab.url;
@@ -88,8 +101,23 @@ function webImageUrl(url) {
   return typeof url === 'string' && url.length <= 2048 && isCapturableUrl(url) ? url : null;
 }
 
+// A page's own image is shown unless it is small or about square: a social
+// preview (1200 × 630), a video frame or a portrait photo says something
+// about the page, while a square one is mostly a logo, which says less than
+// the title card underneath.
+const MIN_WIDTH = 300;
+const SQUARE = [0.8, 1.25]; // width to height
+
 function showImage(img, tab, src) {
-  img.onload = () => requestAnimationFrame(() => img.classList.add('loaded'));
+  img.onload = () => {
+    const ratio = img.naturalWidth / img.naturalHeight;
+    if (img.naturalWidth < MIN_WIDTH || (ratio >= SQUARE[0] && ratio <= SQUARE[1])) {
+      img.style.display = 'none';
+      remember(tab, null);
+      return;
+    }
+    requestAnimationFrame(() => img.classList.add('loaded'));
+  };
   img.onerror = () => {
     // A dead image URL: hide it and remember the miss so we do not retry it.
     img.style.display = 'none';
@@ -132,43 +160,15 @@ async function extractPreviewImage(tabId) {
           if (meta && meta.content) return absolute(meta.content);
         }
 
-        // 2. Try other semantic link tags
-        const linkSelectors = ['link[rel="image_src"]', 'link[rel="apple-touch-icon"]'];
-        for (const selector of linkSelectors) {
-          const link = document.querySelector(selector);
-          if (link && link.href) return link.href;
-        }
+        // 2. The older way to name a page's preview image
+        const link = document.querySelector('link[rel="image_src"]');
+        if (link && link.href) return link.href;
 
-        // 3. Look for video posters
+        // 3. A video's poster frame
         const video = document.querySelector('video[poster]');
         if (video && video.poster) return video.poster;
 
-        // 4. Check for background-image on large elements
-        const largeElements = Array.from(document.querySelectorAll('body, body > *, body > * > *'));
-        for (const el of largeElements) {
-          const style = window.getComputedStyle(el);
-          if (style.backgroundImage && style.backgroundImage.startsWith('url("')) {
-            const url = style.backgroundImage.slice(5, -2);
-            if (el.clientWidth > 200 && el.clientHeight > 150) return url;
-          }
-        }
-
-        // 5. Look for largest image on page
-        const images = Array.from(document.images);
-        let bestImage = null;
-        let bestArea = 0;
-        for (const img of images) {
-          if (!img.complete || !img.naturalWidth || !img.naturalHeight) continue;
-          const aspectRatio = img.naturalWidth / img.naturalHeight;
-          const area = img.naturalWidth * img.naturalHeight;
-          if (area > bestArea && img.naturalWidth > 300 && img.naturalHeight > 150 && aspectRatio > 0.5 && aspectRatio < 3.0) {
-            bestImage = img;
-            bestArea = area;
-          }
-        }
-        if (bestImage && bestImage.currentSrc) return bestImage.currentSrc;
-
-        // Fallback: If no suitable image is found, signal to use placeholder
+        // None: the card keeps its title card.
         return null;
       }
     });

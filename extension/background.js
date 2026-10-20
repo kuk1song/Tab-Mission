@@ -1,5 +1,6 @@
 // background.js
 import { recordTryIt, startTips } from './src/tryit.js';
+import { coverFrontTab, startCovers, tidyCovers } from './src/covers.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -230,6 +231,8 @@ function overviewPath(scope, source) {
 }
 
 async function createOverviewWindow(scope, source) {
+	// Drop the pictures of pages no longer open (src/covers.js), meanwhile.
+	tidyCovers();
 	try {
 		const displays = await chrome.system.display.getInfo();
 		if (!displays || displays.length === 0) {
@@ -254,21 +257,28 @@ async function createOverviewWindow(scope, source) {
 	}
 }
 
+// Pictures of the pages you look at, for their cards (src/covers.js).
+startCovers();
+
 // Listen for the commands to open/toggle the overview. A keyboard command
-// also ticks the welcome page's first step (not awaited, so the press is
-// handled as before); the toolbar button below does not.
+// also ticks the welcome page's first step; the toolbar button below does
+// not. Both take a picture of the page in front of you. Neither is awaited,
+// so the press is handled as before.
 chrome.commands.onCommand.addListener((command) => {
 	if (command === 'open-overview') {
 		recordTryIt('open');
+		coverFrontTab();
 		toggleOverviewWindow();
 	} else if (command === 'open-overview-site') {
 		recordTryIt('open');
+		coverFrontTab();
 		toggleOverviewWindow('site');
 	}
 });
 
 // Also listen for the browser action icon click to toggle.
 chrome.action.onClicked.addListener(() => {
+	coverFrontTab();
 	toggleOverviewWindow(undefined, 'toolbar');
 });
 
