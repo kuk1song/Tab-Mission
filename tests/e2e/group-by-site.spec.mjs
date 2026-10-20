@@ -93,6 +93,9 @@ test('grouped, the card tip points at the selected tile, and the shortcut goes t
   const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
   await ext.pressDefaultShortcut(context.pages().find((p) => p.url() === ext.url('tube3')));
   const page = await opened;
+  // The tiles first: the grid is marked as entering before they are drawn,
+  // so until then it would pass for settled.
+  await page.locator('#grid .tile').first().waitFor();
   await page.locator('#grid:not(.entering)').waitFor();
   // The previous tab has a tile among the recent tabs and one in its site's
   // panel: the recent one is selected, and the tip points at it.

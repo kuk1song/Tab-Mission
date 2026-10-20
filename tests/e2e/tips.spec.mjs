@@ -58,6 +58,9 @@ test('opened with the shortcut, a tip points at the previous tab, with no button
   expect(Math.abs(arrowX - (card.x + card.width / 2))).toBeLessThan(2);
   expect(passesPointer).toBe(true);
   await expect(overview.locator('.tip')).toHaveCount(1);
+  // Still shown, not fading out (an element fading out still counts as
+  // visible to toBeVisible).
+  await expect(tip).not.toHaveClass(/\bout\b/);
 });
 
 test('the card tip stays while the pointer moves on its card, and goes once the selection leaves it', async ({ ext, context }) => {
