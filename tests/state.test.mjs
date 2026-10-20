@@ -436,6 +436,34 @@ describe('applyFilters — group by site', () => {
     expect(state.filteredTabs.slice(r.start, r.start + r.count).every((tab) => tab.url.startsWith('https://r.test/'))).toBe(true);
   });
 
+  it('keeps a tile you picked when the panels are packed anew, in its own place', () => {
+    // By last use 12, 11, 10, 9, 8, …: the recent row holds five at five
+    // columns, four at four. Packing: p r | q s | t at five, p | q | r s | t at four.
+    state.allTabs = [['p', 3], ['q', 3], ['r', 2], ['s', 2], ['t', 2]]
+      .flatMap(([site, n]) => Array.from({ length: n }, () => `https://${site}.test/`))
+      .map((url, i) => makeTab(i + 1, { url: `${url}${i}`, index: i, lastAccessed: i }));
+    const panels = (columns) => ui({ groupBySite: true, groupStyle: 'panels', preselectPrevious: true, columns });
+    const siteTile = (id) => state.filteredTabs.findIndex((tab, i) => tab.id === id && i >= state.groups[0].count);
+    // Picked by an arrow key or the pointer: tab 8's tile under r.test.
+    applyFilters(panels(5));
+    const before = siteTile(8);
+    state.selectedIndex = before;
+    applyFilters(panels(4));
+    expect(state.selectedIndex).not.toBe(before); // it moved…
+    expect(state.selectedIndex).toBe(siteTile(8)); // …and stayed picked
+    // Tab 9 is in the recent row too: its site tile stays the one picked.
+    applyFilters(panels(5));
+    state.selectedIndex = siteTile(9);
+    applyFilters(panels(4));
+    expect(state.selectedIndex).toBe(siteTile(9));
+    // And its recent tile stays the recent one.
+    state.selectedIndex = state.filteredTabs.findIndex((tab) => tab.id === 9);
+    expect(state.selectedIndex).toBeLessThan(state.groups[0].count);
+    applyFilters(panels(5));
+    expect(state.filteredTabs[state.selectedIndex].id).toBe(9);
+    expect(state.selectedIndex).toBeLessThan(state.groups[0].count);
+  });
+
   it('is off while searching, in the site view, or with the setting off', () => {
     applyFilters(grouped({ searchTerm: 'a.test' }));
     expect(state.groups).toBe(null);

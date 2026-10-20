@@ -62,10 +62,11 @@ export function observeTiles(tiles) {
   }
 }
 
-// Grouped by site, a recent tab has two tiles, often in view together. They
-// share one look-up: its cover, the page's own image and that image's bytes
-// are each asked for once, not once per tile.
-const coverReads = new Map(); // tab id -> its cover (readCover), this window
+// Grouped by site, a recent tab has two tiles, often in view together. While
+// one asks for its cover, the page's own image or that image's bytes, the
+// other waits for the same answer instead of asking again. Nothing is kept
+// once answered.
+const coverReads = new Map(); // tab id -> its cover (readCover), in flight
 const imageLookups = new Map(); // tab id -> the image its page names, in flight
 const imageFetches = new Map(); // address -> fetchImage's answer, in flight
 
@@ -73,7 +74,7 @@ function shared(map, key, start) {
   if (!map.has(key)) {
     const promise = start();
     map.set(key, promise);
-    if (map !== coverReads) promise.finally(() => map.delete(key)).catch(() => {});
+    promise.finally(() => map.delete(key)).catch(() => {});
   }
   return map.get(key);
 }

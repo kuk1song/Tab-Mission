@@ -73,6 +73,9 @@ export function countSiteTabs(host, uiState) {
 }
 
 export function applyFilters(uiState) {
+  // The tile picked by hand (not the automatic selection), read before the
+  // view changes.
+  const picked = state.selectedIndex === state.defaultIndex ? null : pickedTile();
   const terms = uiState.searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
   const searching = terms.length > 0;
 
@@ -146,8 +149,28 @@ export function applyFilters(uiState) {
   } else if (selectionWasAutomatic) {
     state.selectedIndex = -1;
   } else {
-    state.selectedIndex = Math.min(state.selectedIndex, tabs.length - 1);
+    // A tile you picked stays picked when the tiles move (a toggle, panels
+    // packed anew for a different width); once its tab is gone, the tile
+    // that takes its place is (× clicked again closes the next tab).
+    const index = picked ? indexOfTile(picked) : -1;
+    state.selectedIndex = index === -1 ? Math.min(state.selectedIndex, tabs.length - 1) : index;
   }
+}
+
+// The selected tile before a new view: its tab, and whether it was the copy
+// in the recent row (grouped by site, a recent tab has two tiles).
+function pickedTile() {
+  const tab = state.filteredTabs[state.selectedIndex];
+  if (!tab) return null;
+  return { id: tab.id, recent: Boolean(state.groups) && state.selectedIndex < state.groups[0].count };
+}
+
+// The same tile in the new view: the copy in the same place (recent row or
+// not) when there is one, else the tab's other tile.
+function indexOfTile({ id, recent }) {
+  const recentEnd = state.groups ? state.groups[0].count : 0;
+  const indexes = state.filteredTabs.flatMap((tab, i) => (tab.id === id ? [i] : []));
+  return indexes.find((i) => (i < recentEnd) === recent) ?? indexes[0] ?? -1;
 }
 
 // tabs in recent order. Sites follow the tab strip: windows in the order they

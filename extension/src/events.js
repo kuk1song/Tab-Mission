@@ -195,12 +195,16 @@ function updateScopeIndicators(uiState) {
   if (state.siteHost) {
     document.getElementById('scope-label').textContent = site.label;
     const icon = document.getElementById('scope-icon');
-    // Without the site's icon (see siteIcon in dom.js), a letter.
-    icon.onerror = () => {
-      icon.onerror = null;
-      icon.src = createPlaceholderIcon(site.host);
-    };
-    icon.src = site.icon;
+    // Set once per site, not per keystroke. Without the site's icon (see
+    // siteIcon in dom.js), a letter.
+    if (icon.dataset.host !== site.host) {
+      icon.dataset.host = site.host;
+      icon.onerror = () => {
+        icon.onerror = null;
+        icon.src = createPlaceholderIcon(site.host);
+      };
+      icon.src = site.icon;
+    }
     searchEl.placeholder = t('searchSitePlaceholder', [site.label]) || `Search ${site.label} tabs…`;
   } else {
     searchEl.placeholder = t('searchPlaceholder') || 'Search tabs (title or URL)…';
