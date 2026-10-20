@@ -112,12 +112,11 @@ export function render() {
   // A keystroke that leaves the same tiles (most do, with many tabs) only
   // moves the selection: putting hundreds of tiles back costs a layout.
   // Panels span columns, so a change in their number redraws them too.
-  const columns = state.groups && state.groupStyle === 'panels' ? state.columns || RECENT_MAX : 0;
+  const columns = state.groups ? state.columns || RECENT_MAX : 0;
   const now = JSON.stringify([state.groups, state.filteredTabs.map((tab) => tab.id), columns]);
   if (now !== shown) {
     shown = now;
     gridEl.classList.toggle('grouped', Boolean(state.groups));
-    gridEl.dataset.groupStyle = state.groupStyle;
     gridEl.style.setProperty('--columns', String(columns || 1));
     gridEl.replaceChildren(...(state.groups ? state.groups.map((group) => createGroup(group, nodes, columns)) : nodes));
   }
@@ -145,8 +144,9 @@ export function markInView() {
 
 // A group of tiles under a heading: the recent tabs; one site's tabs, with
 // the site's icon and how many tabs it has; or the rest (sites with one tab,
-// local files, browser pages), last. As panels (overview.css), a group spans
-// as many of the grid's columns as it has tiles, up to all of them.
+// local files, browser pages), last. It spans as many of the grid's columns
+// as it has tiles, up to all of them (the recent tabs: all of them), and the
+// sites and the rest sit on panels (overview.css).
 function createGroup({ recent, other, host, start, count }, nodes, columns) {
   const group = document.createElement('div');
   group.className = `tile-group${recent ? ' recent' : ''}${other ? ' other' : ''}`;

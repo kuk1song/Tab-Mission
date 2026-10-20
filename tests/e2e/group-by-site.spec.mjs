@@ -1,19 +1,20 @@
 import { test, expect, PAGES, selectedTitle, pointAt } from './fixtures.mjs';
 
-// "Group tabs by site" (on by default; off on the settings page): one row of
-// recent tabs first, then each site with two tabs or more (in tab-bar order;
-// as panels, packed row by row), which stays put as you switch, then the
-// rest together. It applies at any window size and any number of tabs. The
-// fixture turns it off for the other specs; these turn it on.
-const VISITED = ['alpha', 'tube1', 'code1', 'beta', 'tube2', 'notes1', 'gamma', 'code2', 'notes2', 'doc1', 'tube3'];
-// By last use: the previous tab (doc1), the current one (tube3), then the rest.
-const RECENT = ['doc1', 'tube3', 'notes2', 'code2', 'gamma'];
+// "Group tabs by site" (on by default; off on the settings page): the five
+// most recent tabs first, then all the tabs of each site with two or more (in
+// tab-bar order, packed row by row), which stays put as you switch, then the
+// rest, without the tabs already in the recent row. It applies at any window
+// size and any number of tabs. The fixture turns it off for the other specs;
+// these turn it on.
+const VISITED = ['alpha', 'doc1', 'tube1', 'code1', 'beta', 'tube2', 'notes1', 'gamma', 'code2', 'notes2', 'tube3'];
+// By last use: the previous tab (notes2), the current one (tube3), then the rest.
+const RECENT = ['notes2', 'tube3', 'code2', 'gamma', 'notes1'];
 // localhost: alpha, beta, gamma; tube.test: tube1 to 3; code.test and
 // notes.test: two each; docs.office.test has one tab, so doc1 goes last.
 const SITES = ['localhost', 'tube.test', 'code.test', 'notes.test'];
 
 test.beforeEach(async ({ ext }) => {
-  await ext.sw.evaluate(() => chrome.storage.local.remove(['groupBySite', 'groupStyle'])); // as users have it
+  await ext.sw.evaluate(() => chrome.storage.local.remove('groupBySite')); // as users have it
 });
 
 // Each group's name ('recent' and 'other' for those two), the count in its
@@ -27,7 +28,7 @@ function groups(page) {
   })));
 }
 
-test('grouped by site by default: one row of recent tabs, then sites in tab-bar order that stay put after a switch, then the rest', async ({ ext }) => {
+test('grouped by site by default: five recent tabs, then sites that stay put after a switch, then the rest', async ({ ext }) => {
   const { windowId } = await ext.openWindow(VISITED);
   let page = await ext.open();
   await page.locator('#grid:not(.entering)').waitFor(); // the entrance has played
@@ -41,16 +42,13 @@ test('grouped by site by default: one row of recent tabs, then sites in tab-bar 
   expect(count).toEqual({ recent: null, localhost: '3', 'tube.test': '3', 'code.test': '2', 'notes.test': '2', other: '1' });
   expect(before.map((g) => g.icon)).toEqual([false, true, true, true, true, false]);
   expect(before.at(-1).titles).toEqual([PAGES.doc1.title]);
-  // As many recent tabs as fit in one row, at most five, by last use.
-  const n = before[0].titles.length;
-  expect(n).toBeGreaterThanOrEqual(1);
-  expect(n).toBeLessThanOrEqual(5);
-  expect(before[0].titles).toEqual(RECENT.slice(0, n).map((id) => PAGES[id].title));
-  const tops = await page.locator('#grid .tile-group.recent .tile').evaluateAll((els) => els.map((el) => el.offsetTop));
-  expect(new Set(tops).size).toBe(1);
+  const last = page.locator('#grid .tile-group').last();
+  expect(await last.getAttribute('aria-label')).toBe(await last.locator('.group-name').textContent());
+  // The five most recent tabs, by last use.
+  expect(before[0].titles).toEqual(RECENT.map((id) => PAGES[id].title));
   expect(before.find((g) => g.name === 'tube.test').titles).toEqual(['tube1', 'tube2', 'tube3'].map((id) => PAGES[id].title));
-  expect(await selectedTitle(page)).toBe(PAGES.doc1.title);
-  await expect(page.locator('#grid .tile')).toHaveCount(n + VISITED.length);
+  expect(await selectedTitle(page)).toBe(PAGES.notes2.title);
+  await expect(page.locator('#grid .tile')).toHaveCount(RECENT.length + VISITED.length);
 
   // ↓ goes to the tile straight below, ↑ comes back.
   const box = () => page.locator('#grid .tile.selected').evaluate((el) => {
@@ -63,24 +61,23 @@ test('grouped by site by default: one row of recent tabs, then sites in tab-bar 
   expect(below.top).toBeGreaterThan(start.top);
   expect(below.left < start.right && below.right > start.left).toBe(true);
   await page.keyboard.press('ArrowUp');
-  expect(await selectedTitle(page)).toBe(PAGES.doc1.title);
+  expect(await selectedTitle(page)).toBe(PAGES.notes2.title);
 
   // Switch to the previous tab; the site groups are the same next time.
   await ext.pressToClose(page, 'Enter');
-  expect(await ext.activeTitle(windowId)).toBe(PAGES.doc1.title);
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.notes2.title);
   page = await ext.open();
   const after = await groups(page);
   expect(after.slice(1)).toEqual(before.slice(1));
   expect(after[0].titles[0]).toBe(PAGES.tube3.title);
 });
 
-test('a few tabs are grouped too, pages without a site go last, and a click shows on the tile you clicked', async ({ ext }) => {
+test('a few tabs are grouped too, one-tab sites are not repeated, and a click shows on the tile you clicked', async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'tube1', 'tube2']);
   await ext.sw.evaluate((windowId) => chrome.tabs.create({ windowId, url: 'about:blank', active: false }), windowId);
   const page = await ext.open();
-  expect((await groups(page)).map((g) => [g.name, g.titles.length])).toEqual([['recent', 4], ['tube.test', 2], ['other', 2]]);
-  const last = page.locator('#grid .tile-group').last();
-  expect(await last.getAttribute('aria-label')).toBe(await last.locator('.group-name').textContent());
+  // alpha and the blank page are in the recent row, so there is no last group.
+  expect((await groups(page)).map((g) => [g.name, g.titles.length])).toEqual([['recent', 4], ['tube.test', 2]]);
 
   // tube1 is in the recent group and under its site; click the site's tile.
   const siteTile = page.locator('#grid .tile-group:not(.recent) .tile', { hasText: PAGES.tube1.title });
@@ -101,23 +98,23 @@ test('a few tabs are grouped too, pages without a site go last, and a click show
 test('the shortcut pressed again goes back, and closing a tab removes both of its tiles', async ({ ext }) => {
   const { windowId } = await ext.openWindow(VISITED);
   let page = await ext.open();
-  // doc1, the previous tab, has a tile in the recent row and one in the last group.
-  const doc1 = page.locator('#grid .tile', { hasText: PAGES.doc1.title });
-  await expect(doc1).toHaveCount(2);
+  // notes2, the previous tab, has a tile in the recent row and one under its site.
+  const notes2 = page.locator('#grid .tile', { hasText: PAGES.notes2.title });
+  await expect(notes2).toHaveCount(2);
   // The × of the site's tile, under the pointer (only a selected tile's × is there).
-  const siteTile = page.locator('#grid .tile-group:not(.recent) .tile', { hasText: PAGES.doc1.title });
-  await siteTile.scrollIntoViewIfNeeded(); // the last group may start below the fold
+  const siteTile = page.locator('#grid .tile-group:not(.recent) .tile', { hasText: PAGES.notes2.title });
+  await siteTile.scrollIntoViewIfNeeded(); // the site may start below the fold
   await pointAt(page, siteTile);
   await siteTile.locator('.tile-close').click();
-  await expect(doc1).toHaveCount(0);
-  await expect(page.locator('#grid .tile', { hasText: PAGES.notes2.title })).toHaveCount(2);
+  await expect(notes2).toHaveCount(0);
+  await expect(page.locator('#grid .tile', { hasText: PAGES.code2.title })).toHaveCount(2);
   await ext.pressToClose(page, 'Escape');
 
   page = await ext.open();
-  expect(await selectedTitle(page)).toBe(PAGES.notes2.title); // the previous tab now
+  expect(await selectedTitle(page)).toBe(PAGES.code2.title); // the previous tab now
   await ext.press();
   await ext.expectClosed();
-  await expect.poll(() => ext.activeTitle(windowId)).toBe(PAGES.notes2.title);
+  await expect.poll(() => ext.activeTitle(windowId)).toBe(PAGES.code2.title);
 });
 
 test('a search and the site view show the usual grid', async ({ ext }) => {
@@ -152,48 +149,45 @@ test('the settings page switch turns it off', async ({ ext, context }) => {
   await expect(page.locator('#grid.grouped')).toHaveCount(0);
 });
 
-// Panels: a site's panel spans as many of the grid's columns as it has
-// tiles, so small sites sit side by side. Rows: each site starts a row of its
-// own, on the plain grid's columns.
-test('panels by default, rows from the settings page', async ({ ext, context }) => {
+// One set of columns: a site's panel spans as many of them as it has tiles,
+// so small sites sit side by side, and every tile in the window has the same
+// width and sits on the same column lines; panels in a row are equally tall.
+test('every tile on the same columns, panels as wide as their tabs and side by side', async ({ ext }) => {
   await ext.openWindow(VISITED);
-  // Measured once the entrance (which scales the tiles) has played.
-  const layout = async (page) => (await page.locator('#grid:not(.entering)').waitFor()) ?? page.evaluate(() => {
-    const grid = document.getElementById('grid');
-    const columns = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
-    const sites = [...grid.querySelectorAll('.tile-group:not(.recent)')].map((el) => {
-      const r = el.getBoundingClientRect();
-      return { tiles: el.querySelectorAll('.tile').length, span: getComputedStyle(el).gridColumnStart, top: Math.round(r.top), left: Math.round(r.left) };
-    });
-    const widths = [...grid.querySelectorAll('.tile')].map((el) => Math.round(el.getBoundingClientRect().width));
-    return { style: grid.dataset.groupStyle, columns, sites, widths };
+  const page = await ext.open();
+  // A known width, wide enough for five columns.
+  await ext.sw.evaluate(async () => {
+    const [win] = await chrome.windows.getAll({ windowTypes: ['popup'] });
+    await chrome.windows.update(win.id, { width: 1280 });
   });
-
-  let page = await ext.open();
-  let shown = await layout(page);
-  expect(shown.style).toBe('panels');
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.getElementById('grid')).gridTemplateColumns.split(' ').length)).toBe(5);
+  await page.locator('#grid:not(.entering)').waitFor(); // the entrance scales the tiles
+  const shown = await page.evaluate(() => {
+    const grid = document.getElementById('grid');
+    const box = (el) => el.getBoundingClientRect();
+    const sites = [...grid.querySelectorAll('.tile-group:not(.recent)')].map((el) => ({
+      tiles: el.querySelectorAll('.tile').length,
+      span: getComputedStyle(el).gridColumnStart,
+      top: Math.round(box(el).top),
+      height: Math.round(box(el).height),
+    }));
+    const tiles = [...grid.querySelectorAll('.tile')].map((el) => ({ left: box(el).left, width: box(el).width }));
+    const recentLefts = [...grid.querySelectorAll('.tile-group.recent .tile')].map((el) => box(el).left);
+    return { columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length, sites, tiles, recentLefts };
+  });
   expect(shown.columns).toBeGreaterThanOrEqual(4);
   for (const site of shown.sites) expect(site.span).toBe(`span ${Math.min(site.tiles, shown.columns)}`);
   expect(new Set(shown.sites.map((s) => s.top)).size).toBeLessThan(shown.sites.length); // some side by side
-  await ext.pressToClose(page, 'Escape');
-
-  const options = await context.newPage();
-  await options.goto(ext.welcome.url().replace('welcome.html', 'options.html'));
-  await expect(options.locator('#group-style')).toHaveValue('panels');
-  await options.locator('#group-style').selectOption('rows');
-  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('groupStyle').then((r) => r.groupStyle))).toBe('rows');
-  await options.close();
-
-  page = await ext.open();
-  shown = await layout(page);
-  expect(shown.style).toBe('rows');
-  expect(new Set(shown.sites.map((s) => s.left)).size).toBe(1);
-  expect(shown.sites.map((s) => s.top)).toEqual([...shown.sites.map((s) => s.top)].sort((a, b) => a - b));
-  expect(new Set(shown.sites.map((s) => s.top)).size).toBe(shown.sites.length); // one per row
-  expect(Math.max(...shown.widths) - Math.min(...shown.widths)).toBeLessThanOrEqual(1); // one column width
+  const widths = shown.tiles.map((t) => t.width);
+  expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
+  // Five recent tabs cover every column at four or five columns.
+  for (const { left } of shown.tiles) expect(shown.recentLefts.some((l) => Math.abs(l - left) < 1)).toBe(true);
+  for (const row of new Set(shown.sites.map((s) => s.top))) {
+    expect(new Set(shown.sites.filter((s) => s.top === row).map((s) => s.height)).size).toBe(1);
+  }
 });
 
-test('resizing the window keeps the groups, and redraws only when a row holds a different number of tiles', async ({ ext }) => {
+test('resizing the window keeps the groups and the five recent tabs, and redraws only when a row holds a different number of tiles', async ({ ext }) => {
   await ext.openWindow(VISITED);
   const page = await ext.open();
   await page.locator('#grid:not(.entering)').waitFor();
@@ -202,6 +196,7 @@ test('resizing the window keeps the groups, and redraws only when a row holds a 
     await chrome.windows.update(win.id, { width: win.width + dw });
   }, dw);
   const recent = () => page.locator('#grid .tile-group.recent .tile').count();
+  const columns = () => page.evaluate(() => getComputedStyle(document.getElementById('grid')).gridTemplateColumns.split(' ').length);
   // A redraw puts new groups into the grid (measuring the row adds and
   // removes a bare probe, which does not count).
   await page.evaluate(() => {
@@ -210,21 +205,32 @@ test('resizing the window keeps the groups, and redraws only when a row holds a 
       if (records.some((r) => [...r.addedNodes].some((n) => n.classList?.contains('tile-group')))) window.redraws++;
     }).observe(document.getElementById('grid'), { childList: true });
   });
-  const before = await recent();
+  // Start at a known width, well inside five columns.
+  await ext.sw.evaluate(async () => {
+    const [win] = await chrome.windows.getAll({ windowTypes: ['popup'] });
+    await chrome.windows.update(win.id, { width: 1280 });
+  });
+  await expect.poll(columns).toBe(5);
+  await page.waitForTimeout(200);
+  await page.evaluate(() => { window.redraws = 0; });
+  const before = await columns();
+  expect(await recent()).toBe(5);
   for (const dw of [6, 6, 6, -6, -6, -6]) {
     await resize(dw);
     await page.waitForTimeout(100);
   }
   expect(await page.evaluate(() => window.redraws)).toBe(0);
-  // Narrower by more than a tile: the recent row holds fewer, and it is
-  // still grouped, as it is when much wider.
+  // Narrower by more than a tile: fewer columns, redrawn, still grouped,
+  // still five recent tabs; and the same back at the first width.
   await resize(-400);
-  await expect.poll(recent).toBeLessThan(before);
+  await expect.poll(columns).toBeLessThan(before);
   expect(await page.evaluate(() => window.redraws)).toBeGreaterThan(0);
   await expect(page.locator('#grid.grouped')).toHaveCount(1);
-  await resize(800);
-  await expect.poll(recent).toBeGreaterThanOrEqual(before);
+  expect(await recent()).toBe(5);
+  await resize(400);
+  await expect.poll(columns).toBe(before);
   await expect(page.locator('#grid.grouped')).toHaveCount(1);
+  expect(await recent()).toBe(5);
 });
 
 test('a site icon Chrome does not hand over leaves no broken image', async ({ ext }) => {

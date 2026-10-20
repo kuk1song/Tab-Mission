@@ -12,7 +12,6 @@ export const state = {
   siteHost: '', // non-empty while showing only one site's tabs
   preselectPrevious: true, // mirrors the setting of the same name
   groupBySite: false, // mirrors the setting of the same name
-  groupStyle: 'panels', // mirrors the setting of the same name: 'panels' or 'rows'
   // With groupBySite, while browsing: the parts of filteredTabs, in order
   // ({ host, start, count }; the first one { recent }, the last one
   // { other } when there is one), else null.
@@ -20,8 +19,8 @@ export const state = {
   columns: 0, // tiles per row the groups were made for (0: not measured)
 };
 
-// Group by site: the recent tabs first (one row, at most this many), then
-// every tab again under its site.
+// Group by site: this many recent tabs first, at any window size (a narrow
+// window wraps them), then the sites and the rest.
 export const RECENT_MAX = 5;
 
 export async function fetchAllTabs() {
@@ -114,20 +113,18 @@ export function applyFilters(uiState) {
   }
 
   // Grouped by site (the setting, on by default; while browsing only, as a
-  // query or the site view shows one list): the most recent tabs stay first,
-  // one row of them, so the previous tab keeps the first slot; then all tabs
-  // again by site in tab-strip order, which switching tabs does not change.
+  // query or the site view shows one list): the five most recent tabs stay
+  // first, so the previous tab keeps the first slot; then each site's tabs
+  // in tab-strip order, which switching tabs does not change; then the rest.
   // It applies at any window size and any number of tabs, so resizing the
-  // window or closing a tab never switches the layout. Nothing is stored.
-  // uiState.columns is how many tiles fit in a row.
+  // window or closing a tab never switches the layout, and a resize only
+  // changes how many tiles a row holds. Nothing is stored. uiState.columns
+  // is how many tiles fit in a row: each site's panel spans as many columns
+  // as it has tiles (overview.css), and the panels are packed row by row.
   state.groups = null;
   state.columns = uiState.columns || 0;
-  const recentCount = Math.max(1, Math.min(RECENT_MAX, uiState.columns || RECENT_MAX));
   if (uiState.groupBySite && !searching && !state.siteHost) {
-    // As panels (overview.css), each site spans as many columns as it has
-    // tiles; packing them row by row leaves fewer holes.
-    const pack = uiState.groupStyle === 'panels' ? uiState.columns || RECENT_MAX : 0;
-    const { entries, groups } = groupBySite(tabs, recentCount, pack);
+    const { entries, groups } = groupBySite(tabs, RECENT_MAX, uiState.columns || RECENT_MAX);
     tabs = entries;
     state.groups = groups;
   }
@@ -176,11 +173,13 @@ function indexOfTile({ id, recent }) {
 // tabs in recent order. Sites follow the tab strip: windows in the order they
 // were opened (by id), tabs by position, a site where its first tab is;
 // within a site, its tabs by position. A site gets a group of its own with
-// two tabs or more; sites with one tab and pages that are not web pages
-// (local files, browser pages) share the last group, also by position, so a
-// window of many one-tab sites does not become a column of one-card groups.
-// With packColumns, the sites are packed into rows of that many columns
-// (packRows), each as wide as its tabs.
+// two tabs or more, all of them, so a group never changes as you switch
+// tabs (a recent tab shows twice: copied to the top, not moved, as Gajos et
+// al. 2006 found works best). The rest (sites with one tab, pages that are
+// not web pages) share the last group, also by position, without the tabs
+// already shown in the recent row: so a window of a few one-tab sites shows
+// each tab once. With packColumns, the sites are packed into rows of that
+// many columns (packRows), each as wide as its tabs.
 export function groupBySite(tabs, recentCount = RECENT_MAX, packColumns = 0) {
   const recent = tabs.slice(0, recentCount);
   const strip = [...tabs].sort((a, b) => a.windowId - b.windowId || a.index - b.index);
@@ -192,10 +191,11 @@ export function groupBySite(tabs, recentCount = RECENT_MAX, packColumns = 0) {
   }
   const groups = [{ recent: true, host: '', start: 0, count: recent.length }];
   const entries = [...recent];
+  const shown = new Set(recent.map((tab) => tab.id));
   const other = [];
   let own = [];
   for (const [host, siteTabs] of sites) {
-    if (!host || siteTabs.length < 2) other.push(...siteTabs);
+    if (!host || siteTabs.length < 2) other.push(...siteTabs.filter((tab) => !shown.has(tab.id)));
     else own.push([host, siteTabs]);
   }
   if (packColumns) own = packRows(own, packColumns);

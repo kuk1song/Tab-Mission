@@ -78,10 +78,9 @@ export function initializeEventListeners() {
 
   initializeGridListeners();
 
-  // Grouped by site, the recent row holds as many tiles as fit and panels
-  // span the grid's columns, so a resize that changes the number of tiles in
-  // a row redraws the grid. Dragging the window's edge fires many resizes,
-  // and most keep it.
+  // Grouped by site, panels span the grid's columns, so a resize that
+  // changes the number of tiles in a row redraws the grid. Dragging the
+  // window's edge fires many resizes, and most keep it.
   window.addEventListener('resize', () => {
     if (shownColumns !== undefined && tilesPerRow() !== shownColumns) scheduleFilterChange();
   });
@@ -139,15 +138,18 @@ function readUiState() {
     showAllWindows: toggleAllWindows ? toggleAllWindows.checked : false,
     preselectPrevious: state.preselectPrevious,
     groupBySite: state.groupBySite,
-    groupStyle: state.groupStyle,
     columns: shownColumns,
   };
 }
 
 
-// How many tiles fit in a row of the grid. Grouped by site the grid is not a
-// CSS grid, so this measures the minimum tile width (--tile-min) instead of
-// reading the grid's columns.
+// The grid's column gap and side padding while grouped by site, as in
+// overview.css (wider than the plain grid's, to hold the panels' edges).
+const GROUPED = { gap: 24, padding: 22 };
+
+// How many tiles fit in a row while grouped by site, measured before the
+// grid is drawn that way: the minimum tile width (--tile-min) with the
+// grouped gap and padding, whatever the grid shows now.
 function tilesPerRow() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return undefined;
@@ -157,10 +159,9 @@ function tilesPerRow() {
   probe.style.cssText = 'position: absolute; visibility: hidden; width: var(--tile-min)';
   gridEl.append(probe);
   const tile = probe.getBoundingClientRect().width;
-  const style = getComputedStyle(gridEl);
-  const width = gridEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const width = gridEl.clientWidth - 2 * GROUPED.padding;
   probe.remove();
-  const gap = 12; // between tiles, as in overview.css
+  const { gap } = GROUPED;
   return tile > 0 ? Math.max(1, Math.floor((width + gap) / (tile + gap))) : undefined;
 }
 

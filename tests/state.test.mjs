@@ -335,52 +335,59 @@ describe('applyFilters — group by site', () => {
   ];
   const ids = (list) => list.map((tab) => tab.id);
   const shape = () => state.groups.map(({ recent, other, host, count }) => [recent ? 'recent' : other ? 'other' : host, count]);
+  const site = (url, index, lastAccessed = 0) => ({ url, index, lastAccessed });
   beforeEach(() => {
     state.allTabs = strip.map(([url, lastAccessed], i) => makeTab(i + 1, { url, index: i, lastAccessed }));
     state.currentTabId = 8;
   });
 
-  // Three tiles fit in a row here, so the recent row holds three.
+  // Three tiles fit in a row here.
   const grouped = (overrides = {}) => ui({ groupBySite: true, columns: 3, ...overrides });
 
-  it('puts one row of recent tabs first, then each site with two tabs or more in tab-bar order, then the rest', () => {
+  it('puts the five most recent tabs first, then all the tabs of each site with two or more, in tab-bar order', () => {
     applyFilters(grouped({ preselectPrevious: true }));
-    expect(shape()).toEqual([['recent', 3], ['a.test', 3], ['b.test', 2], ['c.test', 2], ['other', 1]]);
+    // d.test's only tab is in the recent row, so there is no last group.
+    expect(shape()).toEqual([['recent', 5], ['a.test', 3], ['b.test', 2], ['c.test', 2]]);
     // Recent: the previous tab first, the current tab second.
-    expect(ids(state.filteredTabs.slice(0, 3))).toEqual([3, 8, 2]);
-    expect(ids(state.filteredTabs.slice(3))).toEqual([1, 3, 6, 2, 5, 4, 8, 7]);
+    expect(ids(state.filteredTabs.slice(0, 5))).toEqual([3, 8, 2, 6, 7]);
+    expect(ids(state.filteredTabs.slice(5))).toEqual([1, 3, 6, 2, 5, 4, 8]);
     expect(state.filteredTabs[state.selectedIndex].id).toBe(3);
     expect(state.columns).toBe(3);
   });
 
-  it('fills the recent row with as many tiles as fit, at most five', () => {
-    applyFilters(ui({ groupBySite: true, columns: 8 }));
-    expect(state.groups[0].count).toBe(RECENT_MAX);
-    applyFilters(ui({ groupBySite: true, columns: 2 }));
-    expect(state.groups[0].count).toBe(2);
-    applyFilters(ui({ groupBySite: true })); // not measured: five
-    expect(state.groups[0].count).toBe(RECENT_MAX);
-    expect(state.columns).toBe(0);
-  });
-
-  it('groups at any window size and any number of tabs', () => {
-    for (const columns of [1, 2, 5, 8]) {
+  it('holds five recent tabs at any window size', () => {
+    for (const columns of [1, 2, 5, 8, undefined]) {
       applyFilters(ui({ groupBySite: true, columns }));
-      expect(state.groups).not.toBe(null);
+      expect(state.groups[0].count).toBe(RECENT_MAX);
     }
-    state.allTabs = state.allTabs.slice(0, 2);
-    applyFilters(ui({ groupBySite: true, columns: 8 }));
-    expect(shape()).toEqual([['recent', 2], ['other', 2]]);
+    expect(state.columns).toBe(0); // not measured
+    state.allTabs = state.allTabs.slice(0, 3);
+    applyFilters(grouped());
+    expect(state.groups[0].count).toBe(3);
   });
 
-  it('keeps the site groups where they are when you switch tabs', () => {
+  it('groups at any number of tabs, and shows a few one-tab sites once each', () => {
+    state.allTabs = [makeTab(1, site('https://x.test/', 0, 2)), makeTab(2, site('https://y.test/', 1, 1))];
     applyFilters(grouped());
-    const before = ids(state.filteredTabs.slice(3));
-    state.allTabs.find((tab) => tab.id === 7).lastAccessed = 100; // switched to d.test
-    state.currentTabId = 7;
+    expect(shape()).toEqual([['recent', 2]]);
+    state.allTabs = Array.from({ length: 7 }, (_, i) => makeTab(i + 1, site(`https://s${i}.test/`, i, i)));
     applyFilters(grouped());
-    expect(ids(state.filteredTabs.slice(3))).toEqual(before);
+    expect(shape()).toEqual([['recent', 5], ['other', 2]]);
+    expect(new Set(ids(state.filteredTabs)).size).toBe(7);
+    expect(state.filteredTabs).toHaveLength(7);
+  });
+
+  it('keeps the site groups where they are when you switch tabs; the rest takes what leaves the recent row', () => {
+    const sites = () => state.groups.filter((g) => !g.recent && !g.other)
+      .map((g) => [g.host, g.start, ids(state.filteredTabs.slice(g.start, g.start + g.count))]);
+    applyFilters(grouped());
+    const before = sites();
+    state.allTabs.find((tab) => tab.id === 1).lastAccessed = 100; // switched to a.test/1
+    state.currentTabId = 1;
+    applyFilters(grouped());
+    expect(sites()).toEqual(before);
     expect(state.filteredTabs[0].id).toBe(8); // the previous tab now
+    expect(shape().at(-1)).toEqual(['other', 1]); // d.test's tab, out of the recent row
   });
 
   it('orders windows by when they were opened, and tabs by position', () => {
@@ -394,55 +401,51 @@ describe('applyFilters — group by site', () => {
     ];
     applyFilters(grouped({ showAllWindows: true }));
     expect(shape().slice(1)).toEqual([['first.test', 2], ['second.test', 2], ['late.test', 2]]);
-    expect(ids(state.filteredTabs.slice(3))).toEqual([4, 6, 3, 5, 1, 2]);
+    expect(ids(state.filteredTabs.slice(5))).toEqual([4, 6, 3, 5, 1, 2]);
   });
 
-  it('puts sites with one tab and pages that are not web pages last, together, in tab-bar order', () => {
+  it('puts the rest last, in tab-bar order, without the tabs already in the recent row', () => {
     state.allTabs = [
-      makeTab(1, { index: 0, url: 'file:///notes.html' }),
-      makeTab(2, { index: 1, url: 'https://x.test/' }),
-      makeTab(3, { index: 2, url: 'chrome://extensions/' }),
-      makeTab(4, { index: 3, url: 'https://y.test/1' }),
-      makeTab(5, { index: 4, url: 'https://y.test/2' }),
-      makeTab(6, { index: 5, url: 'chrome://extensions/' }),
-      makeTab(7, { index: 6, url: 'about:blank' }),
+      makeTab(1, site('file:///notes.html', 0)),
+      makeTab(2, site('https://x.test/', 1)),
+      makeTab(3, site('chrome://extensions/', 2)),
+      makeTab(4, site('https://y.test/1', 3)),
+      makeTab(5, site('https://y.test/2', 4, 5)),
+      makeTab(6, site('chrome://extensions/', 5, 6)),
+      makeTab(7, site('about:blank', 6, 7)),
+      makeTab(8, site('https://z.test/', 7, 8)),
+      makeTab(9, site('https://w.test/', 8, 9)),
     ];
     applyFilters(grouped());
-    expect(shape()).toEqual([['recent', 3], ['y.test', 2], ['other', 5]]);
-    expect(ids(state.filteredTabs.slice(5))).toEqual([1, 2, 3, 6, 7]);
-  });
-
-  it('has no last group when every site has two tabs or more', () => {
-    state.allTabs = state.allTabs.filter((tab) => tab.id !== 7); // d.test
-    applyFilters(grouped());
-    expect(shape().map(([name]) => name)).toEqual(['recent', 'a.test', 'b.test', 'c.test']);
+    expect(ids(state.filteredTabs.slice(0, 5))).toEqual([9, 8, 7, 6, 5]);
+    // y.test keeps both its tabs (5 is in the recent row too).
+    expect(shape()).toEqual([['recent', 5], ['y.test', 2], ['other', 3]]);
+    expect(ids(state.filteredTabs.slice(5))).toEqual([4, 5, 1, 2, 3]);
   });
 
   it('packs panels row by row: each row takes the next sites that fit', () => {
-    // Five columns; sites of 3, 3, 2, 2 and 2 tabs, in tab-bar order.
+    // Sites of 3, 3, 2, 2 and 2 tabs, in tab-bar order.
     state.allTabs = [['p', 3], ['q', 3], ['r', 2], ['s', 2], ['t', 2]]
-      .flatMap(([site, n]) => Array.from({ length: n }, () => `https://${site}.test/`))
+      .flatMap(([name, n]) => Array.from({ length: n }, () => `https://${name}.test/`))
       .map((url, i) => makeTab(i + 1, { url: `${url}${i}`, index: i }));
     const sites = () => shape().slice(1).map(([name]) => name);
-    applyFilters(ui({ groupBySite: true, groupStyle: 'panels', columns: 5 }));
+    applyFilters(ui({ groupBySite: true, columns: 5 }));
     expect(sites()).toEqual(['p.test', 'r.test', 'q.test', 's.test', 't.test']);
-    applyFilters(ui({ groupBySite: true, groupStyle: 'panels', columns: 4 }));
-    expect(sites()).toEqual(['p.test', 'q.test', 'r.test', 's.test', 't.test']);
-    applyFilters(ui({ groupBySite: true, groupStyle: 'rows', columns: 5 })); // rows: tab-bar order
+    applyFilters(ui({ groupBySite: true, columns: 4 }));
     expect(sites()).toEqual(['p.test', 'q.test', 'r.test', 's.test', 't.test']);
     // The tiles follow their groups.
-    applyFilters(ui({ groupBySite: true, groupStyle: 'panels', columns: 5 }));
+    applyFilters(ui({ groupBySite: true, columns: 5 }));
     const r = state.groups.find((g) => g.host === 'r.test');
     expect(state.filteredTabs.slice(r.start, r.start + r.count).every((tab) => tab.url.startsWith('https://r.test/'))).toBe(true);
   });
 
   it('keeps a tile you picked when the panels are packed anew, in its own place', () => {
-    // By last use 12, 11, 10, 9, 8, …: the recent row holds five at five
-    // columns, four at four. Packing: p r | q s | t at five, p | q | r s | t at four.
+    // By last use 12, 11, 10, 9, 8, …: the recent row holds those five.
+    // Packing: p r | q s | t at five columns, p | q | r s | t at four.
     state.allTabs = [['p', 3], ['q', 3], ['r', 2], ['s', 2], ['t', 2]]
-      .flatMap(([site, n]) => Array.from({ length: n }, () => `https://${site}.test/`))
+      .flatMap(([name, n]) => Array.from({ length: n }, () => `https://${name}.test/`))
       .map((url, i) => makeTab(i + 1, { url: `${url}${i}`, index: i, lastAccessed: i }));
-    const panels = (columns) => ui({ groupBySite: true, groupStyle: 'panels', preselectPrevious: true, columns });
+    const panels = (columns) => ui({ groupBySite: true, preselectPrevious: true, columns });
     const siteTile = (id) => state.filteredTabs.findIndex((tab, i) => tab.id === id && i >= state.groups[0].count);
     // Picked by an arrow key or the pointer: tab 8's tile under r.test.
     applyFilters(panels(5));

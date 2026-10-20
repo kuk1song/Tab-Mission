@@ -13,7 +13,6 @@
   --key-bg: #f3f3f7;
   --key-line: rgba(20, 20, 40, 0.2);
   --track: #8e8e9c;
-  --field: #ffffff; /* the group style select and its list, opaque */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,7 +27,6 @@
     --key-bg: rgba(255, 255, 255, 0.08);
     --key-line: rgba(255, 255, 255, 0.18);
     --track: rgba(255, 255, 255, 0.42);
-    --field: #1f1f22;
   }
 }
 
@@ -142,24 +140,7 @@ button.external::after {
 .about a { color: var(--accent); text-decoration: none; }
 .about a:hover { text-decoration: underline; }
 
-/* The group style, while two are on trial. */
-select {
-  flex: none;
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--field);
-  color: var(--fg);
-  cursor: pointer;
-}
-/* Windows and Linux draw the list themselves, from these colors. */
-select option { background: var(--field); color: var(--fg); }
-select:hover { border-color: var(--accent); }
-
-:is(button, a, .switch, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:is(button, a, .switch):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .visually-hidden {
   position: absolute;
