@@ -43,10 +43,11 @@ export async function fetchAllTabs() {
   state.currentTabId = currentTab?.id ?? null;
 }
 
-// Hostname of the tab the user was on when the overview opened.
+// Hostname of the tab the user was on when the overview opened, when it is a
+// web page: the site view is for sites, not for browser or extension pages.
 export function currentSiteHost() {
   const currentTab = state.allTabs.find((tab) => tab.id === state.currentTabId);
-  return currentTab ? getHostname(currentTab.url) : '';
+  return currentTab && isCapturableUrl(currentTab.url) ? getHostname(currentTab.url) : '';
 }
 
 // The view toggles: by default only the current window and no sleeping tabs.

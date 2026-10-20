@@ -1,7 +1,7 @@
 // dom.js
 import { state, RECENT_MAX } from './state.js';
 import { activateTab, closeTab, setSiteScope } from './events.js';
-import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor } from './utils.js';
+import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor, addressLabel } from './utils.js';
 import { observeTiles } from './thumbnail.js';
 import { t } from './i18n.js';
 import { selectionMoved } from './tips.js';
@@ -276,6 +276,19 @@ function siteIcon(url) {
   return img;
 }
 
+// The names the address line uses (utils.js addressLabel), read once.
+let addressNames = null;
+
+function addressOf(url) {
+  addressNames ??= {
+    own: chrome.runtime.getManifest().short_name || 'Tab Mission',
+    extension: t('addressExtension') || 'Extension page',
+    file: t('addressFile') || 'Local file',
+    host: new URL(chrome.runtime.getURL('')).host,
+  };
+  return addressLabel(url, addressNames);
+}
+
 function createMetaElement(tab) {
   const meta = document.createElement('div');
   meta.className = 'meta';
@@ -287,7 +300,7 @@ function createMetaElement(tab) {
 
   const url = document.createElement('div');
   url.className = 'url';
-  url.textContent = getHostname(tab.url);
+  url.textContent = addressOf(tab.url);
   meta.appendChild(url);
 
   return meta;

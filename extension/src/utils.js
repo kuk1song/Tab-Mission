@@ -8,6 +8,39 @@ export function getHostname(url) {
   }
 }
 
+// Where a page is, as its card says under the title: what Chrome's address
+// bar shows, shortened. A web page: its host without "www.", as the group
+// headings and the site view name it. A browser page: its scheme and host
+// (chrome://extensions). about: pages as they are. Tab Mission's own pages,
+// another extension's and local files: names.own, names.extension and
+// names.file (names.host is Tab Mission's own host). Anything else (data:,
+// blob:): nothing.
+export function addressLabel(url, names) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return '';
+  }
+  switch (u.protocol) {
+    case 'http:':
+    case 'https:':
+      return u.hostname.replace(/^www\./, '');
+    case 'file:':
+      return names.file;
+    case 'about:':
+      return u.href;
+    case 'chrome-extension:':
+      return u.host === names.host ? names.own : names.extension;
+    case 'data:':
+    case 'blob:':
+    case 'javascript:':
+      return '';
+    default:
+      return u.host ? `${u.protocol}//${u.host}` : '';
+  }
+}
+
 export function isCapturableUrl(url) {
   if (!url) return false;
   try {

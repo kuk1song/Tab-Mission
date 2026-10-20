@@ -67,3 +67,21 @@ test('the window follows the system appearance, and nothing is blurred', async (
     .filter((v) => v && v !== 'none'));
   expect(blurred).toEqual([]);
 });
+
+test('the line under the title says where the page is, as the address bar does', async ({ ext }) => {
+  const { windowId, tabIds } = await ext.openWindow(['alpha', 'tube1']);
+  const ids = await ext.sw.evaluate(async (windowId) => {
+    const version = await chrome.tabs.create({ windowId, url: 'chrome://version/', active: false });
+    const blank = await chrome.tabs.create({ windowId, url: 'about:blank', active: false });
+    const [welcome] = await chrome.tabs.query({ url: chrome.runtime.getURL('welcome.html') });
+    return { version: version.id, blank: blank.id, welcome: welcome.id };
+  }, windowId);
+  const page = await ext.open();
+  await page.locator('#toggle-all-windows').check(); // the welcome page is in another window
+  const line = (id) => page.locator(`.tile[data-tab-id="${id}"] .url`);
+  await expect(line(tabIds.tube1)).toHaveText('tube.test'); // www.tube.test
+  await expect(line(tabIds.alpha)).toHaveText('localhost');
+  await expect(line(ids.version)).toHaveText('chrome://version');
+  await expect(line(ids.blank)).toHaveText('about:blank');
+  await expect(line(ids.welcome)).toHaveText('Tab Mission');
+});

@@ -109,3 +109,18 @@ test('the site view follows the window toggle, and so does the hint count', asyn
   await page.locator('#toggle-all-windows').click();
   expect(await tileTitles(page)).toHaveLength(2);
 });
+
+test('Tab offers the site view on web pages only', async ({ ext }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta']);
+  // The current tab is a browser page, and another tab has the same address.
+  await ext.sw.evaluate(async (windowId) => {
+    await chrome.tabs.create({ windowId, url: 'chrome://version/', active: false });
+    await chrome.tabs.create({ windowId, url: 'chrome://version/', active: true });
+  }, windowId);
+  const page = await ext.open();
+  await expect(page.locator('#grid .tile')).toHaveCount(4);
+  await expect(page.locator('#scope-hint')).toBeHidden();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#scope-token')).toBeHidden();
+  await expect(page.locator('#grid .tile')).toHaveCount(4);
+});

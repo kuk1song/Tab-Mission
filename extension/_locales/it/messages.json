@@ -316,5 +316,13 @@
   "groupOther": {
     "message": "Altro",
     "description": "Tab Mission, grouped by site: heading of the last group, the tabs not shown above it (sites with one tab, pages that are not web pages such as local files)."
+  },
+  "addressExtension": {
+    "message": "Pagina di un'estensione",
+    "description": "Tab Mission card: shown under the title, where a web page shows its site, for a page of another extension."
+  },
+  "addressFile": {
+    "message": "File locale",
+    "description": "Tab Mission card: shown under the title, where a web page shows its site, for a file opened from the computer."
   }
 }
