@@ -1,6 +1,6 @@
 // events.js
 import { state, applyFilters, moveSelection, moveSelectionByRects, currentSiteHost, countSiteTabs } from './state.js';
-import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection, markInView } from './dom.js';
+import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection } from './dom.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isCapturableUrl, faviconUrl, createPlaceholderIcon } from './utils.js';
@@ -54,7 +54,7 @@ export function initializeEventListeners() {
         chrome.runtime.openOptionsPage().catch(() => {});
       } finally {
         // Immediately close the overview for a smooth UX
-        closeOverview(true);
+        closeOverview();
       }
     });
   }
@@ -109,7 +109,7 @@ export { markReady };
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request?.action === 'closeOverview') {
     sendResponse({ ok: true });
-    closeOverview(true);
+    closeOverview();
     return;
   }
   if (request?.action !== 'handleShortcut') return;
@@ -273,7 +273,7 @@ export function activateTab(tab, tile = document.querySelector(`#grid .tile[data
   // the meantime just fails quietly.
   chrome.tabs.update(tab.id, { active: true }).catch(() => {});
   chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
-  closeOverview(true); // Pass true for a fast close
+  closeOverview();
 }
 
 export async function closeTab(tab) {
@@ -370,50 +370,15 @@ function prefersReducedMotion() {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-function closeOverview(fast = false) {
-  const rootEl = document.getElementById('root');
-
+// Every close, after a switch or not (Esc, the shortcut with nothing
+// selected, the toolbar button, the gear), fades the whole window at once:
+// the panels and the toolbar leave with the tiles, and quicker than they
+// came in.
+function closeOverview() {
   if (prefersReducedMotion()) {
     window.close();
     return;
   }
-
-  if (fast) {
-    if (rootEl) {
-      rootEl.classList.add('closing-fast');
-    } else {
-      document.body.classList.add('closing-fast');
-    }
-    setTimeout(() => window.close(), 150);
-    return;
-  }
-
-  // Only the tiles in view animate out (with hundreds of tabs, animating
-  // all of them cost a long frame).
-  const tiles = markInView().filter((el) => el.classList.contains('tile'));
-  const totalTiles = tiles.length;
-  tiles.forEach((tile, index) => {
-    // Reverse index so the last tile starts first
-    const reverseIndex = totalTiles - 1 - index;
-    // Match the opening stagger pattern (batches of 10, 20ms each)
-    const staggerDelay = (reverseIndex % 10) * 20;
-    tile.style.setProperty('--stagger-out', `${staggerDelay}ms`);
-  });
-
-  if (rootEl) {
-    rootEl.classList.add('closing');
-  } else {
-    document.body.classList.add('closing');
-  }
-
-  // Compute a close delay that matches animation duration + max stagger + small margin
-  const animationDurationMs = 320; // must match CSS fadeOutUp duration
-  const maxStaggerSteps = Math.min(Math.max(totalTiles - 1, 0), 9); // 0..9
-  const maxStaggerMs = maxStaggerSteps * 20;
-  const safetyMarginMs = 120;
-  const closeDelayMs = animationDurationMs + maxStaggerMs + safetyMarginMs; // 320.. (max 320+180+120=620)
-
-  setTimeout(() => {
-    window.close();
-  }, closeDelayMs);
+  (document.getElementById('root') || document.body).classList.add('closing');
+  setTimeout(() => window.close(), 150);
 }

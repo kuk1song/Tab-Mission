@@ -170,7 +170,7 @@ test('the toolbar button opens Tab Mission; clicked again, it fades out as for t
   await page.evaluate(() => {
     const root = document.getElementById('root');
     new MutationObserver(() => {
-      if (root.classList.contains('closing-fast')) chrome.storage.session.set({ fadeSeen: true });
+      if (root.classList.contains('closing')) chrome.storage.session.set({ fadeSeen: true });
     }).observe(root, { attributes: true, attributeFilter: ['class'] });
   });
   await ext.clickToolbarButton();
