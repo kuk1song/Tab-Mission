@@ -1,5 +1,6 @@
-// Validate that the extension's hand-edited JSON files parse cleanly.
-// Run via `npm run validate:json` and in CI.
+// Check the extension's hand-edited JSON: each file parses, the permissions
+// are the expected ones, names and descriptions fit the store's limits, and
+// the version matches package.json. Run via `npm run validate:json` and in CI.
 import { readFileSync } from 'node:fs';
 
 const files = [

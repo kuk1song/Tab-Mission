@@ -1,6 +1,6 @@
 # Privacy Policy for Tab Mission
 
-**Last Updated: 2026-10-20**
+**Last Updated: 2026-10-21**
 
 Thank you for using Tab Mission ("the Extension"). This policy explains exactly what the Extension reads, where that data stays, and why each permission is needed. It describes version 1.5.0; section 5 lists what earlier versions do differently.
 
@@ -20,7 +20,7 @@ Tab Mission has no developer-run server, analytics or tracking. It reads and pro
 
 - `tabs`: read tab titles, URLs and favicons, switch to a tab, and close a tab when you ask.
 - `favicon`: show each tab's site icon from the icons Chrome already keeps on your computer, so no icon is requested from the site. It adds no warning to the ones `tabs` already shows.
-- `scripting` and host access to all sites (`<all_urls>`): take the pictures of pages described above with `captureVisibleTab`, and find a preview image address by reading the page's preview image tags and video poster. Preview addresses are also read from eligible tabs that are not active. The Extension never changes a page or injects into a sleeping tab.
+- `scripting` and host access to all sites (`<all_urls>`): take the pictures of pages described above with `captureVisibleTab`, find a preview image address by reading the page's preview image tags and video poster, and load that image from its host to show it. Preview addresses are also read from eligible tabs that are not active. The Extension never changes a page or injects into a sleeping tab.
 - `system.display`: size and place the Tab Mission window on the screen you are using.
 - `storage`: save the settings, the getting started progress, the page pictures, the session cache and the ids of tabs opened in the background listed above.
 
@@ -34,11 +34,11 @@ Tab Mission's use of user data complies with the Chrome Web Store User Data Poli
 
 Versions before 1.5.0 differ in these ways:
 
-- They take no pictures of pages.
+- They take no pictures of pages, and keep no ids of tabs opened in the background.
 - They load each tab's icon from the address the page gives for it, which is a request to the site or the host of that icon; they have no `favicon` permission.
 - For a preview image they also use the page's touch icon, a large background image or the largest image on the page, and they load it as an ordinary image, so the image host can receive its cookies (still without the page's address).
 - They also look for a preview image in an incognito tab's page, without caching it.
-- They have no "Group tabs by site" setting.
+- They save fewer settings: none has "Group tabs by site"; versions before 1.4.0 have no "Show tips" setting and keep no getting started progress; versions before 1.2.0 have no "Pre-select the previous tab" setting, but save an "Art mode" setting and your last search text.
 - Versions before 1.2.0 also ask for `activeTab`, which adds nothing to their host access to all sites.
 
 ## 6. Changes to This Policy
