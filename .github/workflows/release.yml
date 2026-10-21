@@ -1,9 +1,10 @@
 name: Release
 
-# Push a tag like v1.2.0 (on main, matching manifest.json) to run every test,
-# then build the store zip from a clean checkout, attest its provenance and
-# publish a GitHub Release with it attached. Uploading to the Chrome Web Store
-# stays manual.
+# Push a tag like v1.2.0 (on main, matching manifest.json) to run the checks
+# and end-to-end tests once more, on Ubuntu (CI ran them for every commit on
+# main, the end-to-end tests on all three systems), then build the store zip
+# from a clean checkout, attest its provenance and publish a GitHub Release
+# with it attached. Uploading to the Chrome Web Store stays manual.
 on:
   push:
     tags: ['v*']
@@ -15,8 +16,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Every test, in a job that can change nothing: it installs the dev
-  # dependencies, so it gets no write, signing or attestation rights.
+  # The checks and end-to-end tests, in a job that can change nothing: it
+  # installs the dev dependencies, so it gets no write, signing or
+  # attestation rights.
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20

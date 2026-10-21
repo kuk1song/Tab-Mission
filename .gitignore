@@ -12,7 +12,6 @@ pnpm-debug.log*
 
 # Build artifacts
 /builds
-/extension_build_tmp
 *.zip
 
 # Playwright

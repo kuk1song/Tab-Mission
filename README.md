@@ -27,7 +27,7 @@ Tab Mission puts your tabs into one searchable grid, the ones you used last firs
 - **Most Likely First:** The tab you most likely want, the previous one, takes the first slot; your current tab sits second, then your other recent tabs.
 - **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. A search covers all windows and sleeping tabs; without one, the grid shows what the two toggles above it say.
 - **Site View:** When the grid holds two or more tabs from the website you are on, press `Tab` in the search box to see only those (`Tab` again, `Esc`, or `Backspace` at the start of the box to leave). A global shortcut for it can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
-- **Grouped by Site:** Your five most recent tabs come first (the previous tab still in the first slot), then a panel for each site with several tabs, which switching tabs never moves; the rest come last. It looks the same at any window size. You can turn it off in the settings.
+- **Grouped by Site:** Your five most recent tabs come first (the previous tab still in the first slot), then a panel for each site with several tabs, which switching tabs never moves; the rest come last. It groups the same way at any window size; a narrower window fits fewer tabs in a row. You can turn it off in the settings.
 - **Keyboard or Mouse:** `↑↓←→` + `Enter`, or click. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
 - **Page Previews:** Each tab shows a small picture of the page, taken while it was in front of you and kept after a restart, with its title underneath; until it has one, the preview image the page provides (not a logo), or the site's icon on a card in the icon's color. Light or dark, as your system is.
 - **Private by Design:** No developer-run server, analytics or tracking. Tab information and page pictures stay on your computer (pictures only of tabs still open, never of incognito tabs); preview images load from their original hosts, and site icons come from Chrome's own store.
@@ -67,6 +67,8 @@ The best way to get in touch is by **[opening an issue on our GitHub repository]
 ## 🛡️ Privacy & Open Source
 
 Tab Mission is free and open source (MIT). It processes tab information and page pictures in your browser, does not upload your tab list, search text or pictures to the developer, and does not sell user data. Preview images load from websites or their image hosts. Details, including local storage and why each permission is needed, are in the [**Privacy Policy**](PRIVACY.md).
+
+Permissions: `tabs` to list, switch and close tabs; `favicon` for site icons from Chrome's own store; `scripting` and access to all sites for the page pictures and preview images; `system.display` to place the window on your screen; `storage` for settings, page pictures and the other data the Privacy Policy lists.
 
 The MIT license covers the code. It does not grant rights to the Tab Mission name or logo as a trademark, so please give forks and derived extensions a different name and icon.
 
