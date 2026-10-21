@@ -433,6 +433,43 @@ export async function pointAt(page, target) {
   await page.mouse.move(x, y, { steps: 4 });
 }
 
+// Contrast of each text against what is painted behind it (the page color
+// with any translucent surfaces on top), counting the opacity of each layer
+// and its ancestors (a faded control's text is fainter). One decimal.
+export function contrasts(page, selectors) {
+  return page.evaluate((selectors) => {
+    const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
+    const over = (top, bottom, alpha) => [0, 1, 2].map((i) => top[i] * alpha + bottom[i] * (1 - alpha));
+    const opacity = (node) => {
+      let value = 1;
+      for (let n = node; n; n = n.parentElement) value *= Number(getComputedStyle(n).opacity);
+      return value;
+    };
+    const luminance = (c) => {
+      const [r, g, b] = c.map((v) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const result = {};
+    for (const selector of selectors) {
+      const el = document.querySelector(selector);
+      const chain = [];
+      for (let node = el; node; node = node.parentElement) chain.push(node);
+      let behind = [255, 255, 255];
+      for (const node of chain.reverse()) {
+        const layer = rgba(getComputedStyle(node).backgroundColor);
+        if (layer.length) behind = over(layer, behind, (layer[3] ?? 1) * opacity(node));
+      }
+      const text = rgba(getComputedStyle(el).color);
+      const [fg, bg] = [luminance(over(text, behind, (text[3] ?? 1) * opacity(el))), luminance(behind)];
+      result[selector] = Math.round(((Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05)) * 10) / 10;
+    }
+    return result;
+  }, selectors);
+}
+
 export function selectedTitle(page) {
   return page.evaluate(() => document.querySelector('.tile.selected .title')?.textContent ?? null);
 }

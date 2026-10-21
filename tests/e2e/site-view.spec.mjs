@@ -94,6 +94,10 @@ test('no match in the site view offers to search all tabs, keeping the query', a
   await page.keyboard.press('Tab');
   await page.keyboard.type('pull');
   await expect(page.locator('.empty-widen')).toBeVisible();
+  // Said to screen readers: the message, without the button's name.
+  const said = await page.locator('#status').textContent();
+  expect(said).not.toBe('');
+  expect(await page.locator('.empty').evaluate((el) => el.firstChild.textContent)).toBe(said);
   await page.locator('.empty-widen').click();
   await expect(page.locator('#scope-token')).toBeHidden();
   await expect(page.locator('#search')).toHaveValue('pull');

@@ -1,4 +1,4 @@
-import { test, expect, PAGES } from './fixtures.mjs';
+import { test, expect, PAGES, contrasts } from './fixtures.mjs';
 
 // Chrome only auto-assigns a suggested key that none of its own shortcuts
 // use: Ctrl+E is Chrome's "search" key on Windows, Linux and ChromeOS, so the
@@ -249,43 +249,97 @@ test('welcome and settings pages: a shortcut changed elsewhere shows on coming b
   }
 });
 
+// Coming back from Chrome's shortcuts page fires both focus and
+// visibilitychange; the row's button keeps the keyboard focus, or, when the
+// shortcut changed, the new row's button gets it.
+test('options page: coming back from the shortcuts page keeps the focus on the shortcut button', async ({ ext, context }) => {
+  const { page, row } = await openOptions(ext, context, () => {
+    window.shortcut_ = '';
+    window.reads_ = 0;
+    const getAll = chrome.commands.getAll.bind(chrome.commands);
+    chrome.commands.getAll = async () => {
+      const commands = (await getAll()).map((c) => (c.name === 'open-overview' && window.shortcut_ ? { ...c, shortcut: window.shortcut_ } : c));
+      window.reads_++;
+      return commands;
+    };
+  });
+  const button = row.locator('button');
+  await expect.poll(() => page.evaluate(() => window.reads_)).toBe(1);
+  await button.evaluate((b) => {
+    b.dataset.mark = 'first';
+    b.focus();
+  });
+  const comeBack = () => page.evaluate(() => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new Event('focus'));
+  });
+  // Each read is done once the page has counted it (the row is drawn right
+  // after, before any other task).
+  await comeBack();
+  await expect.poll(() => page.evaluate(() => window.reads_)).toBe(3);
+  expect(await page.evaluate(() => document.activeElement?.dataset.mark)).toBe('first');
+  await page.evaluate(() => {
+    window.shortcut_ = 'Alt+Shift+K';
+  });
+  await comeBack();
+  await expect.poll(() => page.evaluate(() => window.reads_)).toBe(5);
+  await expect(page.locator('#shortcuts kbd.combo')).toContainText('K');
+  expect(await page.evaluate(() => ({
+    inRow: Boolean(document.activeElement?.closest('#shortcuts')),
+    tag: document.activeElement?.tagName,
+    mark: document.activeElement?.dataset.mark ?? null,
+  }))).toEqual({ inRow: true, tag: 'BUTTON', mark: null });
+  await page.close();
+});
+
+// The switch's knob against its track, off and on, light and dark: 3:1 at
+// least (WCAG 1.4.11), as the knob's side shows the state.
+test('options page: a switch\'s knob stands out on its track, off and on, light and dark', async ({ ext, context }) => {
+  const { page } = await openOptions(ext, context);
+  await expect(page.locator('#preselect-previous')).toBeChecked();
+  await expect(page.locator('#show-tips')).not.toBeChecked();
+  for (const colorScheme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme });
+    // The track's color slides to the new appearance's.
+    await expect.poll(() => page.evaluate(() => document.getAnimations().length)).toBe(0);
+    const ratios = await page.evaluate(() => {
+      const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
+      const over = (top, bottom) => [0, 1, 2].map((i) => top[i] * (top[3] ?? 1) + bottom[i] * (1 - (top[3] ?? 1)));
+      const luminance = (c) => {
+        const [r, g, b] = c.map((v) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const ratio = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      const result = {};
+      for (const id of ['preselect-previous', 'show-tips']) {
+        const input = document.getElementById(id);
+        const chain = [];
+        for (let node = input; node; node = node.parentElement) chain.push(node);
+        let track = [255, 255, 255];
+        for (const node of chain.reverse()) {
+          const layer = rgba(getComputedStyle(node).backgroundColor);
+          if (layer.length) track = over(layer, track);
+        }
+        const knob = over(rgba(getComputedStyle(input, '::before').backgroundColor), track);
+        result[input.checked ? 'on' : 'off'] = Math.round(ratio(luminance(knob), luminance(track)) * 10) / 10;
+      }
+      return result;
+    });
+    for (const [state, value] of Object.entries(ratios)) {
+      expect(value, `knob ${state} in ${colorScheme}`).toBeGreaterThanOrEqual(3);
+    }
+  }
+});
+
 test("options page: the shortcut button opens Chrome's shortcuts page", async ({ ext, context }) => {
   const { row } = await openOptions(ext, context);
   const opened = context.waitForEvent('page', (p) => p.url().startsWith('chrome://extensions/shortcuts'));
   await row.locator('button').click();
   await (await opened).close();
 });
-
-// Contrast of each text against what is painted behind it (the page color
-// with any translucent surfaces on top), in both appearances and at phone
-// width.
-async function contrasts(page, selectors) {
-  return page.evaluate((selectors) => {
-    const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
-    const over = (top, bottom) => {
-      const a = top[3] ?? 1;
-      return [0, 1, 2].map((i) => top[i] * a + bottom[i] * (1 - a));
-    };
-    const luminance = (c) => {
-      const [r, g, b] = c.map((v) => {
-        const s = v / 255;
-        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-      });
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    };
-    const result = {};
-    for (const selector of selectors) {
-      const el = document.querySelector(selector);
-      const layers = [];
-      for (let node = el; node; node = node.parentElement) layers.push(rgba(getComputedStyle(node).backgroundColor));
-      let behind = [255, 255, 255];
-      for (const layer of layers.reverse()) if (layer.length) behind = over(layer, behind);
-      const [fg, bg] = [luminance(over(rgba(getComputedStyle(el).color), behind)), luminance(behind)];
-      result[selector] = Math.round(((Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05)) * 10) / 10;
-    }
-    return result;
-  }, selectors);
-}
 
 test('options and welcome pages follow the system appearance, stay readable and never scroll sideways', async ({ ext, context }) => {
   const { page } = await openOptions(ext, context);

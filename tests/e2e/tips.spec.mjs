@@ -49,7 +49,9 @@ test('opened with the shortcut, a tip points at the previous tab, with no button
   const tip = overview.locator('.tip');
   await expect(tip).toBeVisible();
   await expect(tip).toHaveAttribute('data-anchor', 'card');
-  await expect(tip).toHaveAttribute('role', 'status');
+  // Read out through the window's live region, there from the start.
+  await expect(overview.locator('#status')).toHaveAttribute('role', 'status');
+  await expect(overview.locator('#status')).toHaveText(await tip.textContent());
   await expect(tip.locator('kbd')).toHaveText(await shortcutText(ext));
   await expect(tip.locator('button')).toHaveCount(0);
   const card = await overview.locator('.tile.selected').boundingBox();
@@ -72,9 +74,12 @@ test('the card tip stays while the pointer moves on its card, and goes once the 
   await pointAt(overview, overview.locator('.tile.selected'));
   await settle(overview);
   await expect(tip).toBeVisible();
-  // The shortcut would now go to the card under the pointer.
+  await expect(overview.locator('#status')).toHaveText(await tip.textContent());
+  // The shortcut would now go to the card under the pointer. Gone, the tip
+  // leaves nothing for screen readers to read either.
   await pointAt(overview, overview.locator('.tile').nth(1));
   await expect(overview.locator('.tip')).toHaveCount(0);
+  await expect(overview.locator('#status')).toHaveText('');
 });
 
 test('opened with the toolbar button, the tip points at the shortcut badge; the pointer leaves it, a key hides it', async ({ ext, context }) => {
