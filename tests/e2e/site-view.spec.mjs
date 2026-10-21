@@ -105,9 +105,9 @@ test('the site view follows the window toggle, and so does the hint count', asyn
   await ext.openWindow(WINDOW);
   const page = await ext.open();
   const hint = page.locator('#scope-hint-label');
-  await expect(hint).toContainText('2');
+  await expect(hint).toHaveText(/· 2$/);
   await page.locator('#toggle-all-windows').click();
-  await expect(hint).toContainText('3');
+  await expect(hint).toHaveText(/· 3$/);
   await page.keyboard.press('Tab');
   expect(await tileTitles(page)).toHaveLength(3);
   await page.locator('#toggle-all-windows').click();
