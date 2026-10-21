@@ -28,6 +28,45 @@ beforeEach(() => {
   state.currentTabId = null;
   state.selfWindowId = null;
   state.siteHost = '';
+  state.unseen = new Set();
+});
+
+// Chrome gives a tab the time it was opened as its lastAccessed, so a tab
+// opened in the background (unseen.js) would pass for the most recent one.
+describe('applyFilters: a tab opened in the background and not shown yet', () => {
+  beforeEach(() => {
+    state.currentTabId = 2;
+    state.allTabs = [
+      makeTab(1, { lastAccessed: 100 }), // the tab you were on before
+      makeTab(2, { lastAccessed: 200, active: true }), // the current tab
+      makeTab(3, { lastAccessed: 300 }), // opened from it in the background
+    ];
+    state.unseen = new Set([3]);
+  });
+
+  it('is not the previous tab: that one stays first and pre-selected, the current tab second', () => {
+    applyFilters(ui({ preselectPrevious: true }));
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 2, 3]);
+    expect(state.selectedIndex).toBe(0);
+  });
+
+  it("can be a query's best match", () => {
+    applyFilters(ui({ searchTerm: 'example' }));
+    expect(state.filteredTabs[state.selectedIndex].id).toBe(3);
+  });
+
+  it('with no other tab you have been on, the current tab is pre-selected', () => {
+    state.allTabs = state.allTabs.filter((t) => t.id !== 1);
+    applyFilters(ui({ preselectPrevious: true }));
+    expect(state.filteredTabs[state.selectedIndex].id).toBe(2);
+  });
+
+  it('once shown, it is the previous tab like any other', () => {
+    state.unseen = new Set();
+    applyFilters(ui({ preselectPrevious: true }));
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([3, 2, 1]);
+    expect(state.selectedIndex).toBe(0);
+  });
 });
 
 describe('applyFilters — MRU ordering', () => {
@@ -50,6 +89,21 @@ describe('applyFilters — MRU ordering', () => {
     ];
     applyFilters(ui());
     expect(state.filteredTabs.map((t) => t.id)).toEqual([3, 1, 2]);
+  });
+
+  it('leaves the current tab where it was used when it comes after the previous tab', () => {
+    // Two tabs of another window were used after it; all windows shown, or
+    // a query, lists them first.
+    state.currentTabId = 3;
+    state.allTabs = [
+      makeTab(1, { lastAccessed: 500, windowId: 2 }),
+      makeTab(2, { lastAccessed: 400, active: true, windowId: 2 }),
+      makeTab(3, { lastAccessed: 300, active: true }), // current tab
+    ];
+    applyFilters(ui({ showAllWindows: true }));
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 2, 3]);
+    applyFilters(ui({ searchTerm: 'example' }));
+    expect(state.filteredTabs.map((t) => t.id)).toEqual([1, 2, 3]);
   });
 
   it('leaves the order alone when the current tab is not listed', () => {

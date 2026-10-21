@@ -32,7 +32,9 @@ function fakeChrome() {
     _focused: { left: 0, top: 0, width: 1600, height: 1000, state: 'normal' },
     system: { display: { getInfo: async () => chrome._displays } },
     tabs: {
-      // Covers (src/covers.js) listen here; their own tests drive them.
+      // Covers (src/covers.js) and unseen tabs (src/unseen.js) listen here;
+      // their own tests drive them (this fake keeps an event's last listener).
+      onCreated: event('tabs.onCreated'),
       onActivated: event('tabs.onActivated'),
       onUpdated: event('tabs.onUpdated'),
       onRemoved: event('tabs.onRemoved'),

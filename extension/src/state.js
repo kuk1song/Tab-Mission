@@ -1,5 +1,6 @@
 // state.js
 import { getHostname, isSleeping, isCapturableUrl, withPendingAddress } from './utils.js';
+import { unseenTabIds } from './unseen.js';
 
 export const state = {
   allTabs: [],
@@ -17,6 +18,7 @@ export const state = {
   // { other } when there is one), else null.
   groups: null,
   columns: 0, // tiles per row the groups were made for (0: not measured)
+  unseen: new Set(), // ids of tabs opened in the background and not shown yet (unseen.js)
 };
 
 // Group by site: this many recent tabs first, at any window size (a narrow
@@ -28,6 +30,7 @@ export const DEFAULT_COLUMNS = 5;
 export async function fetchAllTabs() {
   try {
     state.allTabs = (await chrome.tabs.query({})).map(withPendingAddress);
+    state.unseen = await unseenTabIds();
     const current = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
     state.currentWindowId = current?.id || null;
   } catch (err) {
@@ -107,12 +110,18 @@ export function applyFilters(uiState) {
   // since Chrome 121 (the manifest's minimum) and needs no extra permission.
   tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
 
-  // The current tab goes second: the first, most prominent slot is for the
-  // tab you most likely want (the previous one), while the current tab stays
-  // beside it for orientation. Chrome's Tab Search goes further and moves the
-  // visible tab to the bottom ("not likely users want to click on it").
-  if (tabs.length > 1 && tabs[0].id === state.currentTabId) {
-    [tabs[0], tabs[1]] = [tabs[1], tabs[0]];
+  // The first, most prominent slot is for the tab you most likely want: the
+  // previous one, the most recent tab you have been on other than the one
+  // you are on. A tab opened in the background and not shown yet does not
+  // count (unseen.js), though a query may still pick it as its best match.
+  // The current tab, when it came before it, goes second, beside it for
+  // orientation. Chrome's Tab Search goes further and moves the visible tab
+  // to the bottom ("not likely users want to click on it").
+  const lead = tabs.findIndex((tab) => isOther(tab, !searching));
+  if (lead > 0) {
+    const current = tabs.findIndex((tab) => tab.id === state.currentTabId);
+    tabs.unshift(...tabs.splice(lead, 1));
+    if (current !== -1 && current < lead) tabs.splice(1, 0, ...tabs.splice(current + 1, 1));
   }
 
   // Grouped by site (the setting, on by default; while browsing only, as a
@@ -143,7 +152,7 @@ export function applyFilters(uiState) {
   // erased query is dropped.
   const selectionWasAutomatic = state.selectedIndex === state.defaultIndex;
   const preselect = searching || Boolean(uiState.preselectPrevious);
-  state.defaultIndex = preselect ? firstOtherIndex(tabs) : -1;
+  state.defaultIndex = preselect ? firstOtherIndex(tabs, !searching) : -1;
   if (preselect && (searching || selectionWasAutomatic)) {
     state.selectedIndex = state.defaultIndex;
   } else if (selectionWasAutomatic) {
@@ -235,10 +244,20 @@ function packRows(sites, columns) {
   return packed;
 }
 
-function firstOtherIndex(tabs) {
+// The tile to pre-select: the first tab other than the current one, and,
+// with seenOnly (no query), one you have been on; with none, the current
+// tab, or the first tile when it is not listed.
+function firstOtherIndex(tabs, seenOnly) {
   if (tabs.length === 0) return -1;
-  const index = tabs.findIndex((tab) => tab.id !== state.currentTabId);
-  return index === -1 ? 0 : index;
+  const index = tabs.findIndex((tab) => isOther(tab, seenOnly));
+  if (index !== -1) return index;
+  const current = tabs.findIndex((tab) => tab.id === state.currentTabId);
+  return current === -1 ? 0 : current;
+}
+
+// A tab other than the current one; with seenOnly, one you have been on.
+function isOther(tab, seenOnly) {
+  return tab.id !== state.currentTabId && !(seenOnly && state.unseen.has(tab.id));
 }
 
 // Arrow-key movement through the grid. With nothing selected, → and ↓ start
