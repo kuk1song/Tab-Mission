@@ -99,6 +99,22 @@ test('two presses in a row open exactly one overview', async ({ ext, context }) 
   expect(ext.overviewPages()).toHaveLength(1);
 });
 
+// The shortcut pressed twice quickly: the second press can come once the
+// worker has opened the window but before its page listens. It acts once
+// the page is ready, instead of closing the window without switching.
+test('the shortcut pressed again while the window is still loading goes back', async ({ ext, context }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta']);
+  const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
+  await ext.press();
+  await opened;
+  // Opened once the worker has stored its id (a press before then is
+  // dropped, see the test above).
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.session.get('overviewWindowId').then((r) => r.overviewWindowId ?? null)), { intervals: [5] }).not.toBeNull();
+  await ext.press();
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
+});
+
 test('a window id left from an earlier browser session never closes a user window', async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta']);
   // As if Chrome had reused the id of an overview from a previous session.

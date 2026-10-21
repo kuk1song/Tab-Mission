@@ -1,6 +1,6 @@
 // main.js
 import { state, fetchAllTabs, currentSiteHost } from './state.js';
-import { initializeEventListeners, handleFilterChange } from './events.js';
+import { initializeEventListeners, handleFilterChange, markReady } from './events.js';
 import { loadSettings } from './settings.js';
 import { localizeStaticText } from './i18n.js';
 import { readTryIt } from './tryit.js';
@@ -80,8 +80,15 @@ function updateShortcutHint(rawShortcut) {
   hintEl.replaceChildren(kbd);
 }
 
+// Presses that came while the window was loading act once main() is done
+// (events.js), even should it fail: the shortcut then still switches or
+// closes the window.
+function start() {
+  main().finally(markReady);
+}
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', main);
+  document.addEventListener('DOMContentLoaded', start);
 } else {
-  main();
+  start();
 }

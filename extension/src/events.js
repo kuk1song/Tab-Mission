@@ -51,7 +51,7 @@ export function initializeEventListeners() {
   if (openSettingsBtn) {
     openSettingsBtn.addEventListener('click', () => {
       try {
-        chrome.runtime.openOptionsPage();
+        chrome.runtime.openOptionsPage().catch(() => {});
       } finally {
         // Immediately close the overview for a smooth UX
         closeOverview(true);
@@ -91,37 +91,51 @@ export function initializeEventListeners() {
   window.addEventListener('blur', () => {
     chrome.storage.session.set({ overviewBlurredAt: Date.now() }).catch(() => {});
   });
+}
 
-  // Sent by background.js: the toolbar button closing Tab Mission (with the
-  // same quick fade as a switch, without switching tabs), or the shortcut
-  // pressed while it is open.
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request?.action === 'closeOverview') {
-      sendResponse({ ok: true });
-      closeOverview(true);
-      return;
-    }
-    if (request?.action !== 'handleShortcut') return;
+// Sent by background.js: the toolbar button closing Tab Mission (with the
+// same quick fade as a switch, without switching tabs), or the shortcut
+// pressed while it is open. Listened for as soon as this code runs, before
+// main.js has read the settings and tabs, so a press that comes that early
+// (the shortcut pressed twice quickly) is taken, and acted on once the tabs
+// are shown (markReady). background.js hands one that comes sooner still
+// over again once the page has loaded.
+let markReady;
+const ready = new Promise((resolve) => {
+  markReady = resolve;
+});
+export { markReady };
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request?.action === 'closeOverview') {
     sendResponse({ ok: true });
-    // The site shortcut narrows the open overview to the current site. Every
-    // other press acts on the selection, so hovering a tile and pressing the
-    // shortcut switches to it in the site view too.
-    if (request.scope === 'site' && !state.siteHost && currentSiteHost()) {
-      setSiteScope(true);
-      return;
-    }
-    flushFilterChange();
-    if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
-      // If a tab is selected, activate it. This ticks the welcome page's
-      // "press it again" step; the write is not awaited, so it never delays
-      // the switch.
-      recordTryIt('back');
-      activateTab(state.filteredTabs[state.selectedIndex]);
-    } else {
-      // If no tab is selected, just close the overview
-      closeOverview();
-    }
-  });
+    closeOverview(true);
+    return;
+  }
+  if (request?.action !== 'handleShortcut') return;
+  sendResponse({ ok: true });
+  ready.then(() => handleShortcut(request.scope));
+});
+
+function handleShortcut(scope) {
+  // The site shortcut narrows the open overview to the current site. Every
+  // other press acts on the selection, so hovering a tile and pressing the
+  // shortcut switches to it in the site view too.
+  if (scope === 'site' && !state.siteHost && currentSiteHost()) {
+    setSiteScope(true);
+    return;
+  }
+  flushFilterChange();
+  if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
+    // If a tab is selected, activate it. This ticks the welcome page's
+    // "press it again" step; the write is not awaited, so it never delays
+    // the switch.
+    recordTryIt('back');
+    activateTab(state.filteredTabs[state.selectedIndex]);
+  } else {
+    // If no tab is selected, just close the overview
+    closeOverview();
+  }
 }
 
 let shownColumns; // tiles per row at the last draw, while grouping by site applies

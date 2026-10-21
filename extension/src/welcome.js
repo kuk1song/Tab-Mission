@@ -117,7 +117,11 @@ async function main() {
     e.target.closest('.step')?.classList.remove('just-done');
   });
 
-  document.getElementById('try').addEventListener('click', () => {
+  // The second click of a double click is not a second press: it would reach
+  // the window the first click opened as a press of the shortcut, and switch
+  // tabs (ticking the second step without the shortcut).
+  document.getElementById('try').addEventListener('click', (e) => {
+    if (e.detail > 1) return;
     chrome.runtime.sendMessage({ action: 'openOverview' }).catch(() => {});
   });
   document.getElementById('set-shortcut').addEventListener('click', () => {

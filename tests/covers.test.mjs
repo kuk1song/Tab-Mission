@@ -286,6 +286,22 @@ describe('covers', () => {
     expect(Object.keys(chrome.data)).toEqual(['coverIndex']);
   });
 
+  it('after a storage read fails, the next closed tab\'s picture is still forgotten', async () => {
+    chrome.data.coverIndex = {};
+    for (const id of [21, 22]) {
+      chrome.data[`cover:${id}`] = { url: page(id).url, img: 'data:x' };
+      chrome.data.coverIndex[id] = { url: page(id).url, bytes: 6, at: id };
+    }
+    chrome.storage.local.get.mockRejectedValueOnce(new Error('storage failed'));
+    chrome.listeners.onRemoved(21);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(chrome.data['cover:21']).toBeDefined(); // left for tidyCovers
+    chrome.listeners.onRemoved(22);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(chrome.data['cover:22']).toBeUndefined();
+    expect(Object.keys(chrome.data.coverIndex)).toEqual(['21']);
+  });
+
   it('after a restart, a tab back under a new id shows its page\'s picture until it has its own', async () => {
     switchTo(page(11));
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);

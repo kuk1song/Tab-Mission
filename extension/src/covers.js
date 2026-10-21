@@ -58,16 +58,20 @@ export function startCovers(options = {}) {
     } catch {}
   });
   // Tabs closed together (a window) are dropped in one storage update.
+  // Should storage fail before that update takes them, the next close still
+  // starts a new one (tidyCovers drops the pictures left behind).
   chrome.tabs.onRemoved.addListener((tabId) => {
     clearTimeout(timers.get(tabId));
     timers.delete(tabId);
     budgets.delete(tabId);
     if (closing) return void closing.add(String(tabId));
-    closing = new Set([String(tabId)]);
+    const batch = new Set([String(tabId)]);
+    closing = batch;
     update(() => {
-      const ids = [...closing];
       closing = null;
-      return ids;
+      return [...batch];
+    }).then(() => {
+      if (closing === batch) closing = null;
     });
   });
 }
