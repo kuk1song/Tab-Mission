@@ -9,13 +9,19 @@ const rules = {
   'no-empty': ['error', { allowEmptyCatch: true }],
 };
 
+// Modules the service worker imports (background.js, and covers.js imports
+// utils.js): the pages import them too, but they must run without a DOM.
+const WORKER_MODULES = ['extension/src/covers.js', 'extension/src/tryit.js', 'extension/src/unseen.js', 'extension/src/utils.js'];
+
 export default [
   {
     ignores: ['node_modules/**', 'builds/**', 'local/**', 'test-results/**', 'playwright-report/**', 'screens/**'],
   },
   {
-    // Popup / overview scripts run in a normal browser document.
+    // The Tab Mission window's, settings page's and welcome page's scripts
+    // run in a normal browser document.
     files: ['extension/src/**/*.js'],
+    ignores: WORKER_MODULES,
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -24,8 +30,9 @@ export default [
     rules,
   },
   {
-    // The MV3 service worker has no window/document — only worker globals.
-    files: ['extension/background.js'],
+    // The MV3 service worker and the modules it imports: no window or
+    // document, only worker globals.
+    files: ['extension/background.js', ...WORKER_MODULES],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

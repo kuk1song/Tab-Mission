@@ -2,7 +2,9 @@
 // websites served locally, and helpers that drive the overview the way a user
 // does. Most presses are sent through background.js (the openOverview
 // message of the welcome page's button, the same path as chrome.commands,
-// except that a window it opens counts as opened with a click);
+// except that a window it opens counts as opened with a click, and that it
+// takes no picture of the page in front and does not tick the welcome page's
+// first step);
 // pressDefaultShortcut presses the real key through Chrome's own key handling,
 // and clickToolbarButton fires the toolbar button's own event.
 import { test as base, expect, chromium } from '@playwright/test';
@@ -285,19 +287,32 @@ export const test = base.extend({
             }
           };
           for (const id of Object.values(tabIds)) await loaded(id);
-          // Visit in order with distinct lastAccessed times.
+          // Visit in order, each after the one before by the clock Chrome
+          // notes visits with (lastAccessed, in milliseconds), and noted
+          // before the next.
+          let previous = 0;
           for (const id of Object.values(tabIds)) {
+            while (Date.now() <= previous) await new Promise((r) => setTimeout(r, 1));
             await chrome.tabs.update(id, { active: true });
-            await new Promise((r) => setTimeout(r, 30));
+            for (;;) {
+              const { lastAccessed } = await chrome.tabs.get(id);
+              if (lastAccessed > previous) {
+                previous = lastAccessed;
+                break;
+              }
+              await new Promise((r) => setTimeout(r, 1));
+            }
           }
           // Focus can come after update resolves (on Windows focus is real):
           // wait until Chrome reports this window as the last focused one,
-          // which is how Tab Mission finds the current window.
+          // which is how Tab Mission finds the current window, as long as
+          // the test may run. Still without focus after 5 s, it is named in
+          // the worker's console, as a slow page is above.
           await chrome.windows.update(win.id, { focused: true });
-          for (let i = 0; ; i++) {
+          for (let i = 1; ; i++) {
             const last = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
             if (last.id === win.id) break;
-            if (i === 100) throw new Error(`window ${win.id} never got focus (last focused: ${last.id})`);
+            if (i === 100) console.warn(`window ${win.id} without focus after 5 s (last focused: ${last.id})`);
             await new Promise((r) => setTimeout(r, 50));
           }
           return { windowId: win.id, tabIds };

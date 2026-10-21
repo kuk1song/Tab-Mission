@@ -106,14 +106,17 @@ beforeEach(async () => {
 });
 
 describe('background.js', () => {
-  it('opens one overview popup for two presses in a row', async () => {
+  it('opens one overview popup for two presses in a row, and drops the second press', async () => {
     chrome.listeners.onCommand('open-overview');
     chrome.listeners.onCommand('open-overview');
-    // The fake answers at once and background.js sets no timers, so one turn
-    // of the event loop runs both presses to the end.
+    // The second press comes while the first is still opening the window
+    // (the fake takes 5 ms), so it is dropped: no second window, and no
+    // press handed to the new one once it is open.
+    await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeGreaterThanOrEqual(100));
     await new Promise((r) => setImmediate(r));
     expect(chrome.windows.create).toHaveBeenCalledTimes(1);
     expect(chrome.windows.create.mock.calls[0][0]).toMatchObject({ type: 'popup', url: 'chrome-extension://test/overview.html' });
+    expect(chrome.tabs.sendMessage).not.toHaveBeenCalled();
   });
 
   it('never closes a user window whose id was saved for the overview', async () => {

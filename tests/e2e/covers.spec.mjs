@@ -75,7 +75,8 @@ test('without a picture, a card shows the page\'s own image unless it is a squar
   const img = (id) => page.locator(`.tile[data-tab-id="${tabIds[id]}"] img.thumbnail`);
   await expect(img('alpha')).toHaveClass(/\bloaded\b/); // 1200 × 630
   await expect(img('photo')).toHaveClass(/\bloaded\b/); // 600 × 800
-  // A square logo, as og:image or as a touch icon, leaves the icon card.
+  // A square logo named as og:image leaves the icon card; a touch icon is
+  // never looked for.
   await expect(img('logo')).toHaveAttribute('data-from', /logo-square\.svg$/);
   await expect(img('logo')).toBeHidden();
   await expect(img('logo')).not.toHaveClass(/\bloaded\b/);

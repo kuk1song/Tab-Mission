@@ -7,6 +7,17 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { test, expect } from './fixtures.mjs';
 
 const OUT = 'screens';
+
+// Settled for a screenshot: the entrance is over, alpha's card shows its
+// page's own image if it is in view (no other page names one), and nothing
+// is still moving (the window's fade-in keeps its end, so it stays listed,
+// finished).
+async function settle(page, alphaId) {
+  await expect(page.locator('#grid')).not.toHaveClass(/entering/);
+  const alpha = page.locator(`.tile.in-view[data-tab-id="${alphaId}"] img.thumbnail`);
+  if (await alpha.count()) await expect(alpha.first()).toHaveClass(/\bloaded\b/);
+  await expect.poll(() => page.evaluate(() => document.getAnimations().some((a) => a.playState === 'running'))).toBe(false);
+}
 const TABS = ['alpha', 'tube1', 'code1', 'notes1', 'doc1', 'tube2', 'code2', 'notes2', 'beta', 'gamma', 'tube3',
   ...Array.from({ length: 13 }, (_, i) => `beta?n=${i}`)];
 
@@ -21,9 +32,9 @@ for (const scale of [1, 1.25, 1.5]) {
       mkdirSync(OUT, { recursive: true });
       const name = (what) => `${OUT}/${process.platform}-${scale * 100}-${what}.png`;
       await ext.sw.evaluate(() => chrome.storage.local.remove('groupBySite')); // as users have it
-      await ext.openWindow(TABS);
+      const { tabIds } = await ext.openWindow(TABS);
       const page = await ext.open();
-      await page.waitForTimeout(800); // entrance animation and previews
+      await settle(page, tabIds.alpha);
 
       const info = await ext.sw.evaluate(async () => ({
         displays: (await chrome.system.display.getInfo()).map((d) => ({ bounds: d.bounds, workArea: d.workArea })),
@@ -35,9 +46,13 @@ for (const scale of [1, 1.25, 1.5]) {
 
       await page.screenshot({ path: name('overview') });
       await page.keyboard.type('tube');
+      await expect(page.locator('#grid .tile')).toHaveCount(3); // drawn on the next frame
+      await settle(page, tabIds.alpha);
       await page.screenshot({ path: name('search') });
       await page.locator('#search').fill('');
       await page.keyboard.press('Tab');
+      await expect(page.locator('#scope-token')).toBeVisible();
+      await settle(page, tabIds.alpha);
       await page.screenshot({ path: name('site-view') });
       await page.keyboard.press('Escape');
       await ext.welcome.screenshot({ path: name('welcome'), fullPage: true });
