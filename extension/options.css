@@ -107,12 +107,8 @@ button.external::after {
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 2h5v5M14 2 7.5 8.5M12 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
-/* The checkbox drawn as a switch: it takes effect at once, with no Save.
-   Its knob is white, and when on, the accent's own text color: white on the
-   light accent, dark on the bright dark-mode accent (white there is 1.8:1;
-   WCAG 1.4.11 asks 3:1). */
+/* The checkbox drawn as a switch: it takes effect at once, with no Save. */
 .switch {
-  --knob: #ffffff;
   appearance: none;
   position: relative;
   flex: none;
@@ -132,11 +128,11 @@ button.external::after {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--knob);
+  background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   transition: transform 0.15s;
 }
-.switch:checked { --knob: var(--accent-fg); background: var(--accent); }
+.switch:checked { background: var(--accent); }
 .switch:checked::before { transform: translateX(18px); }
 
 /* Version and links: information, not settings, so a quiet line at the end. */

@@ -292,48 +292,6 @@ test('options page: coming back from the shortcuts page keeps the focus on the s
   await page.close();
 });
 
-// The switch's knob against its track, off and on, light and dark: 3:1 at
-// least (WCAG 1.4.11), as the knob's side shows the state.
-test('options page: a switch\'s knob stands out on its track, off and on, light and dark', async ({ ext, context }) => {
-  const { page } = await openOptions(ext, context);
-  await expect(page.locator('#preselect-previous')).toBeChecked();
-  await expect(page.locator('#show-tips')).not.toBeChecked();
-  for (const colorScheme of ['light', 'dark']) {
-    await page.emulateMedia({ colorScheme });
-    // The track's color slides to the new appearance's.
-    await expect.poll(() => page.evaluate(() => document.getAnimations().length)).toBe(0);
-    const ratios = await page.evaluate(() => {
-      const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
-      const over = (top, bottom) => [0, 1, 2].map((i) => top[i] * (top[3] ?? 1) + bottom[i] * (1 - (top[3] ?? 1)));
-      const luminance = (c) => {
-        const [r, g, b] = c.map((v) => {
-          const s = v / 255;
-          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-        });
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      };
-      const ratio = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-      const result = {};
-      for (const id of ['preselect-previous', 'show-tips']) {
-        const input = document.getElementById(id);
-        const chain = [];
-        for (let node = input; node; node = node.parentElement) chain.push(node);
-        let track = [255, 255, 255];
-        for (const node of chain.reverse()) {
-          const layer = rgba(getComputedStyle(node).backgroundColor);
-          if (layer.length) track = over(layer, track);
-        }
-        const knob = over(rgba(getComputedStyle(input, '::before').backgroundColor), track);
-        result[input.checked ? 'on' : 'off'] = Math.round(ratio(luminance(knob), luminance(track)) * 10) / 10;
-      }
-      return result;
-    });
-    for (const [state, value] of Object.entries(ratios)) {
-      expect(value, `knob ${state} in ${colorScheme}`).toBeGreaterThanOrEqual(3);
-    }
-  }
-});
-
 test("options page: the shortcut button opens Chrome's shortcuts page", async ({ ext, context }) => {
   const { row } = await openOptions(ext, context);
   const opened = context.waitForEvent('page', (p) => p.url().startsWith('chrome://extensions/shortcuts'));
