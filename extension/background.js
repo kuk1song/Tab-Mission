@@ -27,12 +27,14 @@ async function setStoredOverviewWindowId(idOrNull) {
 }
 
 // True only for an open overview popup, never for one of the user's windows,
-// so a stale id can never make the shortcut close the wrong window.
+// so a stale id can never make the shortcut close the wrong window. A window
+// just opened has no address yet, only the one it is going to.
 async function isOverviewWindow(windowId) {
 	try {
 		const win = await chrome.windows.get(windowId, { populate: true });
+		const tab = win.tabs?.[0];
 		return win.type === 'popup' &&
-			Boolean(win.tabs?.[0]?.url?.startsWith(chrome.runtime.getURL('overview.html')));
+			Boolean((tab?.url || tab?.pendingUrl)?.startsWith(chrome.runtime.getURL('overview.html')));
 	} catch {
 		return false;
 	}
@@ -205,21 +207,57 @@ async function runToggle(scope, source) {
 	await tellOverview(windowId, { action: 'handleShortcut', scope });
 }
 
-// Hand a message to the overview page. When the page cannot answer (still
-// loading, or already gone), close its window instead.
+// Hand a message to the overview page. A page still loading may not listen
+// yet (the shortcut pressed twice quickly comes that soon), so it is asked
+// again once it has loaded. When it cannot answer even then (already gone),
+// close its window instead.
 async function tellOverview(windowId, message) {
+	let tab;
 	try {
-		const [tab] = await chrome.tabs.query({ windowId });
+		[tab] = await chrome.tabs.query({ windowId });
 		if (tab) {
 			await chrome.tabs.sendMessage(tab.id, message);
 			return;
 		}
 	} catch {}
+	if (tab) {
+		await loaded(tab.id);
+		try {
+			await chrome.tabs.sendMessage(tab.id, message);
+			return;
+		} catch {}
+	}
 	if (await isOverviewWindow(windowId)) {
 		try {
 			await chrome.windows.remove(windowId);
 		} catch {}
 	}
+}
+
+// Resolves once a tab is no longer loading or is gone. The overview page
+// listens from the start of its code (events.js), before it finishes
+// loading. A page that hangs is given up on after a few seconds.
+function loaded(tabId) {
+	return new Promise((resolve) => {
+		const done = () => {
+			clearTimeout(timer);
+			chrome.tabs.onUpdated.removeListener(onUpdated);
+			chrome.tabs.onRemoved.removeListener(onRemoved);
+			resolve();
+		};
+		const onUpdated = (id, change) => {
+			if (id === tabId && change.status === 'complete') done();
+		};
+		const onRemoved = (id) => {
+			if (id === tabId) done();
+		};
+		const timer = setTimeout(done, 5000);
+		chrome.tabs.onUpdated.addListener(onUpdated);
+		chrome.tabs.onRemoved.addListener(onRemoved);
+		chrome.tabs.get(tabId).then((tab) => {
+			if (tab.status !== 'loading') done();
+		}, done);
+	});
 }
 
 // Opened with a click (the toolbar button or the welcome page's button), the
@@ -293,7 +331,7 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
 		// A new user: the Tab Mission window shows its tips until learned.
 		startTips();
-		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
+		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') }).catch(() => {});
 	}
 	if (reason === chrome.runtime.OnInstalledReason.UPDATE) {
 		// Drop keys that older versions saved: the last search text, the window

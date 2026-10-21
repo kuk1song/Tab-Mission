@@ -4,7 +4,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // APIs it uses lets the tests fire those events and watch what it does.
 function fakeChrome() {
   const listeners = {};
-  const event = (name) => ({ addListener: (fn) => { listeners[name] = fn; } });
+  const sets = new Map();
+  // Every listener of an event is called (background.js and the modules it
+  // starts may listen to the same one); the call resolves once they have.
+  const event = (name) => {
+    const fns = new Set();
+    sets.set(name, fns);
+    listeners[name] = (...args) => Promise.all([...fns].map((fn) => fn(...args)));
+    return { addListener: (fn) => { fns.add(fn); }, removeListener: (fn) => { fns.delete(fn); } };
+  };
   const store = () => {
     const data = {};
     return {
@@ -14,10 +22,14 @@ function fakeChrome() {
       remove: vi.fn(async (keys) => { for (const k of [].concat(keys)) delete data[k]; }),
     };
   };
-  const windows = new Map([[1, { id: 1, type: 'normal', tabs: [{ id: 11, url: 'https://example.com/' }] }]]);
+  const windows = new Map([[1, { id: 1, type: 'normal', tabs: [{ id: 11, url: 'https://example.com/', status: 'complete' }] }]]);
+  const tabById = (id) => [...windows.values()].flatMap((w) => w.tabs).find((t) => t.id === id);
   let nextId = 100;
   const chrome = {
     listeners,
+    // A stopped service worker's listeners are gone (restartWorker below).
+    stopWorker: () => { for (const fns of sets.values()) fns.clear(); },
+    listenerCount: (name) => sets.get(name).size,
     runtime: {
       getURL: (path) => `chrome-extension://test/${path}`,
       onInstalled: event('onInstalled'),
@@ -33,17 +45,22 @@ function fakeChrome() {
     system: { display: { getInfo: async () => chrome._displays } },
     tabs: {
       // Covers (src/covers.js) and unseen tabs (src/unseen.js) listen here;
-      // their own tests drive them (this fake keeps an event's last listener).
+      // their own tests drive them.
       onCreated: event('tabs.onCreated'),
       onActivated: event('tabs.onActivated'),
       onUpdated: event('tabs.onUpdated'),
       onRemoved: event('tabs.onRemoved'),
       create: vi.fn(async () => ({})),
       query: vi.fn(async ({ windowId }) => windows.get(windowId)?.tabs ?? []),
-      // Only the overview page listens; a web page has no receiver.
+      get: vi.fn(async (id) => {
+        if (!tabById(id)) throw new Error(`No tab with id: ${id}.`);
+        return { ...tabById(id) };
+      }),
+      // Only the overview page listens, here once it has loaded; a web page
+      // has no receiver.
       sendMessage: vi.fn(async (tabId) => {
-        const tab = [...windows.values()].flatMap((w) => w.tabs).find((t) => t.id === tabId);
-        if (!tab?.url.includes('/overview.html')) throw new Error('Could not establish connection. Receiving end does not exist.');
+        const tab = tabById(tabId);
+        if (!tab?.url.includes('/overview.html') || tab.status === 'loading') throw new Error('Could not establish connection. Receiving end does not exist.');
         return { ok: true };
       }),
     },
@@ -57,7 +74,7 @@ function fakeChrome() {
       create: vi.fn(async ({ url, type }) => {
         // A little latency, as a real window takes time to open.
         await new Promise((r) => setTimeout(r, 5));
-        const win = { id: nextId++, type, tabs: [{ id: nextId++, url }] };
+        const win = { id: nextId++, type, tabs: [{ id: nextId++, url, status: 'complete' }] };
         windows.set(win.id, win);
         return win;
       }),
@@ -73,6 +90,14 @@ function fakeChrome() {
 }
 
 let chrome;
+
+// A fresh module instance stands in for a restarted service worker.
+async function restartWorker() {
+  chrome.stopWorker();
+  vi.resetModules();
+  await import('../extension/background.js');
+}
+
 beforeEach(async () => {
   vi.resetModules();
   chrome = fakeChrome();
@@ -109,9 +134,7 @@ describe('background.js', () => {
     const overviewId = chrome.storage.session.data.overviewWindowId;
     expect(overviewId).toBeGreaterThanOrEqual(100);
 
-    // A fresh module instance stands in for a restarted service worker.
-    vi.resetModules();
-    await import('../extension/background.js');
+    await restartWorker();
     chrome.listeners.onCommand('open-overview-site');
     await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1));
     expect(chrome.tabs.sendMessage.mock.calls[0][1]).toEqual({ action: 'handleShortcut', scope: 'site' });
@@ -145,6 +168,71 @@ describe('background.js', () => {
     await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1));
     expect(chrome.windows.remove).not.toHaveBeenCalled();
     expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('a press the overview page cannot take while it loads reaches it once it has loaded', async () => {
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    const id = chrome.storage.session.data.overviewWindowId;
+    const tab = chrome.windows._all.get(id).tabs[0];
+    tab.status = 'loading';
+    const counts = () => [chrome.listenerCount('tabs.onUpdated'), chrome.listenerCount('tabs.onRemoved')];
+    const before = counts();
+    chrome.listeners.onCommand('open-overview');
+    // Asked once, then left waiting while the page loads.
+    await vi.waitFor(() => expect(chrome.tabs.get).toHaveBeenCalledWith(tab.id));
+    await new Promise((r) => setImmediate(r));
+    expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1);
+    expect(chrome.windows.remove).not.toHaveBeenCalled();
+    tab.status = 'complete';
+    chrome.listeners['tabs.onUpdated'](tab.id, { status: 'complete' }, tab);
+    await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(2));
+    expect(chrome.tabs.sendMessage.mock.calls[1]).toEqual([tab.id, { action: 'handleShortcut' }]);
+    await expect(chrome.tabs.sendMessage.mock.results[1].value).resolves.toEqual({ ok: true });
+    expect(chrome.windows.remove).not.toHaveBeenCalled();
+    expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+    // Done waiting: its listeners are gone.
+    expect(counts()).toEqual(before);
+  });
+
+  it('a page that never finishes loading is given up on after 5 s: its window is removed, and nothing waits for it', async () => {
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    const id = chrome.storage.session.data.overviewWindowId;
+    const tab = chrome.windows._all.get(id).tabs[0];
+    tab.status = 'loading';
+    const counts = () => [chrome.listenerCount('tabs.onUpdated'), chrome.listenerCount('tabs.onRemoved')];
+    const before = counts();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      chrome.listeners.onCommand('open-overview');
+      await vi.waitFor(() => expect(chrome.tabs.get).toHaveBeenCalledWith(tab.id));
+      await vi.advanceTimersByTimeAsync(4900);
+      expect(chrome.windows.remove).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(100);
+      await vi.waitFor(() => expect(chrome.windows.remove).toHaveBeenCalledWith(id));
+      expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(2);
+      expect(counts()).toEqual(before);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('after a worker restart, an overview still on its way to its page is recognized and not opened again', async () => {
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    const tab = chrome.windows._all.get(chrome.storage.session.data.overviewWindowId).tabs[0];
+    // Not committed yet: no address, only the one it is going to.
+    Object.assign(tab, { url: '', pendingUrl: tab.url, status: 'loading' });
+    await restartWorker();
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.tabs.get).toHaveBeenCalledWith(tab.id));
+    Object.assign(tab, { url: tab.pendingUrl, pendingUrl: undefined, status: 'complete' });
+    chrome.listeners['tabs.onUpdated'](tab.id, { status: 'complete' }, tab);
+    await vi.waitFor(() => expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(2));
+    await expect(chrome.tabs.sendMessage.mock.results[1].value).resolves.toEqual({ ok: true });
+    expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+    expect(chrome.windows.remove).not.toHaveBeenCalled();
   });
 
   it('a later press in the focused overview goes to it', async () => {
@@ -182,11 +270,12 @@ describe('background.js', () => {
       await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeNull());
     });
 
-    it('removes the window when the page cannot answer', async () => {
+    it('removes the window when the page cannot answer, even once it has loaded', async () => {
       const id = await open();
-      chrome.tabs.sendMessage.mockRejectedValueOnce(new Error('Receiving end does not exist.'));
+      chrome.tabs.sendMessage.mockRejectedValue(new Error('Receiving end does not exist.'));
       chrome.listeners.onClicked();
       await vi.waitFor(() => expect(chrome.windows.remove).toHaveBeenCalledWith(id));
+      expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(2);
       expect(chrome.windows.create).toHaveBeenCalledTimes(1);
     });
 
@@ -272,6 +361,22 @@ describe('background.js', () => {
     chrome.listeners.onInstalled({ reason: 'install' });
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://test/welcome.html' });
     expect(chrome.storage.local.data.tipsLeft).toEqual({ open: 3, back: 3 });
+  });
+
+  it('a welcome page Chrome cannot open leaves no unhandled error', async () => {
+    const unhandled = [];
+    const note = (reason) => unhandled.push(reason);
+    process.on('unhandledRejection', note);
+    try {
+      // Not a mock's rejection: vitest's mocks keep their results, which
+      // counts as handling them.
+      chrome.tabs.create = () => Promise.reject(new Error('No window to open it in.'));
+      chrome.listeners.onInstalled({ reason: 'install' });
+      await new Promise((r) => setImmediate(r));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', note);
+    }
   });
 
   it('on update, deletes the keys older versions saved, keeps the settings and leaves the first-use tips off', async () => {

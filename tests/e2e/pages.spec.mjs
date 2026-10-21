@@ -213,6 +213,32 @@ test('welcome page: opened with the button, the first press inside ticks both st
   await expect(ext.welcome.locator('#try-it .step.done')).toHaveCount(2);
 });
 
+// The second click of a double click on "Open Tab Mission" would reach the
+// window the first opened as a press of the shortcut: it would switch tabs
+// and tick step 2 without the shortcut.
+test('welcome page: a double click on its button opens Tab Mission once and switches no tab', async ({ ext, context }) => {
+  await ext.sw.evaluate(() => {
+    self.__opens = 0;
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message?.action === 'openOverview') self.__opens++;
+    });
+  });
+  const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
+  await ext.welcome.locator('#try').click();
+  const overview = await opened;
+  // The second click, once the worker has opened the window.
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.session.get('overviewWindowId').then((r) => r.overviewWindowId ?? null))).not.toBeNull();
+  await ext.welcome.mouse.down({ clickCount: 2 });
+  await ext.welcome.mouse.up({ clickCount: 2 });
+  // Messages from one page arrive in order: once this one has, one sent by
+  // the second click would have too.
+  await ext.welcome.evaluate(() => chrome.runtime.sendMessage({ action: 'test-marker' }));
+  expect(await ext.sw.evaluate(() => self.__opens)).toBe(1);
+  await overview.locator('#grid .tile').first().waitFor();
+  await expect(overview.locator('#root')).not.toHaveClass(/closing/);
+  expect(await stepsStored(ext)).toEqual({});
+});
+
 // Help stays easy to find: the settings page's Help section has one switch,
 // which shows the window's tips every time.
 test('options page: Help is one Show tips switch, off by default, that saves at once', async ({ ext, context }) => {
@@ -311,6 +337,19 @@ test('options and welcome pages follow the system appearance, stay readable and 
     await p.setViewportSize({ width: 320, height: 640 });
     expect(await p.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   }
+});
+
+test('the gear closes Tab Mission even when Chrome cannot open the settings page, with no unhandled error', async ({ ext }) => {
+  await ext.openWindow(['alpha', 'beta']);
+  const page = await ext.open();
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.evaluate(() => {
+    chrome.runtime.openOptionsPage = () => Promise.reject(new Error('Could not open the settings page.'));
+  });
+  await page.locator('#open-settings').click();
+  await ext.expectClosed();
+  expect(errors).toEqual([]);
 });
 
 test('the gear in the overview opens the options page', async ({ ext, context }) => {
