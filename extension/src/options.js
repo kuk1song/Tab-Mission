@@ -52,6 +52,9 @@ function announce(message) {
   });
 }
 
+// The shortcut as last shown (shortcutRow's inputs).
+let shownShortcuts = null;
+
 async function showShortcuts() {
   let commands = [];
   try {
@@ -59,10 +62,17 @@ async function showShortcuts() {
   } catch {}
   // Only the main shortcut. The optional site shortcut (no default) stays on
   // Chrome's shortcuts page: Tab in the search box does the same.
-  const rows = commands
-    .filter((c) => c.name === 'open-overview')
-    .map(shortcutRow);
-  document.getElementById('shortcuts').replaceChildren(...rows);
+  const shown = commands.filter((c) => c.name === 'open-overview');
+  // Coming back from Chrome's shortcuts page fires both visibilitychange and
+  // focus: the row is drawn again only when the shortcut changed, and the
+  // keyboard focus stays on its button.
+  const now = JSON.stringify(shown.map((c) => [c.name, c.description, c.shortcut]));
+  if (now === shownShortcuts) return;
+  shownShortcuts = now;
+  const container = document.getElementById('shortcuts');
+  const hadFocus = container.contains(document.activeElement);
+  container.replaceChildren(...shown.map(shortcutRow));
+  if (hadFocus) container.querySelector('button')?.focus();
 }
 
 function element(tag, className, text) {

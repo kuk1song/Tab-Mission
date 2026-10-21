@@ -184,7 +184,7 @@ html, body {
   font-size: 0.75rem;
   white-space: nowrap;
   cursor: pointer;
-  transition: opacity 0.2s, background-color 0.15s, border-color 0.15s;
+  transition: color 0.2s, background-color 0.15s, border-color 0.15s;
 }
 .ctrl:hover { background: var(--hover); }
 .ctrl:has(input:checked) { background: var(--accent-soft); border-color: transparent; }
@@ -206,8 +206,12 @@ html, body {
 }
 
 /* While a query is typed, results span every window and sleeping tab, so
-   the toggles do not apply; dim them to say so. */
-.toolbar.searching .ctrl { opacity: 0.45; }
+   the toggles do not apply: they turn grey to say so, without the tint and
+   the accent. Not faded: they still work, so their text keeps 4.5:1 (at
+   0.45 opacity it was 2.8:1). */
+.toolbar.searching .ctrl { color: var(--muted); }
+.toolbar.searching .ctrl:has(input:checked) { background: transparent; border-color: var(--border-color); }
+.toolbar.searching .ctrl input:checked { border-color: var(--muted); background-color: var(--muted); }
 
 .scope-token {
   display: inline-flex;
@@ -724,12 +728,25 @@ html, body {
 }
 .tip.above::before { top: auto; bottom: -6px; }
 @keyframes tipIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Read by screen readers only (#status). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 @keyframes tipOut { from { opacity: 1; } to { opacity: 0; } }
 @media (forced-colors: active) {
   .tip { border: 1px solid CanvasText; }
   .tip::before { display: none; }
-  /* High contrast: the system's own checkbox, whose check it draws itself. */
+  /* High contrast: the system's own checkbox, whose check it draws itself.
+     Colors are the system's there, so while a query is typed the toggles'
+     text takes its color for inactive text. */
   .ctrl input { appearance: auto; border: revert; background: revert; }
+  .toolbar.searching .ctrl { color: GrayText; }
 }
 
 /* Respect the OS "reduce motion" setting: no entrance, selection or exit motion.

@@ -4,7 +4,7 @@ import { activateTab, closeTab, setSiteScope } from './events.js';
 import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor, addressLabel, pageAddress } from './utils.js';
 import { observeTiles } from './thumbnail.js';
 import { t } from './i18n.js';
-import { selectionMoved } from './tips.js';
+import { selectionMoved, announce } from './tips.js';
 
 // One tile per tab, built on first render and reused afterwards. Filtering
 // only reorders these nodes, so previews never reload and the entrance
@@ -92,10 +92,13 @@ export function render() {
   if (state.filteredTabs.length === 0) {
     shown = null;
     gridEl.classList.remove('grouped');
-    gridEl.replaceChildren(createEmptyMessage());
+    const empty = emptyText();
+    gridEl.replaceChildren(createEmptyMessage(empty));
+    announce(empty);
     updateSelection();
     return;
   }
+  announce('');
 
   const recentEnd = state.groups ? state.groups[0].count : 0;
   const nodes = state.filteredTabs.map((tab, index) => {
@@ -306,20 +309,25 @@ function createMetaElement(tab) {
   return meta;
 }
 
-function createEmptyMessage() {
+// What an empty grid says. Inside the site scope with a query, it names the
+// scope. (Without a query, e.g. after closing the site's last tab, the
+// generic message stays.)
+function emptyText() {
+  if (state.allTabs.length === 0) return t('emptyNoTabs') || 'No tabs found.';
+  if (state.siteHost && document.getElementById('search')?.value.trim()) {
+    const site = state.siteHost.replace(/^www\./, '');
+    return t('emptyNoMatchInSite', [site]) || `No ${site} tabs match your search.`;
+  }
+  return t('emptyNoMatch') || 'No matching tabs.';
+}
+
+// The empty grid's message; inside the site scope, with one click to search
+// every tab instead.
+function createEmptyMessage(text) {
   const emptyMessage = document.createElement('div');
   emptyMessage.className = 'empty';
-  emptyMessage.textContent = state.allTabs.length === 0
-    ? (t('emptyNoTabs') || 'No tabs found.')
-    : (t('emptyNoMatch') || 'No matching tabs.');
-  // Inside the site scope, name the scope and offer one click to search
-  // every tab instead. (Without a query, e.g. after closing the site's last
-  // tab, the generic message above stays.)
+  emptyMessage.textContent = text;
   if (state.siteHost && state.allTabs.length > 0) {
-    const site = state.siteHost.replace(/^www\./, '');
-    if (document.getElementById('search')?.value.trim()) {
-      emptyMessage.textContent = t('emptyNoMatchInSite', [site]) || `No ${site} tabs match your search.`;
-    }
     const widen = document.createElement('button');
     widen.className = 'empty-widen';
     widen.type = 'button';

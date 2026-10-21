@@ -82,6 +82,14 @@ test('accessibility: listbox semantics, aria-expanded, and lang matching the tex
   await expect(page.locator('#search')).toHaveAttribute('aria-activedescendant', selectedId);
   await page.keyboard.type('zzzz');
   await expect(page.locator('#search')).toHaveAttribute('aria-expanded', 'false');
+  // No match is said through the live region that was in the page from the
+  // start (one added already filled is not reliably read).
+  const status = page.locator('#status');
+  await expect(status).toHaveAttribute('role', 'status');
+  await expect(status).toHaveText(await page.locator('.empty').textContent());
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.tile').first()).toBeVisible();
+  await expect(status).toHaveText('');
   const { lang, placeholder } = await page.evaluate(() => ({ lang: document.documentElement.lang, placeholder: document.getElementById('search').placeholder }));
   expect(['en', 'it', 'zh-CN']).toContain(lang);
   expect(lang === 'zh-CN').toBe(/[一-鿿]/.test(placeholder));

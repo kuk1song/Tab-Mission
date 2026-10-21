@@ -45,6 +45,10 @@
         </div>
       </header>
       <div id="grid" class="grid" role="listbox" aria-label="Open tabs" data-i18n-aria-label="gridLabel"></div>
+      <!-- What the window says to screen readers: no matching tabs, a tip.
+           In the page from the start, as a live region added already
+           filled is not reliably read (tips.js announce). -->
+      <p id="status" class="visually-hidden" role="status"></p>
     </div>
     <script src="src/main.js" type="module"></script>
   </body>

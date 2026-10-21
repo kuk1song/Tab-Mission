@@ -1,4 +1,4 @@
-import { test, expect, PAGES, tileTitles, selectedTitle, pointAt } from './fixtures.mjs';
+import { test, expect, PAGES, tileTitles, selectedTitle, pointAt, contrasts } from './fixtures.mjs';
 
 const { alpha, beta, gamma } = PAGES;
 
@@ -45,14 +45,47 @@ test('loads a relative og:image and serves it from the session cache on reopen',
 // Sleeping tabs are covered by the unit tests (applyFilters, isSleeping):
 // chrome.tabs.discard brings down Playwright's Chromium 153 right after it
 // succeeds, so the end-to-end suite never discards a tab.
-test('a query searches other windows and dims the toggles', async ({ ext }) => {
+test('a query searches other windows and dims the toggles, which stay readable', async ({ ext }) => {
   await ext.openWindow(['doc1', 'notes1']);
   await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
   expect(await tileTitles(page)).not.toContain(PAGES.doc1.title);
+  // One toggle on and one off, so both looks are checked.
+  await page.locator('#toggle-sleeping').check();
   await page.keyboard.type('q4 plan');
   await expect(page.locator('.tile .title')).toHaveText([PAGES.doc1.title]);
   await expect(page.locator('.toolbar')).toHaveClass(/searching/);
+  // The ticked box grey, not the accent: the toggles do not apply to a
+  // query. (Both colors resolved, as a custom property reads as written.)
+  const colors = await page.evaluate(() => {
+    const resolved = (token) => {
+      const probe = document.createElement('div');
+      probe.style.background = `var(${token})`;
+      document.body.append(probe);
+      const color = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return color;
+    };
+    return { box: getComputedStyle(document.getElementById('toggle-sleeping')).backgroundColor, muted: resolved('--muted'), accent: resolved('--accent') };
+  });
+  expect(colors.box).toBe(colors.muted);
+  expect(colors.box).not.toBe(colors.accent);
+  // Still controls that work, so their text keeps 4.5:1 (WCAG 1.4.3).
+  for (const colorScheme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme });
+    // Their colors slide to grey, and to the new appearance's.
+    await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('.ctrl, .ctrl *')].some((el) => el.getAnimations().length))).toBe(false);
+    const ratios = await contrasts(page, ['.ctrl:has(#toggle-all-windows) span', '.ctrl:has(#toggle-sleeping) span']);
+    for (const [selector, ratio] of Object.entries(ratios)) {
+      expect(ratio, `${selector} in ${colorScheme}`).toBeGreaterThanOrEqual(4.5);
+    }
+  }
+  // Windows high contrast sets every color: the system's color for inactive
+  // text tells the toggles apart from the search text.
+  await page.emulateMedia({ colorScheme: 'light', forcedColors: 'active' });
+  await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('.ctrl, .ctrl *')].some((el) => el.getAnimations().length))).toBe(false);
+  const forced = await page.evaluate(() => [getComputedStyle(document.querySelector('.ctrl')).color, getComputedStyle(document.getElementById('search')).color]);
+  expect(forced[0]).not.toBe(forced[1]);
 });
 
 // No hover text where a control's own words say it all (Apple's guidelines:

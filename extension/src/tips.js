@@ -11,6 +11,13 @@ import { t } from './i18n.js';
 import { state } from './state.js';
 import { noteTipShown } from './tryit.js';
 
+// Say this to screen readers, through the window's one live region (#status
+// in overview.html; '' clears it). A tip and the empty grid use it.
+export function announce(text) {
+  const status = document.getElementById('status');
+  if (status && status.textContent !== text) status.textContent = text;
+}
+
 let tip = null;
 let blocked = false; // a tip went away in this window: none comes back
 
@@ -19,6 +26,8 @@ export function hideTip() {
   if (!tip) return;
   const el = tip;
   tip = null;
+  // What screen readers can still read goes with it.
+  if (document.getElementById('status')?.textContent === el.textContent) announce('');
   el.classList.add('out');
   // Removed after its fade (none with reduced motion, so the timer does it).
   el.addEventListener('animationend', () => el.remove(), { once: true });
@@ -40,7 +49,6 @@ function message(key, shortcut, fallback) {
   kbd.textContent = shortcut;
   const el = document.createElement('div');
   el.className = 'tip';
-  el.setAttribute('role', 'status');
   el.append(before, kbd, after);
   return el;
 }
@@ -92,6 +100,7 @@ export function showTip({ showTips, tryIt, shortcut, viaClick }) {
   tip.dataset.anchor = viaClick ? 'badge' : 'card';
   root.append(tip);
   place(tip, anchor, root);
+  announce(tip.textContent);
   if (!showTips) noteTipShown(step, tryIt.tipsLeft);
   document.getElementById('grid')?.addEventListener('scroll', hideTip, { once: true });
   window.addEventListener('resize', hideTip, { once: true });
