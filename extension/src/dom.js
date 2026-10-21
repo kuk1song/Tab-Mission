@@ -131,7 +131,7 @@ export function render() {
 // Mark the tiles and group labels in the grid's view, the only ones worth
 // animating: with hundreds of tabs, animating all of them cost a long frame.
 // Every position is read before any class is written, so this takes one
-// layout. Returns the marked elements, in order.
+// layout.
 export function markInView() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return [];
@@ -142,7 +142,6 @@ export function markInView() {
     return r.bottom > view.top && r.top < view.bottom;
   });
   els.forEach((el, i) => el.classList.toggle('in-view', inView[i]));
-  return els.filter((el, i) => inView[i]);
 }
 
 // A group of tiles under a heading: the recent tabs; one site's tabs, with

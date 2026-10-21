@@ -87,11 +87,10 @@ html, body {
   overflow: hidden;
 }
 
-/* Closing after a switch, the whole window fades at once. Closing without
-   one (Esc, the shortcut with nothing selected), only the tiles leave
-   (#root.closing, below) and closeOverview closes the window when they
-   are done. */
-#root.closing-fast {
+/* Closing, after a switch or not (Esc, the shortcut with nothing selected),
+   the whole window fades at once: the site panels and the toolbar leave
+   with the tiles. closeOverview closes it when the fade is done. */
+#root.closing {
   animation: rootFadeOut 120ms ease-in both;
 }
 
@@ -632,29 +631,6 @@ html, body {
 @keyframes rootFadeOut {
   from { opacity: 1; transform: scale(1); }
   to { opacity: 0; transform: scale(0.98); }
-}
-
-/* Tiles leaving on close. */
-@keyframes fadeOutUp {
-  from {
-    transform: none;
-    opacity: 1;
-  }
-  to {
-    transform: translateY(12px) scale(0.98);
-    opacity: 0;
-  }
-}
-
-/* Exit animation: closeOverview adds .closing to #root */
-#root.closing .tile.in-view,
-#root.closing .group-label.in-view {
-  /* Ease-in, as if sucked back. */
-  animation: fadeOutUp 320ms cubic-bezier(0.55, 0.055, 0.675, 0.19) both;
-  /* Apply the reverse stagger delay calculated in JS */
-  animation-delay: var(--stagger-out, 0ms);
-  /* Prevent interacting with tiles that are animating out */
-  pointer-events: none;
 }
 
 .meta {

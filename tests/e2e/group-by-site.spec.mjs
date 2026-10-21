@@ -165,6 +165,27 @@ test('the shortcut pressed again goes back, and closing a tab removes both of it
   await expect.poll(() => ext.activeTitle(windowId)).toBe(PAGES.code2.title);
 });
 
+// Esc fades the whole window at once, as a switch does: the site panels and
+// the toolbar leave with the tiles, none of which animates on its own.
+test('Esc fades the whole window at once, the site panels with their tiles', async ({ ext }) => {
+  await ext.openWindow(VISITED);
+  const page = await ext.open();
+  await expect(page.locator('#grid.grouped .tile-group:not(.recent, .other)')).toHaveCount(SITES.length);
+  await page.locator('#grid:not(.entering)').waitFor(); // the entrance is over
+  // The window closes 150 ms after Esc: each animation that starts is noted
+  // as it starts, in storage that outlives the page.
+  await page.evaluate(() => {
+    const started = [];
+    document.addEventListener('animationstart', (e) => {
+      started.push({ name: e.animationName, target: e.target.id || e.target.className });
+      chrome.storage.session.set({ exitAnimations: started });
+    }, true);
+  });
+  await ext.pressToClose(page, 'Escape');
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.session.get('exitAnimations').then((r) => r.exitAnimations)))
+    .toEqual([{ name: 'rootFadeOut', target: 'root' }]);
+});
+
 test('a search and the site view show the usual grid', async ({ ext }) => {
   await ext.openWindow(VISITED);
   const page = await ext.open();
