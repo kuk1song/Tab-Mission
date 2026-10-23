@@ -28,6 +28,11 @@ export const FOLLOW_UP_MS = [2500, 12000];
 export const BURST = 3;
 export const REFILL_MS = 20_000;
 export const CAPTURE_GAP_MS = 550; // Chrome allows two captures a second
+// Chrome copies the page for a capture with no time limit, and a capture
+// has been seen never to come back (headless Chrome on macOS). One that has
+// not come back within this time counts as refused, so the follow-ups try
+// again. The slowest seen in the end-to-end test logs took about 1.2 s.
+export const CAPTURE_TIMEOUT_MS = 3000;
 const MAX_BYTES = 6 * 1024 * 1024; // of local storage's 10 MB
 const COVER_WIDTH = 640; // a card is at most about 320 px wide
 
@@ -41,6 +46,15 @@ const budgets = new Map(); // tab id to { left, at }: captures left at that time
 let closing = null; // ids of tabs closed since the last storage update
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// The promise's result, or a rejection once ms have passed without one.
+function within(ms, promise) {
+  let timer;
+  const late = new Promise((resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer within ${ms} ms`)), ms);
+  });
+  return Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
 
 // Register the listeners. Called once when the service worker starts; tests
 // pass their own shrink, since images cannot be decoded outside a browser.
@@ -125,7 +139,8 @@ function canCover(tab, loading = false) {
 // Resolves true when a picture was stored, and 'loading', 'blank' or
 // 'failed' when the page in front was not captured, or its picture not
 // kept, only because it has not finished loading or painting or Chrome
-// refused the capture (the follow-ups try again).
+// refused the capture or did not answer in time (the follow-ups try again;
+// an answer that comes later is dropped).
 async function capture(tabId, { front = false, loading = false } = {}) {
   const tab = await chrome.tabs.get(tabId);
   if (!canCover(tab, loading)) return canCover(tab, true) ? 'loading' : false;
@@ -148,7 +163,7 @@ async function capture(tabId, { front = false, loading = false } = {}) {
   budgets.set(tabId, { left: Math.max(0, capturesLeft(tabId, at) - 1), at });
   let raw;
   try {
-    raw = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 85 });
+    raw = await within(CAPTURE_TIMEOUT_MS, chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 85 }));
   } catch (error) {
     console.warn('Tab Mission: could not picture the tab:', error?.message ?? error);
     return 'failed';

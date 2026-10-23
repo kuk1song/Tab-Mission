@@ -182,6 +182,40 @@ describe('covers', () => {
     warn.mockRestore();
   });
 
+  it('a capture Chrome never answers counts as refused, and the follow-up tries again', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    chrome.tabs.captureVisibleTab.mockImplementationOnce(() => new Promise(() => {}));
+    switchTo(page(11));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_TIMEOUT_MS - 1);
+    expect(warn).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(chrome.data['cover:11']).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0]);
+    expect(chrome.shots).toHaveLength(1); // the unanswered one is not recorded by the fake
+    expect(chrome.data['cover:11']).toEqual({ url: 'https://site.test/11', img: 'data:image/webp;base64,SMALL' });
+    warn.mockRestore();
+  });
+
+  it('an answer that comes after the capture was given up is dropped, even after a newer picture', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let answer;
+    chrome.tabs.captureVisibleTab.mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }));
+    const shrunk = [];
+    shrinkImpl = async (shot) => { shrunk.push(shot); return shot.replace('jpeg', 'webp'); };
+    switchTo(page(11));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_TIMEOUT_MS + covers.FOLLOW_UP_MS[0]);
+    expect(shrunk).toEqual(['data:image/jpeg;base64,RAW']); // the follow-up's
+    expect(chrome.data['cover:11']).toEqual({ url: 'https://site.test/11', img: 'data:image/webp;base64,RAW' });
+    const writes = chrome.storage.local.set.mock.calls.length;
+    answer('data:image/jpeg;base64,LATE');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(shrunk).toEqual(['data:image/jpeg;base64,RAW']);
+    expect(chrome.data['cover:11']).toEqual({ url: 'https://site.test/11', img: 'data:image/webp;base64,RAW' });
+    expect(chrome.storage.local.set.mock.calls.length).toBe(writes);
+    warn.mockRestore();
+  });
+
   it('a page still loading is left for the follow-ups, which take it as it is', async () => {
     switchTo(page(11, { status: 'loading' })); // held up by a slow image, say
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
