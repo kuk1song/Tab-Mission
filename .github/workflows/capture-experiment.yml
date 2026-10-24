@@ -1,0 +1,43 @@
+name: Capture experiment
+
+# Experiment only, never merged: how often Chrome's page picture never comes
+# back on macOS runners under each launch setting (tests/e2e/zz-capture-stress.spec.mjs).
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stress:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { name: headless, headed: '', args: '[]' }
+          - { name: headed, headed: '1', args: '[]' }
+          - { name: headless-swiftshader, headed: '', args: '["--use-angle=swiftshader", "--disable-skia-graphite"]' }
+          - { name: headless-disable-gpu, headed: '', args: '["--disable-gpu"]' }
+    name: stress (${{ matrix.config.name }})
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps --no-shell chromium
+      - name: Stress
+        env:
+          STRESS_RUNS: '80'
+          STRESS_HEADED: ${{ matrix.config.headed }}
+          STRESS_ARGS: ${{ matrix.config.args }}
+        run: npx playwright test tests/e2e/zz-capture-stress.spec.mjs --project e2e --retries=0 --reporter=line
