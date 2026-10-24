@@ -191,7 +191,7 @@ test('the shortcut pressed in another window opens that window\'s overview inste
 // The keyboard path itself: Chrome matches the key against the extension's
 // command and fires chrome.commands.onCommand. (Not covered: the operating
 // system delivering the key to Chrome, which needs a real focused window.)
-test('the real default shortcut opens the overview, and pressed again goes back to the previous tab', async ({ ext, context }) => {
+test('the real default shortcut opens the overview, and pressed again goes back to the previous tab', { tag: '@real-shortcut' }, async ({ ext, context }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta']);
   await ext.sw.evaluate(() => {
     self.__commands = [];

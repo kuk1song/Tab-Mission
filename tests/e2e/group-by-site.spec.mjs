@@ -86,7 +86,7 @@ test('grouped by site by default: five recent tabs, then sites that stay put aft
 
 // What the plain grid's specs check, here with a tab's two tiles: the card
 // tip and the shortcut pressed over a tile (tips.spec, window.spec).
-test('grouped, the card tip points at the selected tile, and the shortcut goes to the tile you point at', async ({ ext, context }) => {
+test('grouped, the card tip points at the selected tile, and the shortcut goes to the tile you point at', { tag: '@real-shortcut' }, async ({ ext, context }) => {
   const { windowId } = await ext.openWindow(VISITED);
   await ext.sw.evaluate(() => chrome.storage.local.set({ tipsLeft: { open: 3, back: 3 } }));
   // Opened with the real shortcut, from the current tab.
