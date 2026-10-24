@@ -18,12 +18,12 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { name: headless, headed: '', args: '[]' }
-          - { name: headed, headed: '1', args: '[]' }
-          - { name: headless-swiftshader, headed: '', args: '["--use-angle=swiftshader", "--disable-skia-graphite"]' }
-          - { name: headless-disable-gpu, headed: '', args: '["--disable-gpu"]' }
+          - { name: macos-static, os: macos-latest, anim: '' }
+          - { name: macos-animated, os: macos-latest, anim: '1' }
+          - { name: ubuntu-static, os: ubuntu-latest, anim: '' }
+          - { name: windows-static, os: windows-latest, anim: '' }
     name: stress (${{ matrix.config.name }})
-    runs-on: macos-latest
+    runs-on: ${{ matrix.config.os }}
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,6 +38,5 @@ jobs:
       - name: Stress
         env:
           STRESS_RUNS: '80'
-          STRESS_HEADED: ${{ matrix.config.headed }}
-          STRESS_ARGS: ${{ matrix.config.args }}
+          STRESS_ANIM: ${{ matrix.config.anim }}
         run: npx playwright test tests/e2e/zz-capture-stress.spec.mjs --project e2e --retries=0 --reporter=line

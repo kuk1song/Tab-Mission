@@ -24,8 +24,15 @@ if (RUNS) test('gpu status', async ({ context }) => {
   console.log(`GPU ${JSON.stringify({ status, backend, angle: text.match(/GL_RENDERER\s*[^\n]{0,120}/)?.[0] })}`);
 });
 for (let run = 0; run < RUNS; run++) {
-  test(`capture stress ${run}`, async ({ ext, swConsole }) => {
+  test(`capture stress ${run}`, async ({ ext, swConsole, context }) => {
     const { tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma', 'red']);
+    // STRESS_ANIM: a 2 px dot spinning in a corner of each page, so the
+    // page keeps drawing new frames (a static page draws none).
+    if (process.env.STRESS_ANIM) {
+      for (const p of context.pages().filter((x) => x.url().startsWith('http'))) {
+        await p.addStyleTag({ content: '@keyframes tm-spin{to{transform:rotate(360deg)}}body::after{content:"";position:fixed;right:3px;bottom:3px;width:2px;height:2px;background:#888;animation:tm-spin 1s linear infinite}' });
+      }
+    }
     // Each tab in front long enough to be pictured (a quick run of switches
     // takes one picture), then the last one's first follow-up.
     await ext.sw.evaluate(async (ids) => {
@@ -38,6 +45,14 @@ for (let run = 0; run < RUNS; run++) {
     const pictured = await ext.sw.evaluate((ids) => Promise.all(ids.map((id) =>
       chrome.storage.local.get(`cover:${id}`).then((r) => Boolean(r[`cover:${id}`])))), Object.values(tabIds));
     const count = (re) => swConsole.filter((l) => re.test(l)).length;
+    // How long each answered capture took: asked and came back, in order.
+    const ms = (l) => { const [h, m, sec] = l.match(/(\d\d):(\d\d):(\d\d\.\d+)/).slice(1).map(Number); return ((h * 60 + m) * 60 + sec) * 1000; };
+    const asked = [];
+    const took = [];
+    for (const l of swConsole) {
+      if (/ asked$/.test(l)) asked.push(ms(l));
+      else if (/came back/.test(l) && asked.length) took.push(Math.round(ms(l) - asked.shift()));
+    }
     const result = {
       asked: count(/capture of window \d+ asked/),
       back: count(/came back/),
@@ -45,6 +60,7 @@ for (let run = 0; run < RUNS; run++) {
       noAnswer: count(/no answer within/),
       pictured: pictured.filter(Boolean).length,
       tabs: pictured.length,
+      took,
     };
     console.log(`STRESS ${JSON.stringify(result)}`);
     test.info().annotations.push({ type: 'stress', description: JSON.stringify(result) });
