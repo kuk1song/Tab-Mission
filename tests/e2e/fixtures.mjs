@@ -133,15 +133,16 @@ async function browserCommand(profile, method, params) {
   }
 }
 
-// Playwright's Chromium with the unpacked extension, on this profile.
-function launch(profile, { launchArgs = [], showScrollbars = false } = {}) {
+// Playwright's Chromium with the unpacked extension, on this profile;
+// headless unless the test's project says otherwise (playwright.config.mjs).
+function launch(profile, { launchArgs = [], showScrollbars = false, headless = true } = {}) {
   return chromium.launchPersistentContext(profile, {
     channel: 'chromium',
     // Headless Chromium on Windows closes itself on the first
     // chrome.system.display.getInfo() call (seen on windows-latest, where
     // the headed browser returns the real display), so Windows runs
     // headed. The extension calls it before opening the overview.
-    headless: process.platform !== 'win32',
+    headless: headless && process.platform !== 'win32',
     // No viewport emulation: windows keep the size the extension gives
     // them (it saves and restores the overview's bounds).
     viewport: null,
@@ -208,8 +209,8 @@ export const test = base.extend({
     rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   },
 
-  context: async ({ profile, launchArgs, showScrollbars }, use) => {
-    const context = await launch(profile, { launchArgs, showScrollbars });
+  context: async ({ profile, launchArgs, showScrollbars, headless }, use) => {
+    const context = await launch(profile, { launchArgs, showScrollbars, headless });
     await use(context);
     await context.close();
   },
@@ -232,7 +233,7 @@ export const test = base.extend({
     await use(worker);
   },
 
-  ext: async ({ context, sw, swConsole, site, profile, launchArgs }, use) => {
+  ext: async ({ context, sw, swConsole, site, profile, launchArgs, headless }, use) => {
     // The welcome page opens on install; it doubles as the extension page
     // that sends "shortcut presses" to background.js.
     await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html')), { timeout: 15_000 }).toBe(true);
@@ -355,8 +356,15 @@ export const test = base.extend({
       },
 
       // The default overview shortcut of this OS: Command+E on Mac,
-      // Ctrl+Shift+E elsewhere (manifest suggested_key).
+      // Ctrl+Shift+E elsewhere (manifest suggested_key). A user's key goes to
+      // the window that has focus, and Tab Mission acts on a press as made
+      // in its own window only while that window has focus (or within a
+      // second of opening, background.js); headed, focus is real and can
+      // come a moment after the window shows, so a press there waits for it.
       async pressDefaultShortcut(page) {
+        if (page.url().includes('/overview.html')) {
+          await expect.poll(() => page.evaluate(() => chrome.windows.getCurrent().then((w) => w.focused))).toBe(true);
+        }
         const mac = process.platform === 'darwin';
         await ext.pressKeys(page, { key: 'e', code: 'KeyE', keyCode: 69, macKeyCode: 14, modifiers: mac ? 4 : 2 | 8 });
       },
@@ -392,7 +400,7 @@ export const test = base.extend({
       // Returns the new browser and its service worker; the caller closes it.
       async restart() {
         await context.close();
-        const again = await launch(profile, { launchArgs: [...launchArgs, '--restore-last-session'] });
+        const again = await launch(profile, { launchArgs: [...launchArgs, '--restore-last-session'], headless });
         let [worker] = again.serviceWorkers();
         worker ??= await again.waitForEvent('serviceworker');
         worker.on('console', (message) => swConsole.push(`restarted ${message.type()}: ${message.text()}`));

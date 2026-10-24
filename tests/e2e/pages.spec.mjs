@@ -136,7 +136,7 @@ const stepsStored = (ext) => ext.sw.evaluate(() => chrome.storage.local.get(['tr
 
 // Learn by doing: each step on the welcome page ticks itself once the user
 // has done it, with the real shortcut pressed through Chrome.
-test('welcome page: the try-it steps tick as the user does them', async ({ ext, context }) => {
+test('welcome page: the try-it steps tick as the user does them', { tag: '@real-shortcut' }, async ({ ext, context }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta']);
   const welcome = ext.welcome;
   const message = (key, substitutions) => welcome.evaluate(([k, s]) => chrome.i18n.getMessage(k, s), [key, substitutions]);
@@ -185,7 +185,7 @@ test('welcome page: the try-it steps tick as the user does them', async ({ ext, 
 
 // With reduced motion the window closes at once after a switch; the step
 // is written before that.
-test('welcome page: the steps tick with reduced motion, when the window closes at once', async ({ ext, context }) => {
+test('welcome page: the steps tick with reduced motion, when the window closes at once', { tag: '@real-shortcut' }, async ({ ext, context }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta']);
   const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
   await ext.pressDefaultShortcut(context.pages().find((p) => p.url().includes('/beta.html')));
@@ -203,7 +203,7 @@ test('welcome page: the steps tick with reduced motion, when the window closes a
 // Opened with the page's button, the shortcut pressed inside is the user's
 // first press: background.js records step 1 and the overview step 2 for the
 // same press.
-test('welcome page: opened with the button, the first press inside ticks both steps', async ({ ext }) => {
+test('welcome page: opened with the button, the first press inside ticks both steps', { tag: '@real-shortcut' }, async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta']);
   const overview = await ext.open();
   await ext.pressDefaultShortcut(overview);

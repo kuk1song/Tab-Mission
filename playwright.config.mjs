@@ -22,4 +22,21 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   reporter: process.env.CI ? [['list'], ['github'], ['html', { open: 'never' }]] : 'list',
   use: { trace: 'retain-on-failure-and-retries' },
+  projects: [
+    { name: 'e2e', grepInvert: /@real-shortcut/ },
+    // The tests that press the real shortcut in Tab Mission's own window (a
+    // popup): headless Chromium on macOS fires no extension command for a
+    // key pressed there (seen from Chromium 156 on; in a normal window's
+    // tab it still does), so on macOS they run headed, one at a time, so
+    // their windows never compete for focus. Headed, Tab Mission's window
+    // also sees the real mouse: moved over it, the pointer takes the
+    // selection, as it does for a user, so leave the mouse alone while
+    // they run on your Mac.
+    {
+      name: 'real-shortcut',
+      grep: /@real-shortcut/,
+      workers: 1,
+      use: { headless: process.platform !== 'darwin' },
+    },
+  ],
 });

@@ -110,7 +110,7 @@ test("opened with the welcome page's button, the tip teaches the shortcut too", 
   await expect(overview.locator('.tip')).toHaveAttribute('data-anchor', 'badge');
 });
 
-test('done once, the card tip stops; "Show tips" shows it every time', async ({ ext, context }) => {
+test('done once, the card tip stops; "Show tips" shows it every time', { tag: '@real-shortcut' }, async ({ ext, context }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta']);
   await giveTips(ext);
   let overview = await openWithShortcut(ext, context, windowId);
