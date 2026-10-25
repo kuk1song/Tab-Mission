@@ -18,13 +18,12 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { name: macos-static, os: macos-latest, anim: '' }
-          - { name: macos-animated, os: macos-latest, anim: '1' }
-          - { name: ubuntu-static, os: ubuntu-latest, anim: '' }
-          - { name: windows-static, os: windows-latest, anim: '' }
-    name: stress (${{ matrix.config.name }})
+          - { name: macos-stress, os: macos-latest, runs: '80', repeat: '1', only: tests/e2e/zz-capture-stress.spec.mjs }
+          - { name: macos-suite-a, os: macos-latest, runs: '0', repeat: '3', only: '' }
+          - { name: macos-suite-b, os: macos-latest, runs: '0', repeat: '3', only: '' }
+    name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
-    timeout-minutes: 40
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,8 +34,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps --no-shell chromium
-      - name: Stress
+      - name: Stress or the whole suite, no retries
         env:
-          STRESS_RUNS: '80'
-          STRESS_ANIM: ${{ matrix.config.anim }}
-        run: npx playwright test tests/e2e/zz-capture-stress.spec.mjs --project e2e --retries=0 --reporter=line
+          STRESS_RUNS: ${{ matrix.config.runs }}
+          REPEAT: ${{ matrix.config.repeat }}
+          ONLY: ${{ matrix.config.only }}
+        run: npx playwright test $ONLY --repeat-each="$REPEAT" --retries=0 --reporter=line
