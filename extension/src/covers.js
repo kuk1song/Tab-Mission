@@ -28,11 +28,13 @@ export const FOLLOW_UP_MS = [2500, 12000];
 export const BURST = 3;
 export const REFILL_MS = 20_000;
 export const CAPTURE_GAP_MS = 550; // Chrome allows two captures a second
-// Chrome copies the page for a capture with no time limit, and a capture
-// has been seen never to come back (headless Chrome on macOS). One that has
+// Chrome copies the page for a capture with no time limit. On GitHub's
+// macOS runners it answered only once the page drew again, so a still
+// page's picture took up to 2.7 s or never came back (PR #54); on a Mac's
+// own display, and on Linux and Windows, it came back at once. One that has
 // not come back within this time counts as refused, so the follow-ups try
-// again. The slowest seen in the end-to-end test logs took about 1.2 s.
-export const CAPTURE_TIMEOUT_MS = 3000;
+// again.
+export const CAPTURE_TIMEOUT_MS = 5000;
 const MAX_BYTES = 6 * 1024 * 1024; // of local storage's 10 MB
 const COVER_WIDTH = 640; // a card is at most about 320 px wide
 
