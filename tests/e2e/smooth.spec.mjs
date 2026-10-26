@@ -20,6 +20,29 @@ test('only the tiles in view play the entrance, grouped by site or not', async (
   }
 });
 
+test('a window whose first frame comes late still plays the whole entrance', async ({ ext, context }) => {
+  // A slow machine (seen on GitHub's macOS runners): the first frame after
+  // the entrance is set up comes 900 ms late, past the 700 ms it takes on a
+  // quick one.
+  await context.addInitScript(() => {
+    window.entered = new WeakSet();
+    document.addEventListener('animationstart', (e) => {
+      if (e.animationName === 'fadeInUp') window.entered.add(e.target);
+    }, true);
+    const late = new MutationObserver(() => {
+      if (!document.getElementById('grid')?.classList.contains('entering')) return;
+      late.disconnect();
+      requestAnimationFrame(() => {
+        const end = performance.now() + 900;
+        while (performance.now() < end);
+      });
+    });
+    late.observe(document, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  });
+  await ext.openWindow(Array.from({ length: 24 }, (_, i) => `beta?n=${i}`));
+  await entranceInViewOnly(ext);
+});
+
 async function entranceInViewOnly(ext) {
   const page = await ext.open();
   await page.locator('#grid:not(.entering)').waitFor(); // tiles at rest

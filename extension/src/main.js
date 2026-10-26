@@ -35,19 +35,28 @@ async function main() {
   }
 
   // The staggered entrance animation plays for the first render only, on the
-  // tiles in view.
+  // tiles in view. It ends 700 ms after opening, or once its animations have
+  // played when the window's first frame comes later (a slow machine, seen
+  // on GitHub's macOS runners): ended by the clock alone, it would take the
+  // entrance from the tiles still waiting for their turn. 2 s at most, for a
+  // window that draws no frames.
   const gridEl = document.getElementById('grid');
   gridEl?.classList.add('entering');
   handleFilterChange({ persist: false });
   markInView();
-  setTimeout(() => {
+  const entrance = (gridEl?.getAnimations({ subtree: true }) ?? []).filter((a) => a.animationName === 'fadeInUp');
+  const after = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  Promise.race([
+    Promise.all([after(700), Promise.allSettled(entrance.map((a) => a.finished))]),
+    after(2000),
+  ]).then(() => {
     gridEl?.classList.remove('entering');
     // A tip, if one is due, once the cards have settled (tips.js). Opened
     // with the site shortcut, the tip names that key: pressed again, it too
     // goes to the selection.
     const pressed = params.get('scope') === 'site' ? shortcuts['open-overview-site'] || shortcut : shortcut;
     showTip({ showTips: settings.showTips, tryIt, shortcut: pressed, viaClick: params.get('via') === 'click' });
-  }, 700);
+  });
 
   updateShortcutHint(shortcut);
 
