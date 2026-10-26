@@ -96,6 +96,16 @@ function startSite() {
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
 }
 
+// Every page draws a new frame now and then: a 2 px dot in a corner
+// changes shade every 0.4 s. On macOS runners Chrome answers a page picture
+// (captureVisibleTab) only once the page draws again, so a still page could
+// keep it waiting for seconds or for good (6 of 411 pictures never came
+// back; 0 of 419 on drawing pages, PR #54). Linux and Windows runners, and a
+// Mac's own display, answer at once. Not an animation: one at 60 frames a
+// second in every tab slowed the many-tab tests past their time limit.
+const DRAWING = '<i id="tm-dot" style="position:fixed;right:3px;bottom:3px;width:2px;height:2px;background:#888"></i>'
+  + '<script>{let n=0;const d=document.getElementById("tm-dot");setInterval(()=>{d.style.background=++n%2?"#898989":"#888"},400)}</script>';
+
 // /<id>.html from PAGES.
 function sendPage(res, path) {
   const id = path.replace(/^\//, '').replace(/\.html$/, '');
@@ -105,7 +115,7 @@ function sendPage(res, path) {
   const slow = page.slow ? '<img src="/slow/1.svg">' : '';
   const icon = page.icon ? `<link rel="icon" href="${page.icon}">` : '';
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...(page.setsCookie ? { 'set-cookie': 'session=1; Path=/; SameSite=Lax' } : {}) });
-  res.end(`<!doctype html><html><head><title>${page.title}</title>${og}${icon}</head><body><h1>${page.title}</h1>${slow}</body></html>`);
+  res.end(`<!doctype html><html><head><title>${page.title}</title>${og}${icon}</head><body><h1>${page.title}</h1>${slow}${DRAWING}</body></html>`);
 }
 
 // One command to the browser's own DevTools endpoint (not a page's), found
