@@ -157,7 +157,12 @@ test('a page held up by a slow image is pictured while it still loads', async ({
   // Opened and switched to here, so the wait for its load stays in the test.
   const slow = await ext.sw.evaluate(({ windowId, url }) =>
     chrome.tabs.create({ windowId, url, active: true }).then((t) => t.id), { windowId, url: ext.url('slow') });
-  // Within 8 s: the image holding up its load arrives at 10 s.
-  await expect.poll(() => coverOf(ext, slow).then((c) => c?.url), { timeout: 8000 }).toBe(ext.url('slow'));
+  // The image holding up its load never comes (the site holds it until
+  // GET /release), so the page is still loading when its picture is taken:
+  // at the follow-up about 3 s after the switch or, should Chrome refuse
+  // that one, not answer within 5 s or return a blank picture, at the next
+  // one about 12 s later. On a slow Windows runner (2026-10-27) the first
+  // was asked for 5.4 s after the switch and came back 2.2 s later.
+  await expect.poll(() => coverOf(ext, slow).then((c) => c?.url), { timeout: 20_000 }).toBe(ext.url('slow'));
   expect(await ext.sw.evaluate((id) => chrome.tabs.get(id).then((t) => t.status), slow)).toBe('loading');
 });
