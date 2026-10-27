@@ -12,7 +12,9 @@ import { isCapturableUrl } from './utils.js';
 // closes, the rest when Tab Mission next opens (tidyCovers), and the oldest
 // first when the budget is full. A tab Chrome puts to sleep comes back under
 // a new id, and its picture moves with it. Incognito tabs, browser pages and
-// other windows' tabs (a popup, a window without focus) are never captured.
+// popups are never captured, nor the tabs of a window without focus, except
+// the one in front when you press the shortcut or click the toolbar button
+// (coverFrontTab).
 const COVER_PREFIX = 'cover:';
 const INDEX_KEY = 'coverIndex';
 export const SETTLE_MS = 500; // after a switch or a load, let the page paint
@@ -37,7 +39,8 @@ export const CAPTURE_GAP_MS = 550; // Chrome allows two captures a second
 // again.
 export const CAPTURE_TIMEOUT_MS = 5000;
 const MAX_BYTES = 6 * 1024 * 1024; // of local storage's 10 MB
-const COVER_WIDTH = 640; // a card is at most about 320 px wide
+// A card is under 300 px wide in the default window, about 360 px at most.
+const COVER_WIDTH = 640;
 
 const coverKey = (tabId) => `${COVER_PREFIX}${tabId}`;
 

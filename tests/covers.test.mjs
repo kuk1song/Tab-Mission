@@ -417,7 +417,7 @@ describe('covers', () => {
     expect(Object.keys(chrome.data).filter((k) => k.startsWith('cover:')).sort()).toEqual(['cover:11', 'cover:13']);
   });
 
-  it('pictures a page again 3 s and 15 s after the first, while it stays in front, then stops', async () => {
+  it('pictures a page again about 3 s and 15 s after the switch, while it stays in front, then stops', async () => {
     switchTo(page(11));
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
     expect(chrome.shots).toHaveLength(1);

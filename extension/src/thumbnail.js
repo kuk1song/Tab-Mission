@@ -187,7 +187,8 @@ async function showImage(img, tab, src) {
   const { blob, lasting } = await shared(imageFetches, src, () => fetchImage(src));
   const local = blob && URL.createObjectURL(blob);
   // A dead or refused address, or an image that is not one or is a logo:
-  // hide it and remember the miss so we do not retry it.
+  // hide it and remember the miss, so it is not tried again for
+  // MISS_TTL_MS.
   const miss = () => {
     img.style.display = 'none';
     remember(tab, null);
