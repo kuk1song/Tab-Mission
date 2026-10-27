@@ -50,7 +50,7 @@ test('options page: the shortcut with its keys, a switch that saves at once, the
   await expect(page.locator('#version')).toContainText(version);
   await expect(page.locator('.about a')).toHaveCount(3);
   await expect(page.locator('#link-privacy')).toHaveAttribute('href', 'https://github.com/kuk1song/Tab-Mission/blob/main/PRIVACY.md');
-  await expect(page.locator('#link-review')).toHaveAttribute('href', 'https://chromewebstore.google.com/detail/hhnkkpdkfhjlmlanebphmmhgkhinijca/reviews');
+  await expect(page.locator('#link-review')).toHaveAttribute('href', 'https://chromewebstore.google.com/detail/hhnkkpdkfhjlmlanebphmmhgkhinijca/reviews?utm_source=options');
   await expect(page.locator('#link-feedback')).toHaveAttribute('href', 'https://github.com/kuk1song/Tab-Mission/issues');
 });
 
