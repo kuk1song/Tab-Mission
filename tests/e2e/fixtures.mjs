@@ -28,7 +28,8 @@ export const PAGES = {
   // Sets a cookie, and names an image whose request the server records.
   cookie: { title: 'Page cookie docs', og: '/img/cookie-wide.svg', setsCookie: true },
   icon: { title: 'Page icon docs', touch: '/img/touch-square.svg' },
-  // Painted at once, but its load is held up by an image for 10 s.
+  // Painted at once, but its load is held up by an image the site sends
+  // only when the test says so (GET /release).
   slow: { title: 'Page slow docs', slow: true },
   beta: { title: 'Page beta docs' },
   gamma: { title: 'Page gamma docs' },
@@ -77,10 +78,8 @@ function startSite() {
     }
     if (path === '/img/cookie-wide.svg') seen.push({ cookie: req.headers.cookie ?? null, referer: req.headers.referer ?? null });
     if (path.startsWith('/slow/')) {
-      setTimeout(() => {
-        res.writeHead(200, { 'content-type': 'image/svg+xml' });
-        res.end('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>');
-      }, 10_000);
+      held.push(() => res.destroyed || res.writeHead(200, { 'content-type': 'image/svg+xml' })
+        .end('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>'));
       return;
     }
     if (path.startsWith('/img/')) {
