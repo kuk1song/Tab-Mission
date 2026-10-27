@@ -109,7 +109,7 @@
     "placeholders": {
       "shortcut": {
         "content": "$1",
-        "example": "⌘ + E"
+        "example": "⌘E"
       }
     }
   },
@@ -135,7 +135,7 @@
     "placeholders": {
       "step": {
         "content": "$1",
-        "example": "Press ⌘ + E to open Tab Mission."
+        "example": "Press ⌘E to open Tab Mission."
       }
     }
   },
@@ -174,7 +174,7 @@
     "description": "Welcome page tip shown when the toolbar button is not pinned."
   },
   "welcomePrivacy": {
-    "message": "Tab Mission 没有服务器：你的标签页列表和搜索内容都只留在浏览器里。",
+    "message": "Tab Mission 没有服务器：你的标签页列表、搜索内容和网页截图都只留在浏览器里。",
     "description": "Welcome page privacy note."
   },
   "optionsTitle": {
@@ -222,7 +222,7 @@
     "description": "Settings page: switch for the tips in the Tab Mission window."
   },
   "optionShowTipsNote": {
-    "message": "打开后每次都显示；关闭时只在刚开始用的几次显示。",
+    "message": "打开后每次都显示；关闭时只在安装后的前几次显示。",
     "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {
