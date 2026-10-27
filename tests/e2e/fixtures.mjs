@@ -235,13 +235,17 @@ export const test = base.extend({
     }
   },
 
-  sw: async ({ context, swConsole }, use) => {
+  // The extension's worker, once Chrome has started it. That start is the
+  // browser's, not the test's, so it has its own time, outside the test's
+  // 30 s: on windows-latest it once came 23 s after the browser (CI run
+  // 40283127745), and the test's time ran out before the test began.
+  sw: [async ({ context, swConsole }, use) => {
     let [worker] = context.serviceWorkers();
     worker ??= await context.waitForEvent('serviceworker');
     worker.on('console', (message) => swConsole.push(`${message.type()}: ${message.text()}`));
     await recordCaptures(worker);
     await use(worker);
-  },
+  }, { timeout: 60_000 }],
 
   ext: async ({ context, sw, swConsole, site, profile, launchArgs, headless }, use) => {
     // The welcome page opens on install; it doubles as the extension page
