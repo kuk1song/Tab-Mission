@@ -28,6 +28,7 @@ function fakeChrome() {
     onActivated: event('onActivated'),
     onUpdated: event('onUpdated'),
     onRemoved: event('onRemoved'),
+    onReplaced: event('onReplaced'),
     get: vi.fn(async (id) => {
       if (!tabs.has(id)) throw new Error(`No tab with id: ${id}.`);
       return { ...tabs.get(id) };
@@ -334,6 +335,38 @@ describe('covers', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(chrome.data['cover:22']).toBeUndefined();
     expect(Object.keys(chrome.data.coverIndex)).toEqual(['21']);
+  });
+
+  it('a tab put to sleep keeps its picture under its new id, and closing it deletes the picture at once', async () => {
+    const tab = page(11);
+    switchTo(tab);
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    const before = { cover: chrome.data['cover:11'], entry: chrome.data.coverIndex['11'] };
+    // Chrome swaps the sleeping tab for tab 41, at the same address, and
+    // does not report tab 11 closed.
+    chrome._tabs.delete(11);
+    const asleep = page(41, { url: tab.url, active: false, discarded: true, status: 'unloaded' });
+    chrome._tabs.set(41, asleep);
+    chrome.listeners.onReplaced(41, 11);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(chrome.data['cover:41']).toEqual(before.cover);
+    expect(chrome.data['cover:11']).toBeUndefined();
+    expect(chrome.data.coverIndex).toEqual({ 41: before.entry });
+    expect(await covers.readCover(asleep)).toBe(before.cover.img);
+    // The follow-ups of tab 11 are over.
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0] + covers.FOLLOW_UP_MS[1]);
+    expect(chrome.shots).toHaveLength(1);
+    chrome.listeners.onRemoved(41);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(chrome.data['cover:41']).toBeUndefined();
+    expect(chrome.data.coverIndex).toEqual({});
+  });
+
+  it('writes nothing when a tab without a picture is put to sleep', async () => {
+    chrome.listeners.onReplaced(42, 12);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
   });
 
   it('after a restart, a tab back under a new id shows its page\'s picture until it has its own', async () => {

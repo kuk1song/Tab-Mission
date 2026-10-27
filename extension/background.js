@@ -2,6 +2,7 @@
 import { recordTryIt, startTips } from './src/tryit.js';
 import { coverFrontTab, startCovers, tidyCovers } from './src/covers.js';
 import { trackUnseenTabs } from './src/unseen.js';
+import { movePreviewsOfReplacedTabs } from './src/thumbnail.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -302,6 +303,9 @@ startCovers();
 // Tabs opened in the background and not shown yet, which are not the
 // previous tab (src/unseen.js).
 trackUnseenTabs();
+
+// A tab put to sleep keeps the preview image found for it (src/thumbnail.js).
+movePreviewsOfReplacedTabs();
 
 // Listen for the commands to open/toggle the overview. A keyboard command
 // also ticks the welcome page's first step; the toolbar button below does
