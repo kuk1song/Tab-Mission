@@ -1,8 +1,8 @@
 # Privacy Policy for Tab Mission
 
-**Last Updated: 2026-10-21**
+**Last Updated: 2026-10-27**
 
-Thank you for using Tab Mission ("the Extension"). This policy explains exactly what the Extension reads, where that data stays, and why each permission is needed. It describes version 1.5.0; section 5 lists what earlier versions do differently.
+Thank you for using Tab Mission ("the Extension"). This policy explains exactly what the Extension reads, where that data stays, and why each permission is needed. It describes version 1.5.2; section 5 lists what earlier versions do differently.
 
 ## 1. Summary
 
@@ -22,17 +22,19 @@ Tab Mission has no developer-run server, analytics or tracking. It reads and pro
 - `favicon`: show each tab's site icon from the icons Chrome already keeps on your computer, so no icon is requested from the site. It adds no warning to the ones `tabs` already shows.
 - `scripting` and host access to all sites (`<all_urls>`): take the pictures of pages described above with `captureVisibleTab`, find a preview image address by reading the page's preview image tags and video poster, and load that image from its host to show it. Preview addresses are also read from eligible tabs that are not active. The Extension never changes a page or injects into a sleeping tab.
 - `system.display`: size and place the Tab Mission window on the screen you are using.
-- `storage`: save the settings, the getting started progress, the page pictures, the session cache and the ids of tabs opened in the background listed above.
+- `storage`: save the settings, the getting started progress, the page pictures, the session cache and the ids of tabs opened in the background listed above, and, until the browser quits, the open Tab Mission window's id and when it last lost focus.
 
 ## 4. Network requests and limited use
 
-The Extension does not send your tab list, search text, page pictures or settings to the developer. Its network requests load the preview images described in section 2 from their original addresses. The receiving website or image host receives ordinary request information, including your IP address and the requested resource URL. Preview images are requested without a page referrer and without cookies. These requests are needed to display the images; they are not analytics or tracking requests operated by the developer.
+The Extension does not send your tab list, search text, page pictures or settings to the developer. Its network requests load the preview images described in section 2 from their original addresses. The receiving website or image host receives ordinary request information, including your IP address and the requested resource URL. Preview images are requested without a page referrer and without cookies. These requests are needed to display the images; they are not analytics or tracking requests operated by the developer. The settings page's links open GitHub or the Chrome Web Store only when you click them; the review link ends in `utm_source=options`, which tells the store's statistics that the visit came from the settings page and says nothing about you.
 
 Tab Mission's use of user data complies with the Chrome Web Store User Data Policy, including its Limited Use requirements. Data is used only for the disclosed tab grid, search, switching and related settings. It is not sold or used for advertising, unrelated profiling, creditworthiness or lending. The developer has no server that receives this data and no access to it through the Extension. No person, including the developer, reads this data.
 
 ## 5. Earlier versions
 
-Versions before 1.5.0 differ in these ways:
+Versions 1.5.0 and 1.5.1 differ in two ways. Chrome gives a tab it puts to sleep a new id; these versions keep that tab's picture, its preview image address and, for a tab opened in the background, its id under the old id: the picture until Tab Mission next opens, the others until the browser quits at the latest. And their review link has no `utm_source`.
+
+Versions before 1.5.0 also differ in these ways:
 
 - They take no pictures of pages, and keep no ids of tabs opened in the background.
 - They load each tab's icon from the address the page gives for it, which is a request to the site or the host of that icon; they have no `favicon` permission.
