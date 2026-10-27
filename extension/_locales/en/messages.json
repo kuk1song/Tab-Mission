@@ -109,7 +109,7 @@
     "placeholders": {
       "shortcut": {
         "content": "$1",
-        "example": "⌘ + E"
+        "example": "⌘E"
       }
     }
   },
@@ -135,7 +135,7 @@
     "placeholders": {
       "step": {
         "content": "$1",
-        "example": "Press ⌘ + E to open Tab Mission."
+        "example": "Press ⌘E to open Tab Mission."
       }
     }
   },
@@ -174,7 +174,7 @@
     "description": "Welcome page tip shown when the toolbar button is not pinned."
   },
   "welcomePrivacy": {
-    "message": "Tab Mission has no server: your tab list and searches stay in your browser.",
+    "message": "Tab Mission has no server: your tab list, searches and page pictures stay in your browser.",
     "description": "Welcome page privacy note."
   },
   "optionsTitle": {
@@ -222,7 +222,7 @@
     "description": "Settings page: switch for the tips in the Tab Mission window."
   },
   "optionShowTipsNote": {
-    "message": "Every time when on; when off, only for your first few uses.",
+    "message": "Every time when on; when off, only the first few times after installing.",
     "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {

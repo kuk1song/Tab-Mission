@@ -109,7 +109,7 @@
     "placeholders": {
       "shortcut": {
         "content": "$1",
-        "example": "⌘ + E"
+        "example": "⌘E"
       }
     }
   },
@@ -135,7 +135,7 @@
     "placeholders": {
       "step": {
         "content": "$1",
-        "example": "Press ⌘ + E to open Tab Mission."
+        "example": "Press ⌘E to open Tab Mission."
       }
     }
   },
@@ -174,7 +174,7 @@
     "description": "Welcome page tip shown when the toolbar button is not pinned."
   },
   "welcomePrivacy": {
-    "message": "Tab Mission non ha server: l'elenco delle tue schede e le tue ricerche restano nel browser.",
+    "message": "Tab Mission non ha server: l'elenco delle tue schede, le tue ricerche e le immagini delle pagine restano nel browser.",
     "description": "Welcome page privacy note."
   },
   "optionsTitle": {
@@ -222,7 +222,7 @@
     "description": "Settings page: switch for the tips in the Tab Mission window."
   },
   "optionShowTipsNote": {
-    "message": "Ogni volta se attivo; se disattivo, solo nei primi utilizzi.",
+    "message": "Ogni volta se attivo; se disattivo, solo le prime volte dopo l'installazione.",
     "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {
