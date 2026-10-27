@@ -1,6 +1,6 @@
 {
   "name": "tab-mission",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Mission control for your browser tabs: a searchable visual grid of your open tabs.",
   "private": true,
   "license": "MIT",
