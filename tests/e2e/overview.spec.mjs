@@ -164,7 +164,7 @@ test('the toolbar button opens Tab Mission; clicked again, it fades out as for t
   await ext.clickToolbarButton();
   const page = await opened;
   await page.locator('#grid .tile').first().waitFor();
-  // The fade lasts 150 ms before the window closes: too short to poll for
+  // The window closes 150 ms after the fade starts: too short to poll for
   // on a busy machine (it was missed on macOS CI). The page notes it the
   // moment it starts, in storage that outlives the page.
   await page.evaluate(() => {

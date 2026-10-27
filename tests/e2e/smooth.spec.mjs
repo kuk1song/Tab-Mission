@@ -5,8 +5,8 @@ import { test, expect } from './fixtures.mjs';
 // tiles back.
 
 test('only the tiles in view play the entrance, grouped by site or not', async ({ ext, context }) => {
-  // Each element whose entrance starts, noted as it starts: the entrance is
-  // over 700 ms after opening, and then no animation is left to read.
+  // Each element whose entrance starts, noted as it starts: once the grid
+  // is no longer entering, no animation is left to read.
   await context.addInitScript(() => {
     window.entered = new WeakSet();
     document.addEventListener('animationstart', (e) => {

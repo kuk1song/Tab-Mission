@@ -167,10 +167,10 @@ function launch(profile, { launchArgs = [], showScrollbars = false, headless = t
       '--enable-unsafe-extension-debugging',
       ...launchArgs,
     ],
-    // A start that hangs (seen once on macos-latest) is killed and the
-    // test retried. Left to the 30 s test timeout, the hung browser also
-    // stalls the worker's teardown, which fails the whole run even when
-    // the retry passes.
+    // A start that hangs (seen once on macos-latest) is given up after
+    // 20 s, not at the 30 s test timeout, where the hung browser also
+    // stalled the worker's teardown. CI then retries the test once, and one
+    // that passes only on its retry still fails the run (failOnFlakyTests).
     timeout: 20_000,
   });
 }
@@ -259,8 +259,8 @@ export const test = base.extend({
     await sw.evaluate(() => chrome.storage.local.remove('tipsLeft'));
     // Grouping by site is on for users by default and applies to any number
     // of tabs, so each recent tab would have a second tile. Most tests are
-    // about the plain grid; group-by-site.spec and the tests of many tabs
-    // (layout, smooth, visual) turn it back on.
+    // about the plain grid; group-by-site.spec, a test in cards.spec and the
+    // tests of many tabs (layout, smooth, visual) turn it back on.
     await sw.evaluate(() => chrome.storage.local.set({ groupBySite: false }));
     const url = (id, query = '') => `http://${HOSTS[id] ?? 'localhost'}:${site.port}/${id}.html${query}`;
 
