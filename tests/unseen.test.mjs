@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// A small fake of what unseen.js uses: the three tab events and session
+// A small fake of what unseen.js uses: the four tab events and session
 // storage, which copies what it stores as Chrome does.
 function fakeChrome() {
   const listeners = {};
@@ -15,7 +15,7 @@ function fakeChrome() {
         set: vi.fn(async (items) => { Object.assign(data, structuredClone(items)); }),
       },
     },
-    tabs: { onCreated: event('onCreated'), onActivated: event('onActivated'), onRemoved: event('onRemoved') },
+    tabs: { onCreated: event('onCreated'), onActivated: event('onActivated'), onRemoved: event('onRemoved'), onReplaced: event('onReplaced') },
   };
 }
 
@@ -57,6 +57,23 @@ describe('unseen.js', () => {
     chrome.listeners.onActivated({ tabId: 6, windowId: 1 });
     await settled();
     expect(await ids()).toEqual([5, 7]);
+  });
+
+  it('keeps a tab put to sleep before it was shown under its new id', async () => {
+    for (const id of [5, 6]) chrome.listeners.onCreated({ id, active: false });
+    // Chrome swaps the sleeping tab 5 for tab 9 and does not report 5 closed.
+    chrome.listeners.onReplaced(9, 5);
+    await settled();
+    expect(await ids()).toEqual([6, 9]);
+    chrome.listeners.onActivated({ tabId: 9, windowId: 1 });
+    await settled();
+    expect(await ids()).toEqual([6]);
+  });
+
+  it('writes nothing when a tab it does not hold is put to sleep', async () => {
+    chrome.listeners.onReplaced(9, 5);
+    await settled();
+    expect(chrome.storage.session.set).not.toHaveBeenCalled();
   });
 
   it('writes nothing for a switch to a tab it does not hold', async () => {

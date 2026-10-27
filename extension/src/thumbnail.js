@@ -39,6 +39,24 @@ function remember(tab, imageUrl) {
   }, 50);
 }
 
+// The service worker's side (background.js): a tab put to sleep is swapped
+// for a new one with a new id, and a sleeping tab cannot be asked again, so
+// the image found for it moves to the new id. (A Tab Mission window open
+// meanwhile stores its own copy of the cache over this.)
+let moves = Promise.resolve(); // one at a time, so none is lost
+
+export function movePreviewsOfReplacedTabs() {
+  chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
+    moves = moves.then(async () => {
+      const { [CACHE_KEY]: stored } = await chrome.storage.session.get(CACHE_KEY);
+      if (!stored?.[removedTabId]) return;
+      stored[addedTabId] = stored[removedTabId];
+      delete stored[removedTabId];
+      await chrome.storage.session.set({ [CACHE_KEY]: stored });
+    }).catch(() => {});
+  });
+}
+
 // Watch tiles that have not been handled yet; each loads its preview once,
 // when it first scrolls near the viewport. Tiles are reused across renders,
 // so filtering never reloads or flickers a preview.

@@ -10,8 +10,9 @@ import { isCapturableUrl } from './utils.js';
 // of their pages, sizes and times, so the tabs that come back after a restart
 // of the browser or an update keep theirs. A tab's picture goes when the tab
 // closes, the rest when Tab Mission next opens (tidyCovers), and the oldest
-// first when the budget is full. Incognito tabs, browser pages and other
-// windows' tabs (a popup, a window without focus) are never captured.
+// first when the budget is full. A tab Chrome puts to sleep comes back under
+// a new id, and its picture moves with it. Incognito tabs, browser pages and
+// other windows' tabs (a popup, a window without focus) are never captured.
 const COVER_PREFIX = 'cover:';
 const INDEX_KEY = 'coverIndex';
 export const SETTLE_MS = 500; // after a switch or a load, let the page paint
@@ -77,9 +78,7 @@ export function startCovers(options = {}) {
   // Should storage fail before that update takes them, the next close still
   // starts a new one (tidyCovers drops the pictures left behind).
   chrome.tabs.onRemoved.addListener((tabId) => {
-    clearTimeout(timers.get(tabId));
-    timers.delete(tabId);
-    budgets.delete(tabId);
+    forget(tabId);
     if (closing) return void closing.add(String(tabId));
     const batch = new Set([String(tabId)]);
     closing = batch;
@@ -90,6 +89,29 @@ export function startCovers(options = {}) {
       if (closing === batch) closing = null;
     });
   });
+  // Desktop Chrome puts a tab to sleep (Memory Saver, an extension) by
+  // swapping it for a new one with a new id, and does not report the old id
+  // closed: the picture moves to the new id, so closing the tab still
+  // deletes it at once.
+  chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
+    forget(removedTabId);
+    const moved = {}; // filled by the change, which update runs before it stores
+    update(async (index) => {
+      const entry = index[removedTabId] && await readEntry(removedTabId);
+      if (entry) {
+        index[addedTabId] = index[removedTabId];
+        moved[coverKey(addedTabId)] = entry;
+      }
+      return [String(removedTabId)];
+    }, moved);
+  });
+}
+
+// A tab gone (closed, or swapped for another) takes no more pictures.
+function forget(tabId) {
+  clearTimeout(timers.get(tabId));
+  timers.delete(tabId);
+  budgets.delete(tabId);
 }
 
 // Capture a tab once it has stayed in front for a moment, so a quick run of

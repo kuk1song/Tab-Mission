@@ -44,12 +44,13 @@ function fakeChrome() {
     _focused: { left: 0, top: 0, width: 1600, height: 1000, state: 'normal' },
     system: { display: { getInfo: async () => chrome._displays } },
     tabs: {
-      // Covers (src/covers.js) and unseen tabs (src/unseen.js) listen here;
-      // their own tests drive them.
+      // Covers (src/covers.js), unseen tabs (src/unseen.js) and preview
+      // images (src/thumbnail.js) listen here; their own tests drive them.
       onCreated: event('tabs.onCreated'),
       onActivated: event('tabs.onActivated'),
       onUpdated: event('tabs.onUpdated'),
       onRemoved: event('tabs.onRemoved'),
+      onReplaced: event('tabs.onReplaced'),
       create: vi.fn(async () => ({})),
       query: vi.fn(async ({ windowId }) => windows.get(windowId)?.tabs ?? []),
       get: vi.fn(async (id) => {

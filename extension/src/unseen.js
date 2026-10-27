@@ -5,8 +5,9 @@
 // one you were on last: the Tab Mission window would pre-select it, and the
 // tip would offer to take you "back" to a page you have not seen. The
 // service worker keeps their ids in session storage (cleared when the
-// browser quits) until each is shown or closed. The tabs Chrome restores
-// when it starts are not reported as created, so they count as seen.
+// browser quits) until each is shown or closed, also when Chrome puts one
+// to sleep (it comes back under a new id). The tabs Chrome restores when it
+// starts are not reported as created, so they count as seen.
 const KEY = 'unseenTabs';
 
 let writes = Promise.resolve(); // one update at a time, so none is lost
@@ -28,6 +29,8 @@ export function trackUnseenTabs() {
   const seen = (tabId) => update((ids) => (ids.includes(tabId) ? ids.filter((id) => id !== tabId) : ids));
   chrome.tabs.onActivated.addListener(({ tabId }) => seen(tabId));
   chrome.tabs.onRemoved.addListener((tabId) => seen(tabId));
+  chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) =>
+    update((ids) => (ids.includes(removedTabId) ? ids.map((id) => (id === removedTabId ? addedTabId : id)) : ids)));
 }
 
 // The Tab Mission window's side: the ids, when it opens.
