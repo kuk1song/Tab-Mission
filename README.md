@@ -5,20 +5,12 @@
 <h1 align="center">Tab Mission</h1>
 
 <p align="center">
-  <em>Any tab, one key away.</em>
-</p>
-
-<p align="center">
-  <a href="https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca?utm_source=github&utm_medium=readme">
-    <img src="https://img.shields.io/badge/Chrome_Web_Store-Install-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Install from Chrome Web Store">
-  </a>
+  <a href="https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca?utm_source=github&utm_medium=readme"><img src="https://img.shields.io/badge/Chrome_Web_Store-Install-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Install from Chrome Web Store"></a>
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT">
 </p>
 
 <p align="center">
-  <a href="https://youtu.be/U0R_pweVJ_0">
-    <img src="assets/production/tutorial-thumbnail.jpg" alt="Tab Mission tutorial on YouTube" width="640">
-  </a>
+  <a href="https://youtu.be/U0R_pweVJ_0"><img src="assets/production/tutorial-thumbnail.jpg" alt="Any tab, one key away. Tab Mission tutorial on YouTube" width="640"></a>
   <br>
   <a href="https://youtu.be/U0R_pweVJ_0">▶ Watch the 2-minute tutorial</a>
 </p>
