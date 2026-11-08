@@ -19,10 +19,11 @@ const TIP_SHOWS = 3;
 
 // One key per step, so recording needs no read: the write goes out at once
 // and lands even when the overview closes right after a switch (at once with
-// reduced motion). Callers do not wait for it; it never throws.
-export function recordTryIt(step) {
+// reduced motion). Steps done by one press go in one write, so the welcome
+// page announces them together. Callers do not wait for it; it never throws.
+export function recordTryIt(...steps) {
   try {
-    chrome.storage.local.set({ [TRY_IT_KEYS[step]]: true }).catch(() => {});
+    chrome.storage.local.set(Object.fromEntries(steps.map((step) => [TRY_IT_KEYS[step], true]))).catch(() => {});
   } catch {}
 }
 

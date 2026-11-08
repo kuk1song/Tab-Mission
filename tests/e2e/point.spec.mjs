@@ -89,6 +89,36 @@ test('a held modifier leaves the selection with the pointer', async ({ ext }) =>
 
 const stored = (ext, key) => ext.sw.evaluate((key) => chrome.storage.local.get(key).then((r) => r[key]), key);
 
+test('the shortcut pressed on a card the pointer picked ticks the step to point, and in one write with the step back', async ({ ext }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  await ext.sw.evaluate(() => {
+    self.__writes = [];
+    chrome.storage.onChanged.addListener((changes) => self.__writes.push(Object.keys(changes).filter((k) => k.startsWith('tryIt')).sort()));
+  });
+  const page = await ext.open();
+  await pointAt(page, page.locator('.tile').nth(2));
+  await ext.press();
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
+  await expect.poll(() => stored(ext, 'tryItPoint')).toBe(true);
+  expect((await ext.sw.evaluate(() => self.__writes)).filter((k) => k.length)).toEqual([['tryItBack', 'tryItPoint']]);
+});
+
+// The site view picks its own selection, which the pointer did not choose.
+test('after the site view picks the selection, the shortcut does not count as pointing', async ({ ext }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'tube1', 'tube2']);
+  const page = await ext.open();
+  await pointAt(page, page.locator('.tile', { hasText: PAGES.alpha.title }));
+  await page.locator('#scope-hint').click();
+  await expect(page.locator('#scope-token')).toBeVisible();
+  expect(await selectedTitle(page)).toBe(PAGES.tube1.title);
+  await ext.press();
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.tube1.title);
+  await expect.poll(() => stored(ext, 'tryItBack')).toBe(true);
+  expect(await stored(ext, 'tryItPoint')).toBeUndefined();
+});
+
 test('point at a card and press the real shortcut: it goes to that tab and ticks the step', { tag: '@real-shortcut' }, async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();

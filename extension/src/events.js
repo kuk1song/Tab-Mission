@@ -130,8 +130,7 @@ function handleShortcut(scope) {
     // If a tab is selected, activate it. This ticks the welcome page's
     // "press it again" step, and its "point at a card" step when the pointer
     // picked it; the writes are not awaited, so they never delay the switch.
-    recordTryIt('back');
-    if (pointerPicked()) recordTryIt('point');
+    recordTryIt(...(pointerPicked() ? ['back', 'point'] : ['back']));
     activateTab(state.filteredTabs[state.selectedIndex]);
   } else {
     // If no tab is selected, just close the overview
@@ -250,8 +249,10 @@ function currentSite(uiState = readUiState()) {
 export function setSiteScope(on) {
   state.siteHost = on ? currentSiteHost() : '';
   // Mark the selection as automatic, so the new view gets its own default
-  // (the best match, or the previous tab with preselectPrevious on).
+  // (the best match, or the previous tab with preselectPrevious on), which
+  // the pointer did not pick.
   state.selectedIndex = state.defaultIndex;
+  releasePointerSelection();
   handleFilterChange();
   document.getElementById('search')?.focus();
 }

@@ -27,6 +27,12 @@ describe('tryit.js', () => {
     expect(chrome.storage.local.get).not.toHaveBeenCalled();
   });
 
+  it('records the steps of one press in one write', () => {
+    recordTryIt('back', 'point');
+    expect(chrome.storage.local.set).toHaveBeenCalledOnce();
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({ tryItBack: true, tryItPoint: true });
+  });
+
   it('reads the three steps, counting only true, and no tips for users without a count', async () => {
     Object.assign(chrome.storage.local.data, { tryItOpen: true, tryItBack: 'yes', tryItPoint: true, other: true });
     expect(await readTryIt()).toEqual({ open: true, back: false, point: true, tipsLeft: { open: 0, back: 0, point: 0 } });

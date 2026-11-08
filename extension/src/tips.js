@@ -7,9 +7,9 @@
 // window and only while no other tip shows. After a new install each shows
 // until its step is done, at most TIP_SHOWS times (tryit.js); with "Show
 // tips" on, every time. It has no button and takes neither the pointer nor
-// focus: it goes with the window, or once it no longer applies (a key,
-// scrolling, resizing, or for a card's tip the selection leaving that card),
-// and does not come back.
+// focus: it goes with the window, or once it no longer applies (a key other
+// than a lone modifier, scrolling, resizing, or for a card's tip the
+// selection leaving that card), and does not come back.
 import { t } from './i18n.js';
 import { state } from './state.js';
 import { noteTipShown } from './tryit.js';
@@ -22,7 +22,9 @@ export function announce(text) {
 }
 
 let tip = null;
-let blocked = false; // a tip went away in this window: none comes back
+// A tip went away, or a key came, in this window: the tip of the opening
+// does not come (back); the tip on a pointed card has its own rule.
+let blocked = false;
 // What showTip was given once the cards settled (null until then), for the
 // tip on a card the pointer picks; whether that tip has shown in this window,
 // and the wait before it does.
@@ -35,6 +37,7 @@ const POINT_DELAY_MS = 600;
 
 export function hideTip() {
   blocked = true;
+  clearTimeout(pointTimer); // a card's tip on its way no longer applies either
   if (!tip) return;
   const el = tip;
   tip = null;

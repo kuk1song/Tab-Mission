@@ -248,3 +248,15 @@ test('no card tip for the pointer while another tip shows, or once the step is d
   await page.waitForTimeout(POINT_TIP_WAIT_MS);
   await expect(page.locator('.tip')).toHaveCount(0);
 });
+
+test('a key before a card\'s tip comes stops it', async ({ ext }) => {
+  await ext.openWindow(['alpha', 'beta', 'gamma']);
+  await ext.sw.evaluate(() => chrome.storage.local.set({ tipsLeft: { open: 0, back: 0, point: 3 } }));
+  const page = await ext.open();
+  await settle(page);
+  await pointAt(page, page.locator('.tile').nth(2));
+  await page.keyboard.press('ArrowLeft');
+  await page.waitForTimeout(POINT_TIP_WAIT_MS);
+  await expect(page.locator('.tip')).toHaveCount(0);
+  expect(await tipsLeft(ext)).toEqual({ open: 0, back: 0, point: 3 });
+});
