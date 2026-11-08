@@ -5,7 +5,7 @@ import { loadSettings } from './settings.js';
 import { localizeStaticText } from './i18n.js';
 import { readTryIt } from './tryit.js';
 import { showTip } from './tips.js';
-import { markInView } from './dom.js';
+import { markInView, showKeyWhileHeld } from './dom.js';
 
 async function main() {
   // Apply localization for any static text before interacting with the UI
@@ -19,6 +19,10 @@ async function main() {
   const params = new URLSearchParams(location.search);
   const [settings, , tryIt, shortcuts] = await Promise.all([loadSettings(), fetchAllTabs(), readTryIt(), readShortcuts()]);
   const shortcut = shortcuts['open-overview'];
+  // Opened with the site shortcut, the tips and the key on a card name that
+  // key: pressed again, it too goes to the selection.
+  const pressed = params.get('scope') === 'site' ? shortcuts['open-overview-site'] || shortcut : shortcut;
+  showKeyWhileHeld(pressed);
 
   const toggleSleeping = document.getElementById('toggle-sleeping');
   const toggleAllWindows = document.getElementById('toggle-all-windows');
@@ -51,27 +55,24 @@ async function main() {
     after(2000),
   ]).then(() => {
     gridEl?.classList.remove('entering');
-    // A tip, if one is due, once the cards have settled (tips.js). Opened
-    // with the site shortcut, the tip names that key: pressed again, it too
-    // goes to the selection.
-    const pressed = params.get('scope') === 'site' ? shortcuts['open-overview-site'] || shortcut : shortcut;
-    showTip({ showTips: settings.showTips, tryIt, shortcut: pressed, viaClick: params.get('via') === 'click' });
+    // A tip, if one is due, once the cards have settled (tips.js).
+    showTip({ showTips: settings.showTips, tryIt, shortcut: shown(pressed), viaClick: params.get('via') === 'click' });
   });
 
-  updateShortcutHint(shortcut);
+  updateShortcutHint(shown(shortcut));
 
   initializeEventListeners();
   searchEl?.focus();
 }
 
-// Each command's shortcut as shown on the badge and in tips, read when the
-// window opens, so a key changed at chrome://extensions/shortcuts shows the
-// next time ('' when none).
+// Each command's shortcut as Chrome reports it, read when the window opens,
+// so a key changed at chrome://extensions/shortcuts shows the next time
+// ('' when none).
 async function readShortcuts() {
   const shortcuts = { 'open-overview': '', 'open-overview-site': '' };
   try {
     for (const command of await chrome.commands.getAll()) {
-      shortcuts[command.name] = (command.shortcut || '').replace(/\+/g, ' + ');
+      shortcuts[command.name] = command.shortcut || '';
     }
   } catch (error) {
     console.warn('Could not load shortcut command.', error);
@@ -79,13 +80,18 @@ async function readShortcuts() {
   return shortcuts;
 }
 
+// A shortcut as the badge and the tips show it: "Ctrl + Shift + E", "⌘E".
+function shown(shortcut) {
+  return shortcut.replace(/\+/g, ' + ');
+}
+
 // The badge shows the shortcut, nothing more: the tips and the welcome page
 // teach what it does.
-function updateShortcutHint(rawShortcut) {
+function updateShortcutHint(shortcut) {
   const hintEl = document.getElementById('shortcut-hint');
-  if (!hintEl || !rawShortcut) return;
+  if (!hintEl || !shortcut) return;
   const kbd = document.createElement('kbd');
-  kbd.textContent = rawShortcut;
+  kbd.textContent = shortcut;
   hintEl.replaceChildren(kbd);
 }
 

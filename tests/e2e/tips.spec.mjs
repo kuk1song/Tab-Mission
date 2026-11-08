@@ -1,9 +1,10 @@
-import { test, expect, pointAt } from './fixtures.mjs';
+import { test, expect, pointAt, useShortcuts } from './fixtures.mjs';
 
-// Tips in the Tab Mission window (tips.js): at most one, pointing at what it
-// explains, with no button; after a new install until learned (at most three
-// times each), or always with "Show tips". Opened with the shortcut, the tip
-// is on the previous tab's card; opened with a click, on the shortcut badge.
+// Tips in the Tab Mission window (tips.js): one at a time, pointing at what
+// it explains, with no button; after a new install until learned (at most
+// three times each), or always with "Show tips". Opened with the shortcut,
+// the tip is on the previous tab's card; opened with a click, on the shortcut
+// badge; later, on a card the pointer stays on.
 const giveTips = (ext) => ext.sw.evaluate(() => chrome.storage.local.set({ tipsLeft: { open: 3, back: 3 } }));
 const tipsLeft = (ext) => ext.sw.evaluate(() => chrome.storage.local.get('tipsLeft').then((r) => r.tipsLeft));
 const shortcutText = (ext) => ext.sw.evaluate(async () =>
@@ -137,7 +138,7 @@ test('on its own a tip shows at most three times; with "Show tips" on, showing i
     await expect(overview.locator('.tip')).toBeVisible();
     await ext.pressToClose(overview, 'Escape');
   }
-  expect(await tipsLeft(ext)).toEqual({ open: 3, back: 0 });
+  expect(await tipsLeft(ext)).toEqual({ open: 3, back: 0, point: 0 });
   let overview = await openWithShortcut(ext, context, windowId);
   await settle(overview);
   await expect(overview.locator('.tip')).toHaveCount(0);
@@ -149,16 +150,6 @@ test('on its own a tip shows at most three times; with "Show tips" on, showing i
   await settle(overview);
   expect(await tipsLeft(ext)).toEqual({ open: 3, back: 3 });
 });
-
-// Chrome reports the keys the user chose at chrome://extensions/shortcuts
-// (here stubbed); the window reads them each time it opens.
-function useShortcuts(context, keys) {
-  return context.addInitScript((keys) => {
-    if (!location.pathname.endsWith('/overview.html')) return;
-    const getAll = chrome.commands.getAll.bind(chrome.commands);
-    chrome.commands.getAll = async () => (await getAll()).map((c) => (c.name in keys ? { ...c, shortcut: keys[c.name] } : c));
-  }, keys);
-}
 
 test('the badge and the tips show the shortcut the user set', async ({ ext, context }) => {
   await useShortcuts(context, { 'open-overview': 'Alt+Shift+K' });
@@ -201,4 +192,59 @@ test('no tip in a window too small to show it without covering the cards', async
   const overview = await openWithShortcut(ext, context, windowId);
   await settle(overview);
   await expect(overview.locator('.tip')).toHaveCount(0);
+});
+
+// How long a test waits to see that a card's tip does not come: longer than
+// the 600 ms the pointer must stay on a card for it (tips.js).
+const POINT_TIP_WAIT_MS = 1000;
+
+test('a card the pointer stays on gets a tip that the shortcut goes there, once per window', async ({ ext }) => {
+  await ext.openWindow(['alpha', 'beta', 'gamma']);
+  await ext.sw.evaluate(() => chrome.storage.local.set({ tipsLeft: { open: 0, back: 0, point: 3 } }));
+  const page = await ext.open();
+  await settle(page);
+  // Not on the current tab's card (gamma, second), where the shortcut only
+  // closes the window.
+  await pointAt(page, page.locator('.tile').nth(1));
+  await page.waitForTimeout(POINT_TIP_WAIT_MS);
+  await expect(page.locator('.tip')).toHaveCount(0);
+
+  const card = page.locator('.tile').nth(2);
+  await pointAt(page, card);
+  const tip = page.locator('.tip');
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveAttribute('data-anchor', 'card');
+  await expect(tip.locator('kbd')).toHaveText(await shortcutText(ext));
+  await expect(page.locator('#status')).toHaveText(await tip.textContent());
+  const box = await card.boundingBox();
+  const { arrowX, passesPointer } = await tipGeometry(page);
+  expect(Math.abs(arrowX - (box.x + box.width / 2))).toBeLessThan(2);
+  expect(passesPointer).toBe(true);
+  await expect.poll(() => tipsLeft(ext)).toEqual({ open: 0, back: 0, point: 2 });
+
+  // Off that card it goes, and no other card gets one in this window.
+  await pointAt(page, page.locator('.tile').first());
+  await expect(page.locator('.tip')).toHaveCount(0);
+  await page.waitForTimeout(POINT_TIP_WAIT_MS);
+  await expect(page.locator('.tip')).toHaveCount(0);
+  expect(await tipsLeft(ext)).toEqual({ open: 0, back: 0, point: 2 });
+});
+
+test('no card tip for the pointer while another tip shows, or once the step is done', async ({ ext }) => {
+  await ext.openWindow(['alpha', 'beta', 'gamma']);
+  await ext.sw.evaluate(() => chrome.storage.local.set({ tipsLeft: { open: 3, back: 3, point: 3 } }));
+  let page = await ext.open();
+  await expect(page.locator('.tip')).toHaveAttribute('data-anchor', 'badge');
+  await pointAt(page, page.locator('.tile').nth(2));
+  await page.waitForTimeout(POINT_TIP_WAIT_MS);
+  await expect(page.locator('.tip')).toHaveCount(1);
+  await expect(page.locator('.tip')).toHaveAttribute('data-anchor', 'badge');
+  await ext.pressToClose(page, 'Escape');
+
+  await ext.sw.evaluate(() => chrome.storage.local.set({ tipsLeft: { open: 0, back: 0, point: 3 }, tryItPoint: true }));
+  page = await ext.open();
+  await settle(page);
+  await pointAt(page, page.locator('.tile').nth(2));
+  await page.waitForTimeout(POINT_TIP_WAIT_MS);
+  await expect(page.locator('.tip')).toHaveCount(0);
 });

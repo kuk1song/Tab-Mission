@@ -254,7 +254,7 @@ export const test = base.extend({
     // A new install gives the Tab Mission window its tips (background.js).
     // tips.spec gives them back where it tests them; elsewhere they would
     // cover cards that tests point at.
-    await expect.poll(() => sw.evaluate(() => chrome.storage.local.get('tipsLeft').then((r) => r.tipsLeft))).toEqual({ open: 3, back: 3 });
+    await expect.poll(() => sw.evaluate(() => chrome.storage.local.get('tipsLeft').then((r) => r.tipsLeft))).toEqual({ open: 3, back: 3, point: 3 });
     await sw.evaluate(() => chrome.storage.local.remove('tipsLeft'));
     // Grouping by site is on for users by default and applies to any number
     // of tabs, so each recent tab would have a second tile. Most tests are
@@ -504,6 +504,16 @@ export function contrasts(page, selectors) {
     }
     return result;
   }, selectors);
+}
+
+// Chrome reports the keys the user chose at chrome://extensions/shortcuts
+// (here stubbed); the window reads them each time it opens.
+export function useShortcuts(context, keys) {
+  return context.addInitScript((keys) => {
+    if (!location.pathname.endsWith('/overview.html')) return;
+    const getAll = chrome.commands.getAll.bind(chrome.commands);
+    chrome.commands.getAll = async () => (await getAll()).map((c) => (c.name in keys ? { ...c, shortcut: keys[c.name] } : c));
+  }, keys);
 }
 
 export function selectedTitle(page) {

@@ -1,6 +1,6 @@
 // events.js
 import { state, applyFilters, moveSelection, moveSelectionByRects, currentSiteHost, countSiteTabs } from './state.js';
-import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection } from './dom.js';
+import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection, pointerPicked } from './dom.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isCapturableUrl, faviconUrl, createPlaceholderIcon } from './utils.js';
@@ -128,9 +128,10 @@ function handleShortcut(scope) {
   flushFilterChange();
   if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
     // If a tab is selected, activate it. This ticks the welcome page's
-    // "press it again" step; the write is not awaited, so it never delays
-    // the switch.
+    // "press it again" step, and its "point at a card" step when the pointer
+    // picked it; the writes are not awaited, so they never delay the switch.
     recordTryIt('back');
+    if (pointerPicked()) recordTryIt('point');
     activateTab(state.filteredTabs[state.selectedIndex]);
   } else {
     // If no tab is selected, just close the overview
@@ -289,7 +290,13 @@ export async function closeTab(tab) {
   document.getElementById('search')?.focus();
 }
 
+// Held for the shortcut (⌘, or Ctrl and Shift), a modifier is not a key of
+// its own: the card under the pointer stays selected for the E that follows,
+// and a tip stays. Windows repeats a held key's keydown, modifiers too.
+const MODIFIER_KEYS = new Set(['Alt', 'AltGraph', 'Control', 'Meta', 'Shift']);
+
 function handleKeydown(e) {
+  if (MODIFIER_KEYS.has(e.key)) return;
   releasePointerSelection();
   hideTip();
   // Keys that pick or commit an input method candidate (pinyin, kana) belong

@@ -121,6 +121,20 @@
     "message": "Press it again to go back to your previous tab.",
     "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
   },
+  "welcomeStepPoint": {
+    "message": "Point at a card and press $shortcut$ to go to that tab.",
+    "description": "Welcome page checklist, step 3: in the Tab Mission window, the shortcut pressed with the pointer on a card switches to that card's tab.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "welcomeStepPointUnset": {
+    "message": "Point at a card and press the shortcut to go to that tab.",
+    "description": "Welcome page checklist, step 3, when Chrome could not assign a shortcut."
+  },
   "welcomeStepDone": {
     "message": "Done",
     "description": "Welcome page checklist: shown beside a step that is done."
@@ -141,19 +155,15 @@
   },
   "welcomeAllSet": {
     "message": "You're all set.",
-    "description": "Welcome page checklist: shown once both steps are done."
+    "description": "Welcome page checklist: shown once all three steps are done."
   },
   "welcomeTipsTitle": {
     "message": "More tips",
     "description": "Welcome page: heading of the tips under the checklist."
   },
   "welcomeTipSearch": {
-    "message": "Type a few letters to find a tab, then press Enter to switch to it.",
+    "message": "Type a few letters to find a tab, then press the shortcut again to switch to it.",
     "description": "Welcome page: the first of the extra tips."
-  },
-  "welcomeTipHover": {
-    "message": "In Tab Mission, point at a tab and press the shortcut to jump to it.",
-    "description": "Welcome page tip."
   },
   "welcomeTipSite": {
     "message": "When the site you are on has several tabs open, press $shortcut$ in the search box to see only its tabs.",
@@ -302,6 +312,16 @@
   "tipOpen": {
     "message": "Press $shortcut$ anytime to open Tab Mission",
     "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with a click (the toolbar button or the welcome page's button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "tipPoint": {
+    "message": "Press $shortcut$ to go to this tab",
+    "description": "Tab Mission window: tip pointing at a card the pointer has stayed on (the shortcut goes to it).",
     "placeholders": {
       "shortcut": {
         "content": "$1",

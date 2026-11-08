@@ -121,6 +121,20 @@
     "message": "再按一次，回到上一个标签页。",
     "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
   },
+  "welcomeStepPoint": {
+    "message": "把鼠标移到一张卡片上，按 $shortcut$ 切换到那个标签页。",
+    "description": "Welcome page checklist, step 3: in the Tab Mission window, the shortcut pressed with the pointer on a card switches to that card's tab.",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "welcomeStepPointUnset": {
+    "message": "把鼠标移到一张卡片上，按快捷键切换到那个标签页。",
+    "description": "Welcome page checklist, step 3, when Chrome could not assign a shortcut."
+  },
   "welcomeStepDone": {
     "message": "已完成",
     "description": "Welcome page checklist: shown beside a step that is done."
@@ -141,19 +155,15 @@
   },
   "welcomeAllSet": {
     "message": "全部完成，开始使用吧。",
-    "description": "Welcome page checklist: shown once both steps are done."
+    "description": "Welcome page checklist: shown once all three steps are done."
   },
   "welcomeTipsTitle": {
     "message": "更多技巧",
     "description": "Welcome page: heading of the tips under the checklist."
   },
   "welcomeTipSearch": {
-    "message": "输入几个字查找标签页，按回车切换过去。",
+    "message": "输入几个字查找标签页，再按一次快捷键切换过去。",
     "description": "Welcome page: the first of the extra tips."
-  },
-  "welcomeTipHover": {
-    "message": "在 Tab Mission 里，把鼠标移到某个标签页上，再按快捷键即可跳转过去。",
-    "description": "Welcome page tip."
   },
   "welcomeTipSite": {
     "message": "当前网站开着多个标签页时，在搜索框里按 $shortcut$ 只看这个网站的标签页。",
@@ -302,6 +312,16 @@
   "tipOpen": {
     "message": "随时按 $shortcut$ 打开 Tab Mission",
     "description": "Tab Mission window: tip pointing at the shortcut badge when it was opened with a click (the toolbar button or the welcome page's button).",
+    "placeholders": {
+      "shortcut": {
+        "content": "$1",
+        "example": "⌘E"
+      }
+    }
+  },
+  "tipPoint": {
+    "message": "按 $shortcut$ 切换到这个标签页",
+    "description": "Tab Mission window: tip pointing at a card the pointer has stayed on (the shortcut goes to it).",
     "placeholders": {
       "shortcut": {
         "content": "$1",

@@ -34,10 +34,13 @@ async function showShortcut() {
     : (t('welcomeSetShortcut') || 'Choose shortcut');
 
   const openStep = document.querySelector('#step-open .step-text');
+  const pointStep = document.querySelector('#step-point .step-text');
   if (openShortcut) {
     setWithKbd(openStep, 'welcomeStepOpen', openShortcut, (s) => `Press ${s} on any page to open Tab Mission.`);
+    setWithKbd(pointStep, 'welcomeStepPoint', openShortcut, (s) => `Point at a card and press ${s} to go to that tab.`);
   } else {
     openStep.textContent = t('welcomeStepOpenUnset') || 'Choose a shortcut, then press it to open Tab Mission.';
+    pointStep.textContent = t('welcomeStepPointUnset') || 'Point at a card and press the shortcut to go to that tab.';
   }
 }
 
@@ -50,7 +53,7 @@ async function showPinHint() {
 
 const STEPS = Object.keys(TRY_IT_KEYS);
 // The steps as last shown, so a change can announce only what is new.
-let shown = { open: false, back: false };
+let shown = Object.fromEntries(STEPS.map((step) => [step, false]));
 
 function stepItem(step) {
   return document.getElementById(`step-${step}`);
@@ -58,7 +61,7 @@ function stepItem(step) {
 
 // Tick the steps that are done: a check mark in place of the number, and the
 // state written out ("Done", or "Not done yet" for screen readers only). A
-// live change is also announced, with "You're all set" once both are done.
+// live change is also announced, with "You're all set" once all are done.
 // Steps only ever become done, so a slower read never unticks one.
 function showTryIt(value, { announce = false } = {}) {
   const done = Object.fromEntries(STEPS.map((step) => [step, value[step] || shown[step]]));

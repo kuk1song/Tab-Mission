@@ -467,6 +467,40 @@ html, body {
   transform: scale(0.98);
 }
 
+/* The key that completes the shortcut, on the selected card while its
+   modifiers are held (dom.js): a keycap in the middle of the picture, in the
+   selection's accent color, as the tips are. */
+.tile-key {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  display: none;
+  place-items: center;
+  min-width: 48px;
+  height: 48px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: var(--shadow-elevated), inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.grid.keys-held .tile.selected .tile-key {
+  display: grid;
+  animation: keyIn 120ms ease-out;
+}
+@keyframes keyIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
 /* Preview area styles */
 .preview {
   width: 100%;
@@ -716,7 +750,8 @@ html, body {
 }
 @keyframes tipOut { from { opacity: 1; } to { opacity: 0; } }
 @media (forced-colors: active) {
-  .tip { border: 1px solid CanvasText; }
+  .tip,
+  .tile-key { border: 1px solid CanvasText; }
   .tip::before { display: none; }
   /* High contrast: the system's own checkbox, whose check it draws itself.
      Colors are the system's there, so while a query is typed the toggles'
@@ -734,7 +769,8 @@ html, body {
   .group-label,
   .thumbnail,
   .scope-token,
-  .tip {
+  .tip,
+  .tile-key {
     animation: none !important;
     transition: none !important;
   }
