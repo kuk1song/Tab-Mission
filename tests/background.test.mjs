@@ -411,9 +411,25 @@ describe('background.js', () => {
     };
     const halfScreenBrowser = () => { chrome._focused = { left: 0, top: 0, width: 800, height: 1000, state: 'normal' }; };
 
-    it('defaults to 88% x 90% of the work area, capped, centered on the display', async () => {
+    it('defaults to 60% x 75% of the work area, centered on the display', async () => {
       halfScreenBrowser();
-      expect(await opened()).toEqual({ left: 100, top: 50, width: 1400, height: 900 });
+      expect(await opened()).toEqual({ left: 320, top: 125, width: 960, height: 750 });
+    });
+
+    it('defaults to at least 960 x 640 on a small screen (a 1080p laptop at 150%)', async () => {
+      chrome._displays = [{ isPrimary: true, workArea: { left: 0, top: 0, width: 1280, height: 672 } }];
+      // 640 is more than 90% of 672.
+      expect(await opened()).toEqual({ left: 160, top: 34, width: 960, height: 605 });
+    });
+
+    it('defaults to no more than 90% of a screen smaller than that', async () => {
+      chrome._displays = [{ isPrimary: true, workArea: { left: 0, top: 0, width: 1024, height: 600 } }];
+      expect(await opened()).toEqual({ left: 51, top: 30, width: 922, height: 540 });
+    });
+
+    it('defaults to at most 1200 x 900 on a large screen', async () => {
+      chrome._displays = [{ isPrimary: true, workArea: { left: 0, top: 0, width: 2560, height: 1392 } }];
+      expect(await opened()).toEqual({ left: 680, top: 246, width: 1200, height: 900 });
     });
 
     it("opens on the browser's display, keeping the saved size but not a position from another display", async () => {
@@ -439,8 +455,8 @@ describe('background.js', () => {
       chrome.storage.local.data.overviewBounds = { left: 30, top: 40, width: 900, height: 600 };
       const reply = await new Promise((resolve) => chrome.listeners.onMessage({ action: 'resetWindowBounds' }, {}, resolve));
       expect(reply).toEqual({ ok: true });
-      expect(chrome.windows.update).toHaveBeenCalledWith(id, { left: 100, top: 50, width: 1400, height: 900 });
-      await chrome.listeners.onBoundsChanged({ id, left: 100, top: 50, width: 1400, height: 900 });
+      expect(chrome.windows.update).toHaveBeenCalledWith(id, { left: 320, top: 125, width: 960, height: 750 });
+      await chrome.listeners.onBoundsChanged({ id, left: 320, top: 125, width: 960, height: 750 });
       expect(chrome.storage.local.data.overviewBounds).toBeNull();
     });
   });

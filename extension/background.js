@@ -96,12 +96,17 @@ function displayFor(displays, browser) {
 	return displays.find(d => d.isPrimary) || displays[0];
 }
 
-// Default size: 88% x 90% of the display's work area (at most 1400 x 1000),
-// centered on the display.
+// Default size: 60% x 75% of the display's work area, at least 960 x 640 (five
+// cards a row) and at most 1200 x 900, never more than 90% of the work area,
+// centered on the display: the page stays in sight around it.
+function defaultLength(length, share, least, most) {
+	return Math.min(Math.max(length * share, least), most, length * 0.9);
+}
+
 function displayBounds(display) {
 	const a = display.workArea;
-	const width = Math.min(a.width * 0.88, 1400);
-	const height = Math.min(a.height * 0.9, 1000);
+	const width = defaultLength(a.width, 0.6, 960, 1200);
+	const height = defaultLength(a.height, 0.75, 640, 900);
 	return { width, height, left: a.left + (a.width - width) / 2, top: a.top + (a.height - height) / 2 };
 }
 
