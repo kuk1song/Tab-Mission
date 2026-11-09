@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Il tuo centro di comando per le schede. Panoramica istantanea, ricerca immediata, cambio fulmineo.",
+    "message": "Il tuo centro di comando per le schede. Panoramica istantanea, cambio fulmineo, ricerca immediata.",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {

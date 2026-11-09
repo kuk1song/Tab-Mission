@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "你的标签页指挥中心。所有标签页一览无余，即时搜索，精准切换。",
+    "message": "你的标签页指挥中心。所有标签页一览无余，精准切换，即时搜索。",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {
