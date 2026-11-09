@@ -1,11 +1,12 @@
 // events.js
 import { state, applyFilters, moveSelection, moveSelectionByRects, currentSiteHost, countSiteTabs } from './state.js';
-import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection } from './dom.js';
+import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection, pointerPicked } from './dom.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isCapturableUrl, faviconUrl, createPlaceholderIcon } from './utils.js';
 import { recordTryIt } from './tryit.js';
 import { hideTip } from './tips.js';
+import { isShortcut } from './shortcuts.js';
 
 // Filtering is cheap now that tiles are reused, so the search runs once per
 // animation frame instead of after a 200ms debounce. Enter flushes a pending
@@ -28,7 +29,10 @@ function flushFilterChange() {
   handleFilterChange();
 }
 
-export function initializeEventListeners() {
+let shortcuts = []; // the commands' shortcuts (main.js)
+
+export function initializeEventListeners(commandShortcuts = []) {
+  shortcuts = commandShortcuts.filter(Boolean);
   const searchEl = document.getElementById('search');
   const toggleSleeping = document.getElementById('toggle-sleeping');
   const toggleAllWindows = document.getElementById('toggle-all-windows');
@@ -128,9 +132,9 @@ function handleShortcut(scope) {
   flushFilterChange();
   if (state.selectedIndex !== -1 && state.filteredTabs[state.selectedIndex]) {
     // If a tab is selected, activate it. This ticks the welcome page's
-    // "press it again" step; the write is not awaited, so it never delays
-    // the switch.
-    recordTryIt('back');
+    // "press it again" step, and its "point at a card" step when the pointer
+    // picked it; the writes are not awaited, so they never delay the switch.
+    recordTryIt(...(pointerPicked() ? ['back', 'point'] : ['back']));
     activateTab(state.filteredTabs[state.selectedIndex]);
   } else {
     // If no tab is selected, just close the overview
@@ -249,8 +253,10 @@ function currentSite(uiState = readUiState()) {
 export function setSiteScope(on) {
   state.siteHost = on ? currentSiteHost() : '';
   // Mark the selection as automatic, so the new view gets its own default
-  // (the best match, or the previous tab with preselectPrevious on).
+  // (the best match, or the previous tab with preselectPrevious on), which
+  // the pointer did not pick.
   state.selectedIndex = state.defaultIndex;
+  releasePointerSelection();
   handleFilterChange();
   document.getElementById('search')?.focus();
 }
@@ -289,8 +295,17 @@ export async function closeTab(tab) {
   document.getElementById('search')?.focus();
 }
 
+// A modifier alone is the start of a shortcut, not a key of its own: the
+// card the pointer picked stays selected for the shortcut pressed next (point,
+// then ⌘E: ⌘ comes down here first), and a tip stays. Held, a key's keydown
+// can also repeat (Windows repeats Shift's). The shortcut's own key comes down
+// here too, before its command (handleShortcut) arrives, and leaves the card
+// the pointer picked as the pointer's.
+const MODIFIER_KEYS = new Set(['Alt', 'AltGraph', 'Control', 'Meta', 'Shift']);
+
 function handleKeydown(e) {
-  releasePointerSelection();
+  if (MODIFIER_KEYS.has(e.key)) return;
+  if (!shortcuts.some((shortcut) => isShortcut(e, shortcut))) releasePointerSelection();
   hideTip();
   // Keys that pick or commit an input method candidate (pinyin, kana) belong
   // to the input method, not to the overview.

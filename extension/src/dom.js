@@ -4,7 +4,7 @@ import { activateTab, closeTab, setSiteScope } from './events.js';
 import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor, addressLabel, pageAddress } from './utils.js';
 import { observeTiles } from './thumbnail.js';
 import { t } from './i18n.js';
-import { selectionMoved, announce } from './tips.js';
+import { selectionMoved, pointedAt, announce } from './tips.js';
 
 // One tile per tab, built on first render and reused afterwards. Filtering
 // only reorders these nodes, so previews never reload and the entrance
@@ -47,7 +47,9 @@ function tabForEvent(e) {
 // overview opens under a resting pointer, and a twitch must not move the
 // pre-selected tile away from the next press of the shortcut. Once it has
 // taken over, the selection is the tile under the pointer, or none over a gap
-// or outside the grid. Any key hands the selection back to the keyboard.
+// or outside the grid. Any key but a lone modifier or a shortcut of Tab
+// Mission's (events.js), and a change of view that picks its own selection,
+// hand it back to the keyboard.
 const POINTER_TAKEOVER_PX = 8;
 let pointerAnchor = null;
 let pointerSelects = false;
@@ -57,11 +59,18 @@ export function releasePointerSelection() {
   pointerSelects = false;
 }
 
-function select(index) {
+// Whether the selection is the card under the pointer (events.js: the
+// shortcut pressed then ticks the welcome page's "point" step).
+export function pointerPicked() {
+  return pointerSelects && state.selectedIndex !== -1;
+}
+
+function select(index, tile) {
   if (state.selectedIndex !== index) {
     selectionMoved(); // a tip on the card that was selected no longer applies
     state.selectedIndex = index;
     updateSelection();
+    if (tile) pointedAt(tile, state.filteredTabs[index]);
   }
 }
 
@@ -75,7 +84,7 @@ function handleGridMouseMove(e) {
     pointerSelects = true;
   }
   const tile = e.target.closest('.tile');
-  select(tile ? parseInt(tile.dataset.index, 10) : -1);
+  select(tile ? parseInt(tile.dataset.index, 10) : -1, tile);
 }
 
 function handleGridMouseLeave() {

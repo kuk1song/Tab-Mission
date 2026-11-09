@@ -60,7 +60,7 @@ async function main() {
 
   updateShortcutHint(shortcut);
 
-  initializeEventListeners();
+  initializeEventListeners(Object.values(shortcuts));
   searchEl?.focus();
 }
 

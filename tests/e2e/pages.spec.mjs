@@ -1,4 +1,4 @@
-import { test, expect, PAGES, contrasts } from './fixtures.mjs';
+import { test, expect, PAGES, contrasts, pointAt } from './fixtures.mjs';
 
 // Chrome only auto-assigns a suggested key that none of its own shortcuts
 // use: Ctrl+E is Chrome's "search" key on Windows, Linux and ChromeOS, so the
@@ -132,27 +132,30 @@ test('welcome page: appears finished, with the shortcut and the steps done so fa
   expect(finished.text).toContain(doneLabel);
 });
 
-const stepsStored = (ext) => ext.sw.evaluate(() => chrome.storage.local.get(['tryItOpen', 'tryItBack']));
+const stepsStored = (ext) => ext.sw.evaluate(() => chrome.storage.local.get(['tryItOpen', 'tryItBack', 'tryItPoint']));
 
 // Learn by doing: each step on the welcome page ticks itself once the user
 // has done it, with the real shortcut pressed through Chrome.
 test('welcome page: the try-it steps tick as the user does them', { tag: '@real-shortcut' }, async ({ ext, context }) => {
-  const { windowId } = await ext.openWindow(['alpha', 'beta']);
+  const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const welcome = ext.welcome;
   const message = (key, substitutions) => welcome.evaluate(([k, s]) => chrome.i18n.getMessage(k, s), [key, substitutions]);
   const step = (name) => welcome.locator(`#step-${name}`);
   const done = welcome.locator('#try-it .step.done');
 
-  await expect(welcome.locator('#try-it .step')).toHaveCount(2);
+  await expect(welcome.locator('#try-it .step')).toHaveCount(3);
   await expect(done).toHaveCount(0);
-  for (const name of ['open', 'back']) {
+  for (const name of ['open', 'back', 'point']) {
     await expect(step(name).locator('.step-state')).toHaveText(await message('welcomeStepTodo'));
   }
   await expect(welcome.locator('#all-set')).toBeHidden();
   const shortcut = await ext.sw.evaluate(() => chrome.commands.getAll().then((c) => c.find((x) => x.name === 'open-overview').shortcut));
   await expect(step('open').locator('kbd')).toHaveText(shortcut.replace(/\+/g, ' + '));
-  // Typing is the first of the other tips, no longer a step.
+  await expect(step('point').locator('kbd')).toHaveText(shortcut.replace(/\+/g, ' + '));
+  // Typing is the first of the other tips, no longer a step; no tip says
+  // Enter (the shortcut pressed again goes to the selected card).
   await expect(welcome.locator('.tips li').first()).toHaveText(await message('welcomeTipSearch'));
+  await expect(welcome.locator('.tips')).not.toContainText(/Enter/i);
 
   // Opened without the shortcut (the page's button), closed with Esc: no step.
   let overview = await ext.open();
@@ -161,8 +164,8 @@ test('welcome page: the try-it steps tick as the user does them', { tag: '@real-
   await expect(done).toHaveCount(0);
 
   // 1. The real shortcut opens Tab Mission.
-  const opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
-  await ext.pressDefaultShortcut(context.pages().find((p) => p.url().includes('/beta.html')));
+  let opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
+  await ext.pressDefaultShortcut(context.pages().find((p) => p.url().includes('/gamma.html')));
   overview = await opened;
   await overview.locator('#grid .tile').first().waitFor();
   await expect(step('open')).toHaveClass(/\bdone\b/);
@@ -175,12 +178,26 @@ test('welcome page: the try-it steps tick as the user does them', { tag: '@real-
   // 2. Pressed again in Tab Mission, it goes back to the previous tab.
   await ext.pressDefaultShortcut(overview);
   await ext.expectClosed();
-  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.beta.title);
   await expect(step('back')).toHaveClass(/\bdone\b/);
   await expect(done).toHaveCount(2);
+  await expect(welcome.locator('#all-set')).toBeHidden();
+  expect(await stepsStored(ext)).toEqual({ tryItOpen: true, tryItBack: true });
+
+  // 3. Pointed at a card, it goes to that card's tab.
+  opened = context.waitForEvent('page', (p) => p.url().includes('/overview.html'));
+  await ext.pressDefaultShortcut(context.pages().find((p) => p.url().includes('/beta.html')));
+  overview = await opened;
+  await overview.locator('#grid:not(.entering) .tile').first().waitFor();
+  await pointAt(overview, overview.locator('.tile', { hasText: PAGES.alpha.title }));
+  await ext.pressDefaultShortcut(overview);
+  await ext.expectClosed();
+  expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
+  await expect(step('point')).toHaveClass(/\bdone\b/);
+  await expect(done).toHaveCount(3);
   await expect(welcome.locator('#all-set')).toBeVisible();
   await expect(welcome.locator('#try-status')).toContainText(await message('welcomeAllSet'));
-  expect(await stepsStored(ext)).toEqual({ tryItOpen: true, tryItBack: true });
+  expect(await stepsStored(ext)).toEqual({ tryItOpen: true, tryItBack: true, tryItPoint: true });
 });
 
 // With reduced motion the window closes at once after a switch; the step
@@ -197,7 +214,9 @@ test('welcome page: the steps tick with reduced motion, when the window closes a
   expect(await ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
   await expect.poll(() => stepsStored(ext)).toEqual({ tryItOpen: true, tryItBack: true });
   await expect(ext.welcome.locator('#try-it .step.done')).toHaveCount(2);
-  await expect(ext.welcome.locator('#all-set')).toBeVisible();
+  // Two of the three steps: pointing at a card is still to do.
+  await expect(ext.welcome.locator('#step-point')).not.toHaveClass(/\bdone\b/);
+  await expect(ext.welcome.locator('#all-set')).toBeHidden();
 });
 
 // Opened with the page's button, the shortcut pressed inside is the user's

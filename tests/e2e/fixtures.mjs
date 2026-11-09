@@ -254,7 +254,7 @@ export const test = base.extend({
     // A new install gives the Tab Mission window its tips (background.js).
     // tips.spec gives them back where it tests them; elsewhere they would
     // cover cards that tests point at.
-    await expect.poll(() => sw.evaluate(() => chrome.storage.local.get('tipsLeft').then((r) => r.tipsLeft))).toEqual({ open: 3, back: 3 });
+    await expect.poll(() => sw.evaluate(() => chrome.storage.local.get('tipsLeft').then((r) => r.tipsLeft))).toEqual({ open: 3, back: 3, point: 3 });
     await sw.evaluate(() => chrome.storage.local.remove('tipsLeft'));
     // Grouping by site is on for users by default and applies to any number
     // of tabs, so each recent tab would have a second tile. Most tests are
