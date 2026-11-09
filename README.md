@@ -12,34 +12,33 @@
 <p align="center">
   <a href="https://youtu.be/U0R_pweVJ_0"><img src="assets/production/tutorial-thumbnail.jpg" alt="Any tab, one key away. Tab Mission tutorial on YouTube" width="640"></a>
   <br>
-  <a href="https://youtu.be/U0R_pweVJ_0">▶ Watch the 2-minute tutorial</a>
+  <a href="https://youtu.be/U0R_pweVJ_0">▶ Watch the tutorial</a>
 </p>
 
 ---
 
-Tab Mission puts your tabs into one searchable grid, the ones you used last first. Summon it with a single shortcut, type a few letters, press Enter, and you are there.
+One shortcut shows the tabs in your window as cards, most recent first, with pictures of the pages you've seen. Press it again to go back to your last tab, or point at a card or type a few letters and press it again to go there.
 
 ## ✨ Features
 
-- **One Grid:** Your tabs as cards, one keystroke away.
-- **Most Likely First:** The tab you most likely want, the previous one, takes the first slot; your current tab sits second, then your other recent tabs.
-- **Type to Search:** The search box is ready as soon as the grid opens. Every word you type must match the title or URL, the best match is highlighted, and `Enter` takes you there. A search covers all windows and sleeping tabs; without one, the grid shows what the two toggles above it say.
-- **Site View:** When the grid holds two or more tabs from the website you are on, press `Tab` in the search box to see only those (`Tab` again, `Backspace` at the start of the box, or `Esc` once the box is empty, to leave). A shortcut of its own can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
-- **Grouped by Site:** Your five most recent tabs come first (the previous tab still in the first slot), then a panel for each site with two or more tabs, which switching tabs never moves; the rest come last. It makes the same groups at any window size; a narrower window fits fewer tabs in a row, and the panels may come in another order to fill each row. You can turn it off in the settings.
+- **Back and Forth:** The tab you were on before takes the first card and is already selected, so pressing the shortcut again takes you back; twice more, and you are where you started. Your current tab sits second, then your other recent tabs.
+- **Point and Tap:** Keep holding `Cmd` (or `Ctrl + Shift`) after the shortcut, point at a card and tap `E`. Or let go, point, and press the whole shortcut again.
+- **Type to Search:** The search box is ready as soon as Tab Mission opens. Every word you type must match the title or URL, the best match is selected, and pressing the shortcut again takes you there. A search covers all windows and sleeping tabs; without one, the cards follow the two toggles above them.
+- **Site View:** When Tab Mission shows two or more tabs from the website you are on, press `Tab` in the search box to see only those (`Tab` again, `Backspace` at the start of the box, or `Esc` once the box is empty, to leave). A shortcut of its own can be assigned at `chrome://extensions/shortcuts`; it has no default so it never clashes with other extensions.
+- **Grouped by Site:** Your five most recent tabs come first (the previous tab still the first card), then a panel for each site with two or more tabs, which switching tabs never moves; the rest come last. It makes the same groups at any window size; a narrower window fits fewer cards in a row, and the panels may come in another order to fill each row. You can turn it off in the settings.
+- **Any Size:** Drag the Tab Mission window to any size or place, even a tall strip at the side of your screen, and it remembers both; the reset button next to the gear brings back the default.
 - **Keyboard or Mouse:** `↑↓←→` + `Enter`, or click. Middle-click or `×` closes a tab. `Esc` steps back: it clears the search, then leaves the site view, then closes.
-- **Page Previews:** Each tab shows a small picture of the page, taken while it was in front of you and kept after a restart, with its title underneath; until it has one, the preview image the page provides (not a logo), or the site's icon on a card in the icon's color. Light or dark, as your system is.
+- **Page Pictures:** Each card shows a small picture of the page, taken while it was in front of you and kept after a restart, with its title underneath; until it has one, the preview image the page provides (not a logo), or the site's icon on a card in the icon's color. Light or dark, as your system is.
 - **Private by Design:** No developer-run server, analytics or tracking. Tab information and page pictures stay on your computer (a tab's picture is deleted when you close the tab, and none is taken of incognito tabs); preview images load from their original hosts, and site icons come from Chrome's own store.
 
 ## 🚀 Getting Started
 
 1.  **[Install Tab Mission from the Chrome Web Store](https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca?utm_source=github&utm_medium=readme)**.
 2.  Click the extension icon or use the default shortcut: **`Cmd + E`** on Mac, **`Ctrl + Shift + E`** on Windows, Linux and ChromeOS. If another extension already owns it, pick your own at `chrome://extensions/shortcuts` (the gear in Tab Mission opens its settings, which show your shortcut and a button to that page). While assigned, the shortcut takes priority over the same key on web pages, such as GitHub's `Cmd + E` for inline code or Google Docs' `Ctrl + Shift + E` for center align; choose another key if you rely on one.
-3.  Start typing, then press `Enter`.
+3.  Press the shortcut again to go back, or type a few letters and press it again.
 
 ## 💡 Pro Tips
 
-- **Back to the previous tab:** press the shortcut twice (the previous tab is selected when Tab Mission opens).
-- **No-click switching:** press the shortcut, move the mouse onto the tab you want, and press the shortcut **again**. Keep holding `Cmd` (or `Ctrl + Shift`) the whole time, and pressing it again is just a tap on `E`.
 - **Toggle style (optional):** click the gear in Tab Mission and turn off "Pre-select the previous tab"; then nothing is selected on open, and pressing the shortcut again closes Tab Mission.
 
 ## 🛠️ Development
