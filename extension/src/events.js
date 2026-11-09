@@ -291,9 +291,10 @@ export async function closeTab(tab) {
   document.getElementById('search')?.focus();
 }
 
-// Held for the shortcut (⌘, or Ctrl and Shift), a modifier is not a key of
-// its own: the card under the pointer stays selected for the E that follows,
-// and a tip stays. Windows repeats a held key's keydown, modifiers too.
+// A modifier alone is the start of a shortcut, not a key of its own: the
+// card the pointer picked stays selected for the shortcut pressed next (point,
+// then ⌘E: ⌘ comes down here first), and a tip stays. Held, a key's keydown
+// can also repeat (Windows repeats Shift's).
 const MODIFIER_KEYS = new Set(['Alt', 'AltGraph', 'Control', 'Meta', 'Shift']);
 
 function handleKeydown(e) {

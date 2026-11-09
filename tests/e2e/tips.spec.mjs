@@ -1,4 +1,4 @@
-import { test, expect, pointAt, useShortcuts } from './fixtures.mjs';
+import { test, expect, pointAt } from './fixtures.mjs';
 
 // Tips in the Tab Mission window (tips.js): one at a time, pointing at what
 // it explains, with no button; after a new install until learned (at most
@@ -150,6 +150,16 @@ test('on its own a tip shows at most three times; with "Show tips" on, showing i
   await settle(overview);
   expect(await tipsLeft(ext)).toEqual({ open: 3, back: 3 });
 });
+
+// Chrome reports the keys the user chose at chrome://extensions/shortcuts
+// (here stubbed); the window reads them each time it opens.
+function useShortcuts(context, keys) {
+  return context.addInitScript((keys) => {
+    if (!location.pathname.endsWith('/overview.html')) return;
+    const getAll = chrome.commands.getAll.bind(chrome.commands);
+    chrome.commands.getAll = async () => (await getAll()).map((c) => (c.name in keys ? { ...c, shortcut: keys[c.name] } : c));
+  }, keys);
+}
 
 test('the badge and the tips show the shortcut the user set', async ({ ext, context }) => {
   await useShortcuts(context, { 'open-overview': 'Alt+Shift+K' });

@@ -506,16 +506,6 @@ export function contrasts(page, selectors) {
   }, selectors);
 }
 
-// Chrome reports the keys the user chose at chrome://extensions/shortcuts
-// (here stubbed); the window reads them each time it opens.
-export function useShortcuts(context, keys) {
-  return context.addInitScript((keys) => {
-    if (!location.pathname.endsWith('/overview.html')) return;
-    const getAll = chrome.commands.getAll.bind(chrome.commands);
-    chrome.commands.getAll = async () => (await getAll()).map((c) => (c.name in keys ? { ...c, shortcut: keys[c.name] } : c));
-  }, keys);
-}
-
 export function selectedTitle(page) {
   return page.evaluate(() => document.querySelector('.tile.selected .title')?.textContent ?? null);
 }

@@ -5,7 +5,6 @@ import { getHostname, isSleeping, isCapturableUrl, faviconUrl, hueColor, address
 import { observeTiles } from './thumbnail.js';
 import { t } from './i18n.js';
 import { selectionMoved, pointedAt, announce } from './tips.js';
-import { finishingKey, holdsModifiers } from './shortcuts.js';
 
 // One tile per tab, built on first render and reused afterwards. Filtering
 // only reorders these nodes, so previews never reload and the entrance
@@ -85,33 +84,6 @@ function handleGridMouseMove(e) {
   }
   const tile = e.target.closest('.tile');
   select(tile ? parseInt(tile.dataset.index, 10) : -1, tile);
-}
-
-// While the shortcut's modifiers are held (⌘ on a Mac, Ctrl and Shift
-// elsewhere, by default), the selected card shows the key that completes the
-// shortcut (overview.css): keep holding, point at a card, tap E. Keys and
-// the pointer both say which modifiers are down, so the key shows also when
-// ⌘ was already down as the window opened (pressed for ⌘E).
-// Called before the first render, which gives each card the key.
-let keycap = ''; // the key shown, '' for none
-
-export function showKeyWhileHeld(shortcut) {
-  const finishing = finishingKey(shortcut);
-  const gridEl = document.getElementById('grid');
-  if (!finishing || !gridEl) return;
-  keycap = finishing.key;
-  const update = (e) => gridEl.classList.toggle('keys-held', holdsModifiers(e, finishing.modifiers));
-  for (const type of ['keydown', 'keyup', 'mousemove', 'mousedown']) window.addEventListener(type, update);
-  window.addEventListener('blur', () => gridEl.classList.remove('keys-held'));
-}
-
-function addKeycap(tile) {
-  if (!keycap) return;
-  const key = document.createElement('kbd');
-  key.className = 'tile-key';
-  key.setAttribute('aria-hidden', 'true'); // what the pointer points at, which screen readers do not
-  key.textContent = keycap;
-  tile.querySelector('.preview').appendChild(key);
 }
 
 function handleGridMouseLeave() {
@@ -240,7 +212,6 @@ function createTile(tab, index) {
 
   tile.appendChild(createPreviewElement(tab));
   tile.appendChild(createMetaElement(tab));
-  addKeycap(tile);
 
   // A span, not a nested <button> (invalid inside a button); clicks on it are
   // handled by the grid's delegated listener.
