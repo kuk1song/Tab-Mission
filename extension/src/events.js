@@ -6,6 +6,7 @@ import { t } from './i18n.js';
 import { isCapturableUrl, faviconUrl, createPlaceholderIcon } from './utils.js';
 import { recordTryIt } from './tryit.js';
 import { hideTip } from './tips.js';
+import { isShortcut } from './shortcuts.js';
 
 // Filtering is cheap now that tiles are reused, so the search runs once per
 // animation frame instead of after a 200ms debounce. Enter flushes a pending
@@ -28,7 +29,10 @@ function flushFilterChange() {
   handleFilterChange();
 }
 
-export function initializeEventListeners() {
+let shortcuts = []; // the commands' shortcuts (main.js)
+
+export function initializeEventListeners(commandShortcuts = []) {
+  shortcuts = commandShortcuts.filter(Boolean);
   const searchEl = document.getElementById('search');
   const toggleSleeping = document.getElementById('toggle-sleeping');
   const toggleAllWindows = document.getElementById('toggle-all-windows');
@@ -294,12 +298,14 @@ export async function closeTab(tab) {
 // A modifier alone is the start of a shortcut, not a key of its own: the
 // card the pointer picked stays selected for the shortcut pressed next (point,
 // then ⌘E: ⌘ comes down here first), and a tip stays. Held, a key's keydown
-// can also repeat (Windows repeats Shift's).
+// can also repeat (Windows repeats Shift's). The shortcut's own key comes down
+// here too, before its command (handleShortcut) arrives, and leaves the card
+// the pointer picked as the pointer's.
 const MODIFIER_KEYS = new Set(['Alt', 'AltGraph', 'Control', 'Meta', 'Shift']);
 
 function handleKeydown(e) {
   if (MODIFIER_KEYS.has(e.key)) return;
-  releasePointerSelection();
+  if (!shortcuts.some((shortcut) => isShortcut(e, shortcut))) releasePointerSelection();
   hideTip();
   // Keys that pick or commit an input method candidate (pinyin, kana) belong
   // to the input method, not to the overview.

@@ -47,8 +47,9 @@ function tabForEvent(e) {
 // overview opens under a resting pointer, and a twitch must not move the
 // pre-selected tile away from the next press of the shortcut. Once it has
 // taken over, the selection is the tile under the pointer, or none over a gap
-// or outside the grid. Any key but a lone modifier (events.js), and a change
-// of view that picks its own selection, hand it back to the keyboard.
+// or outside the grid. Any key but a lone modifier or a shortcut of Tab
+// Mission's (events.js), and a change of view that picks its own selection,
+// hand it back to the keyboard.
 const POINTER_TAKEOVER_PX = 8;
 let pointerAnchor = null;
 let pointerSelects = false;
