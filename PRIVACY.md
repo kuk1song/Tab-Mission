@@ -1,8 +1,8 @@
 # Privacy Policy for Tab Mission
 
-**Last Updated: 2026-10-31**
+**Last Updated: 2026-11-09**
 
-Thank you for using Tab Mission ("the Extension"). This policy explains exactly what the Extension reads, where that data stays, and why each permission is needed. It describes version 1.5.2; section 5 lists what earlier versions do differently.
+Thank you for using Tab Mission ("the Extension"). This policy explains exactly what the Extension reads, where that data stays, and why each permission is needed. It describes version 1.6.0; section 5 lists what earlier versions do differently.
 
 ## 1. Summary
 
@@ -32,7 +32,9 @@ Tab Mission's use of user data complies with the Chrome Web Store User Data Poli
 
 ## 5. Earlier versions
 
-Versions 1.5.0 and 1.5.1 differ in two ways. Chrome gives a tab it puts to sleep a new id; these versions keep that tab's picture, its preview image address and, for a tab opened in the background, its id under the old id: the picture until Tab Mission next opens, the others until the browser quits at the latest. And their review link has no `utm_source`.
+Versions 1.4.0 to 1.5.2 have two "Try it" steps on the welcome page (open the window with the shortcut, press it again to go back), so their getting started progress records those two.
+
+Versions 1.5.0 and 1.5.1 also differ in two ways. Chrome gives a tab it puts to sleep a new id; these versions keep that tab's picture, its preview image address and, for a tab opened in the background, its id under the old id: the picture until Tab Mission next opens, the others until the browser quits at the latest. And their review link has no `utm_source`.
 
 Versions before 1.5.0 also differ in these ways:
 
