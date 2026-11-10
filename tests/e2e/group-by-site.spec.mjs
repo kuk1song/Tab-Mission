@@ -172,18 +172,19 @@ test('Esc fades the whole window at once, the site panels with their tiles', asy
   const page = await ext.open();
   await expect(page.locator('#grid.grouped .tile-group:not(.recent, .other)')).toHaveCount(SITES.length);
   await page.locator('#grid:not(.entering)').waitFor(); // the entrance is over
-  // The window closes 150 ms after Esc: each animation that starts is noted
-  // as it starts, in storage that outlives the page.
+  // The window closes 150 ms after Esc. Here the close is only noted, so the
+  // page stays and records each animation as it starts (a write to storage
+  // that outlives the page lost that race on slow runners).
   await page.evaluate(() => {
-    const started = [];
+    window.exit = { started: [], closed: false };
+    window.close = () => { window.exit.closed = true; };
     document.addEventListener('animationstart', (e) => {
-      started.push({ name: e.animationName, target: e.target.id || e.target.className });
-      chrome.storage.session.set({ exitAnimations: started });
+      window.exit.started.push({ name: e.animationName, target: e.target.id || e.target.className });
     }, true);
   });
-  await ext.pressToClose(page, 'Escape');
-  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.session.get('exitAnimations').then((r) => r.exitAnimations)))
-    .toEqual([{ name: 'rootFadeOut', target: 'root' }]);
+  await page.keyboard.press('Escape');
+  await expect.poll(() => page.evaluate(() => window.exit.closed)).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.exit.started)).toEqual([{ name: 'rootFadeOut', target: 'root' }]);
 });
 
 test('a search and the site view show the usual grid', async ({ ext }) => {
