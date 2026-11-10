@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://youtu.be/U0R_pweVJ_0"><img src="assets/production/tutorial-thumbnail.jpg" alt="Any tab, one key away. Tab Mission tutorial on YouTube" width="640"></a>
+  <a href="https://youtu.be/uhrcGRLRPa8"><img src="assets/production/tutorial-thumbnail.jpg" alt="Any tab, one key away. Tab Mission tutorial on YouTube" width="640"></a>
   <br>
-  <a href="https://youtu.be/U0R_pweVJ_0">▶ Watch the tutorial</a>
+  <a href="https://youtu.be/uhrcGRLRPa8">▶ Watch the tutorial</a>
 </p>
 
 ---
