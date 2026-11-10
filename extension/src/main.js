@@ -2,7 +2,7 @@
 import { state, fetchAllTabs, currentSiteHost } from './state.js';
 import { initializeEventListeners, handleFilterChange, markReady } from './events.js';
 import { loadSettings } from './settings.js';
-import { localizeStaticText } from './i18n.js';
+import { localizeStaticText, t } from './i18n.js';
 import { readTryIt } from './tryit.js';
 import { showTip } from './tips.js';
 import { markInView } from './dom.js';
@@ -80,13 +80,16 @@ async function readShortcuts() {
 }
 
 // The badge shows the shortcut, nothing more: the tips and the welcome page
-// teach what it does.
+// teach what it does. Screen readers also hear what the keys are.
 function updateShortcutHint(rawShortcut) {
   const hintEl = document.getElementById('shortcut-hint');
   if (!hintEl || !rawShortcut) return;
+  const label = document.createElement('span');
+  label.className = 'visually-hidden';
+  label.textContent = `${t('shortcutHintLabel') || 'Your shortcut:'} `;
   const kbd = document.createElement('kbd');
   kbd.textContent = rawShortcut;
-  hintEl.replaceChildren(kbd);
+  hintEl.replaceChildren(label, kbd);
 }
 
 // Presses that came while the window was loading act once main() is done

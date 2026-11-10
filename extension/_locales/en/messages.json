@@ -20,7 +20,7 @@
     "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
   },
   "commandOpenSite": {
-    "message": "Open Tab Mission with only the current site's tabs",
+    "message": "Open Tab Mission with only the current site's tabs, or switch to the selected tab",
     "description": "Description of the site-view keyboard shortcut."
   },
   "pageTitle": {
@@ -30,6 +30,14 @@
   "searchPlaceholder": {
     "message": "Search tabs (title or URL)…",
     "description": "Placeholder text for the search input field."
+  },
+  "searchLabel": {
+    "message": "Search tabs",
+    "description": "Accessible name of the search box (the placeholder says what can be searched)."
+  },
+  "shortcutHintLabel": {
+    "message": "Your shortcut:",
+    "description": "Read by screen readers only, before the shortcut shown in the toolbar badge."
   },
   "showSleepingLabel": {
     "message": "Show sleeping",
@@ -72,7 +80,7 @@
     "description": "Tooltip of the close control on a tile."
   },
   "siteScopeClear": {
-    "message": "Show all tabs",
+    "message": "Show all sites",
     "description": "Button that leaves the site view."
   },
   "shortcutNotSet": {
@@ -149,7 +157,7 @@
     "placeholders": {
       "step": {
         "content": "$1",
-        "example": "Press ⌘E to open Tab Mission."
+        "example": "Press ⌘E on any page to open Tab Mission."
       }
     }
   },
@@ -166,7 +174,7 @@
     "description": "Welcome page: the first of the extra tips."
   },
   "welcomeTipSite": {
-    "message": "When the site you are on has several tabs open, press $shortcut$ in the search box to see only its tabs.",
+    "message": "When Tab Mission shows two or more tabs from the site you are on, press $shortcut$ in the search box to see only those.",
     "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {
@@ -176,7 +184,7 @@
     }
   },
   "welcomeTipClose": {
-    "message": "Middle-click a tab, or click its ×, to close it.",
+    "message": "In Tab Mission, middle-click a card, or click its ×, to close that tab.",
     "description": "Welcome page tip."
   },
   "welcomePin": {
@@ -196,7 +204,7 @@
     "description": "Settings page: heading of the section on how Tab Mission opens and shows the tabs."
   },
   "optionShortcutsHeading": {
-    "message": "Keyboard shortcuts",
+    "message": "Keyboard shortcut",
     "description": "Settings page: shortcuts heading."
   },
   "optionSaved": {
@@ -220,7 +228,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Your five most recent tabs come first, then a group for each site with several tabs, which switching tabs doesn't change. The rest come last.",
+    "message": "Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest. The panels stay where they are as you switch tabs.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionHelpHeading": {

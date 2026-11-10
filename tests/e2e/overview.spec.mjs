@@ -10,6 +10,20 @@ test('opens with the search focused and the previous tab first and selected', as
   expect(await selectedTitle(page)).toBe(beta.title);
 });
 
+// Screen readers get a name for the search box (the placeholder only says
+// what it searches) and hear what the toolbar badge's keys are.
+test('the search box and the shortcut badge have names for screen readers', async ({ ext }) => {
+  await ext.openWindow(['alpha', 'beta']);
+  const page = await ext.open();
+  // In the browser's own language, as the user hears it.
+  const message = (key) => page.evaluate((k) => chrome.i18n.getMessage(k), key);
+  await expect(page.locator('#search')).toHaveAccessibleName(await message('searchLabel'));
+  const keys = process.platform === 'darwin' ? '⌘E' : 'Ctrl + Shift + E';
+  await expect(page.locator('#shortcut-hint kbd')).toHaveText(keys);
+  await expect(page.locator('#shortcut-hint')).toHaveText(`${await message('shortcutHintLabel')} ${keys}`);
+  await expect(page.locator('#shortcut-hint .visually-hidden')).toHaveCSS('position', 'absolute');
+});
+
 test('→ moves the selection; typing pre-selects the best match; Enter switches', async ({ ext }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
   const page = await ext.open();
