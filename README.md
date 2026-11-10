@@ -70,5 +70,5 @@ The MIT license covers the code. It does not grant rights to the Tab Mission nam
 ---
 
 <p align="center">
-  Made by <a href="https://www.kuk1song.com/">Haokun Song</a>
+  Made by <a href="https://github.com/kuk1song">Haokun Song</a>
 </p>
