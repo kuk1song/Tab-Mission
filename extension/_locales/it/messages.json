@@ -20,7 +20,7 @@
     "description": "Description of the main keyboard shortcut on chrome://extensions/shortcuts."
   },
   "commandOpenSite": {
-    "message": "Apri Tab Mission solo con le schede del sito corrente",
+    "message": "Apri Tab Mission solo con le schede del sito corrente o passa alla scheda selezionata",
     "description": "Description of the site-view keyboard shortcut."
   },
   "pageTitle": {
@@ -30,6 +30,14 @@
   "searchPlaceholder": {
     "message": "Cerca schede (titolo o URL)…",
     "description": "Placeholder text for the search input field."
+  },
+  "searchLabel": {
+    "message": "Cerca schede",
+    "description": "Accessible name of the search box (the placeholder says what can be searched)."
+  },
+  "shortcutHintLabel": {
+    "message": "La tua scorciatoia:",
+    "description": "Read by screen readers only, before the shortcut shown in the toolbar badge."
   },
   "showSleepingLabel": {
     "message": "Mostra inattive",
@@ -72,7 +80,7 @@
     "description": "Tooltip of the close control on a tile."
   },
   "siteScopeClear": {
-    "message": "Mostra tutte le schede",
+    "message": "Mostra tutti i siti",
     "description": "Button that leaves the site view."
   },
   "shortcutNotSet": {
@@ -122,7 +130,7 @@
     "description": "Welcome page checklist, step 2: the shortcut pressed in the open Tab Mission window switches to the previous tab."
   },
   "welcomeStepPoint": {
-    "message": "Punta il mouse su una scheda e premi $shortcut$ per andarci.",
+    "message": "Punta il mouse su un riquadro e premi $shortcut$ per andare a quella scheda.",
     "description": "Welcome page checklist, step 3: in the Tab Mission window, the shortcut pressed with the pointer on a card switches to that card's tab.",
     "placeholders": {
       "shortcut": {
@@ -132,7 +140,7 @@
     }
   },
   "welcomeStepPointUnset": {
-    "message": "Punta il mouse su una scheda e premi la scorciatoia per andarci.",
+    "message": "Punta il mouse su un riquadro e premi la scorciatoia per andare a quella scheda.",
     "description": "Welcome page checklist, step 3, when Chrome could not assign a shortcut."
   },
   "welcomeStepDone": {
@@ -149,7 +157,7 @@
     "placeholders": {
       "step": {
         "content": "$1",
-        "example": "Press ⌘E to open Tab Mission."
+        "example": "Press ⌘E on any page to open Tab Mission."
       }
     }
   },
@@ -162,11 +170,11 @@
     "description": "Welcome page: heading of the tips under the checklist."
   },
   "welcomeTipSearch": {
-    "message": "Digita qualche lettera per trovare una scheda, poi premi di nuovo la scorciatoia per aprirla.",
+    "message": "Digita qualche lettera per trovare una scheda, poi premi di nuovo la scorciatoia per passarci.",
     "description": "Welcome page: the first of the extra tips."
   },
   "welcomeTipSite": {
-    "message": "Quando il sito in cui ti trovi ha più schede aperte, premi $shortcut$ nella casella di ricerca per vedere solo le sue schede.",
+    "message": "Quando Tab Mission mostra almeno due schede del sito in cui sei, premi $shortcut$ nella casella di ricerca per vedere solo quelle.",
     "description": "Welcome page tip about the site scope (Tab in the search box).",
     "placeholders": {
       "shortcut": {
@@ -176,7 +184,7 @@
     }
   },
   "welcomeTipClose": {
-    "message": "Fai clic con il tasto centrale su una scheda, o sulla sua ×, per chiuderla.",
+    "message": "In Tab Mission, fai clic con il tasto centrale su un riquadro, o sulla sua ×, per chiudere quella scheda.",
     "description": "Welcome page tip."
   },
   "welcomePin": {
@@ -196,7 +204,7 @@
     "description": "Settings page: heading of the section on how Tab Mission opens and shows the tabs."
   },
   "optionShortcutsHeading": {
-    "message": "Scorciatoie da tastiera",
+    "message": "Scorciatoia da tastiera",
     "description": "Settings page: shortcuts heading."
   },
   "optionSaved": {
@@ -220,7 +228,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Prima le cinque schede più recenti, poi un gruppo per ogni sito con più schede, che non cambia quando passi da una scheda all'altra. Le altre vengono per ultime.",
+    "message": "Prima le cinque schede più recenti, poi un pannello per ogni sito con almeno due schede, poi le altre. Quando cambi scheda, i pannelli restano dove sono.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionHelpHeading": {
@@ -232,7 +240,7 @@
     "description": "Settings page: switch for the tips in the Tab Mission window."
   },
   "optionShowTipsNote": {
-    "message": "Ogni volta se attivo; se disattivo, solo le prime volte dopo l'installazione.",
+    "message": "Ogni volta se attivata; se disattivata, solo le prime volte dopo l'installazione.",
     "description": "Settings page: what the Show tips switch does."
   },
   "optionAboutHeading": {

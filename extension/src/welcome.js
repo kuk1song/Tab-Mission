@@ -103,7 +103,7 @@ async function main() {
   try {
     localizeStaticText();
     setWithKbd(document.getElementById('tip-site'), 'welcomeTipSite', 'Tab',
-      (s) => `When the site you are on has several tabs open, press ${s} in the search box to see only its tabs.`);
+      (s) => `When Tab Mission shows two or more tabs from the site you are on, press ${s} in the search box to see only those.`);
     const [, , done] = await Promise.all([showShortcut(), showPinHint(), readTryIt()]);
     showTryIt(done);
   } finally {
