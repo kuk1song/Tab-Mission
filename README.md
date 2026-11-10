@@ -35,7 +35,7 @@ One shortcut shows the tabs in your window as cards, most recent first, with pic
 
 1.  **[Install Tab Mission from the Chrome Web Store](https://chromewebstore.google.com/detail/tab-mission/hhnkkpdkfhjlmlanebphmmhgkhinijca?utm_source=github&utm_medium=readme)**.
 2.  Click the extension icon or use the default shortcut: **`Cmd + E`** on Mac, **`Ctrl + Shift + E`** on Windows, Linux and ChromeOS. If another extension already owns it, pick your own at `chrome://extensions/shortcuts` (the gear in Tab Mission opens its settings, which show your shortcut and a button to that page). While assigned, the shortcut takes priority over the same key on web pages, such as GitHub's `Cmd + E` for inline code or Google Docs' `Ctrl + Shift + E` for center align; choose another key if you rely on one.
-3.  Press the shortcut again to go back, or type a few letters and press it again.
+3.  Press the shortcut again to go back, point at a card and press it to go there, or type a few letters and press it again.
 
 ## 💡 Pro Tips
 
