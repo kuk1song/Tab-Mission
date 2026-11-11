@@ -51,6 +51,25 @@ test('options page: the shortcut with its keys, a switch that saves at once, the
   await expect(page.locator('.about a')).toHaveCount(3);
   await expect(page.locator('#link-privacy')).toHaveAttribute('href', 'https://github.com/kuk1song/Tab-Mission/blob/main/PRIVACY.md');
   await expect(page.locator('#link-review')).toHaveAttribute('href', 'https://chromewebstore.google.com/detail/hhnkkpdkfhjlmlanebphmmhgkhinijca/reviews?utm_source=options');
+  // The issue form (.github/ISSUE_TEMPLATE/bug.yml), with the version, the
+  // browser (Playwright's Chromium names no other brand) and the system.
+  const { chromium } = await page.evaluate(() => ({ chromium: navigator.userAgentData.brands.find((b) => b.brand === 'Chromium').version }));
+  const system = { darwin: 'macOS', win32: 'Windows', linux: 'Linux' }[process.platform];
+  const form = 'https://github.com/kuk1song/Tab-Mission/issues/new?template=bug.yml'
+    + `&version=${encodeURIComponent(version)}&browser=${encodeURIComponent(`Chromium ${chromium}`)}&os=${encodeURIComponent(system)}`;
+  await expect(page.locator('#link-feedback')).toHaveAttribute('href', form);
+  const params = new URL(await page.locator('#link-feedback').getAttribute('href')).searchParams;
+  expect(Object.fromEntries(params)).toEqual({ template: 'bug.yml', version, browser: `Chromium ${chromium}`, os: system });
+});
+
+// If filling in the form's address fails, the link stays the list of issues
+// that options.html gives it, and the page still shows.
+test('options page: the report link stays the list of issues when the form cannot be filled in', async ({ ext, context }) => {
+  const { page } = await openOptions(ext, context, () => {
+    Object.defineProperty(Navigator.prototype, 'userAgentData', { get() { throw new Error('unreadable'); } });
+  });
+  await expect(page.locator('html')).not.toHaveClass(/loading/);
+  await expect(page.locator('#preselect-previous')).toBeChecked();
   await expect(page.locator('#link-feedback')).toHaveAttribute('href', 'https://github.com/kuk1song/Tab-Mission/issues');
 });
 

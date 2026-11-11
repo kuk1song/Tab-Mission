@@ -1,0 +1,49 @@
+# Shipped versions of the extension link to this form by its file name
+# (issues/new?template=bug.yml, from the settings page) and fill in the
+# fields with the ids version, browser and os. Never rename the file or
+# those ids: copies already installed keep linking to them.
+name: Report a problem
+description: Something in Tab Mission does not work as it should.
+body:
+  - type: markdown
+    attributes:
+      value: Please do not paste private addresses or pictures of private tabs; describe them in words instead.
+  - type: input
+    id: version
+    attributes:
+      label: Tab Mission version
+      description: At the bottom of Tab Mission's settings page.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      description: The browser's name and its major version, as on its About page.
+      placeholder: Google Chrome 142
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: Its name, and its version if you know it.
+      placeholder: Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what Tab Mission did instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What to do to see it happen, one step per line.
+      placeholder: |
+        1. Open Tab Mission with the shortcut
+        2. Type a word in the search box
+        3. ...
