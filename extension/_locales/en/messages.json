@@ -76,8 +76,18 @@
     "description": "Badge on tabs Chrome has put to sleep."
   },
   "closeTabTitle": {
-    "message": "Close tab (or middle-click)",
-    "description": "Tooltip of the close control on a tile."
+    "message": "Close tab (Shift+Delete or middle-click)",
+    "description": "Tooltip of the close control on a tile. Shift+Delete closes the selected card from the keyboard; name the keys as keyboards label them in this language."
+  },
+  "tabClosed": {
+    "message": "Tab closed: $title$",
+    "description": "Tab Mission window: said to screen readers once a card's tab is closed (×, middle-click or Shift+Delete).",
+    "placeholders": {
+      "title": {
+        "content": "$1",
+        "example": "Pull requests"
+      }
+    }
   },
   "siteScopeClear": {
     "message": "Show all sites",

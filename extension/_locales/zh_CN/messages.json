@@ -76,8 +76,18 @@
     "description": "Badge on tabs Chrome has put to sleep."
   },
   "closeTabTitle": {
-    "message": "关闭标签页（也可中键点击）",
-    "description": "Tooltip of the close control on a tile."
+    "message": "关闭标签页（也可按 Shift+Delete 或中键点击）",
+    "description": "Tooltip of the close control on a tile. Shift+Delete closes the selected card from the keyboard; name the keys as keyboards label them in this language."
+  },
+  "tabClosed": {
+    "message": "已关闭标签页：$title$",
+    "description": "Tab Mission window: said to screen readers once a card's tab is closed (×, middle-click or Shift+Delete).",
+    "placeholders": {
+      "title": {
+        "content": "$1",
+        "example": "Pull requests"
+      }
+    }
   },
   "siteScopeClear": {
     "message": "显示所有网站",

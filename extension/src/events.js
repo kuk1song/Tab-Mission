@@ -1,12 +1,12 @@
 // events.js
 import { state, applyFilters, moveSelection, moveSelectionByRects, currentSiteHost, countSiteTabs } from './state.js';
-import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection, pointerPicked } from './dom.js';
+import { render, updateSelection, initializeGridListeners, forgetTile, releasePointerSelection, pointerPicked, cardTitle } from './dom.js';
 import { saveSettings } from './settings.js';
 import { t } from './i18n.js';
 import { isCapturableUrl, faviconUrl, createPlaceholderIcon } from './utils.js';
 import { recordTryIt } from './tryit.js';
-import { hideTip } from './tips.js';
-import { isShortcut } from './shortcuts.js';
+import { hideTip, announce } from './tips.js';
+import { isShortcut, isCloseKey } from './shortcuts.js';
 
 // Filtering is cheap now that tiles are reused, so the search runs once per
 // animation frame instead of after a 200ms debounce. Enter flushes a pending
@@ -293,6 +293,12 @@ export async function closeTab(tab) {
   handleFilterChange();
   // Clicking × focused the removed tile; give focus back to the search box.
   document.getElementById('search')?.focus();
+  // Screen readers hear which tab closed, through the window's live region
+  // (tips.js). Cleared first, so closing a second tab of the same title is
+  // said too.
+  const title = cardTitle(tab);
+  announce('');
+  requestAnimationFrame(() => announce(t('tabClosed', [title]) || `Tab closed: ${title}`));
 }
 
 // A modifier alone is the start of a shortcut, not a key of its own: the
@@ -338,10 +344,33 @@ function handleKeydown(e) {
         setSiteScope(true);
       }
       break;
+    case 'Delete':
     case 'Backspace':
+      // Shift+Delete, or Shift+Backspace with the box empty, closes the
+      // selected card (isCloseKey), before Backspace's own role below. Held,
+      // the key closes one card: its repeats do nothing. With no card
+      // selected it keeps its usual role.
+      if (searchEl && isCloseKey(e, {
+        value: searchEl.value,
+        selectionStart: searchEl.selectionStart,
+        selectionEnd: searchEl.selectionEnd,
+        focused: document.activeElement === searchEl,
+      })) {
+        if (e.repeat) {
+          e.preventDefault();
+          break;
+        }
+        flushFilterChange();
+        const tab = state.filteredTabs[state.selectedIndex];
+        if (tab) {
+          e.preventDefault();
+          closeTab(tab);
+          break;
+        }
+      }
       // Backspace with the caret at the very start removes the scope token,
       // keeping any typed text (Chrome and Firefox address bars).
-      if (state.siteHost && searchEl && document.activeElement === searchEl &&
+      if (e.key === 'Backspace' && state.siteHost && searchEl && document.activeElement === searchEl &&
           searchEl.selectionStart === 0 && searchEl.selectionEnd === 0) {
         e.preventDefault();
         setSiteScope(false);

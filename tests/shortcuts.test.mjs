@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { shortcutKeys, isShortcut, openShortcutSettings } from '../extension/src/shortcuts.js';
+import { shortcutKeys, isShortcut, isCloseKey, openShortcutSettings } from '../extension/src/shortcuts.js';
 
 describe('shortcutKeys', () => {
   it('splits Windows, Linux and ChromeOS shortcuts at "+"', () => {
@@ -53,6 +53,35 @@ describe('isShortcut', () => {
     expect(isShortcut(e, undefined)).toBe(false);
     expect(isShortcut(press('F5', 'F5'), 'F5')).toBe(false);
     expect(isShortcut(e, 'Search+E')).toBe(false);
+  });
+});
+
+describe('isCloseKey', () => {
+  const press = (key, held = {}) => ({ key, metaKey: false, ctrlKey: false, altKey: false, shiftKey: true, ...held });
+  const box = (value = '', extra = {}) => ({ value, selectionStart: value.length, selectionEnd: value.length, focused: true, ...extra });
+  it('is Shift+Delete, with or without text, unless text is selected in the box', () => {
+    expect(isCloseKey(press('Delete'), box())).toBe(true);
+    expect(isCloseKey(press('Delete'), box('alp'))).toBe(true);
+    expect(isCloseKey(press('Delete'), box('alp', { selectionStart: 1, selectionEnd: 1 }))).toBe(true); // the caret mid-text
+    expect(isCloseKey(press('Delete'), box('alp', { selectionStart: 0, selectionEnd: 3 }))).toBe(false); // Windows cuts it
+    // A selection kept in the box while focus is on a toolbar control is not cut.
+    expect(isCloseKey(press('Delete'), box('alp', { selectionStart: 0, selectionEnd: 3, focused: false }))).toBe(true);
+  });
+  it('is Shift+Backspace only while the box is empty', () => {
+    expect(isCloseKey(press('Backspace'), box())).toBe(true);
+    expect(isCloseKey(press('Backspace'), box('alp'))).toBe(false);
+    expect(isCloseKey(press('Backspace'), box('alp', { selectionStart: 0, selectionEnd: 0 }))).toBe(false);
+  });
+  it('needs Shift and no other modifier', () => {
+    for (const key of ['Delete', 'Backspace']) {
+      expect(isCloseKey(press(key, { shiftKey: false }), box())).toBe(false);
+      for (const held of ['metaKey', 'ctrlKey', 'altKey']) {
+        expect(isCloseKey(press(key, { [held]: true }), box()), `${key} with ${held}`).toBe(false);
+      }
+    }
+  });
+  it('is no other key', () => {
+    for (const key of ['d', 'Enter', 'Escape', 'ArrowLeft']) expect(isCloseKey(press(key), box())).toBe(false);
   });
 });
 
