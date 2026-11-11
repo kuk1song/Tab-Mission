@@ -3,6 +3,7 @@ import {
   getHostname,
   addressLabel,
   isCapturableUrl,
+  isLocalHost,
   isSleeping,
   hueColor,
   faviconUrl,
@@ -83,6 +84,82 @@ describe('isCapturableUrl', () => {
     expect(isCapturableUrl('about:blank')).toBe(false);
     expect(isCapturableUrl('')).toBe(false);
     expect(isCapturableUrl(undefined)).toBe(false);
+  });
+});
+
+describe('isLocalHost', () => {
+  // Hosts as the callers pass them: URL's hostname of an address.
+  const host = (address) => new URL(address).hostname;
+  const local = (address) => isLocalHost(host(address));
+
+  it('knows localhost and the names kept for local use, with any name under them', () => {
+    for (const name of ['localhost', 'app.localhost', 'printer.local', 'db.corp.internal', 'home.arpa', 'nas.home.arpa', 'LOCALHOST', 'localhost.', 'router.local.']) {
+      expect(isLocalHost(name), name).toBe(true);
+    }
+    for (const name of ['localhost.example', 'mylocalhost', 'notlocal', 'local.example', 'internal.example', 'home.arpa.example', 'example.com', 'site.test', '']) {
+      expect(isLocalHost(name), name).toBe(false);
+    }
+    expect(isLocalHost(undefined)).toBe(false);
+  });
+
+  it('knows the local IPv4 ranges, up to each edge and not past it', () => {
+    const edges = [
+      // [last outside, first inside, last inside, first outside]
+      [null, '0.0.0.0', '0.255.255.255', '1.0.0.0'], // this network, 0/8
+      ['9.255.255.255', '10.0.0.0', '10.255.255.255', '11.0.0.0'], // 10/8
+      ['100.63.255.255', '100.64.0.0', '100.127.255.255', '100.128.0.0'], // shared, 100.64/10
+      ['126.255.255.255', '127.0.0.0', '127.255.255.255', '128.0.0.0'], // loopback, 127/8
+      ['169.253.255.255', '169.254.0.0', '169.254.255.255', '169.255.0.0'], // link-local, 169.254/16
+      ['172.15.255.255', '172.16.0.0', '172.31.255.255', '172.32.0.0'], // 172.16/12
+      ['192.167.255.255', '192.168.0.0', '192.168.255.255', '192.169.0.0'], // 192.168/16
+    ];
+    for (const [before, first, last, after] of edges) {
+      if (before) expect(isLocalHost(before), before).toBe(false);
+      expect(isLocalHost(first), first).toBe(true);
+      expect(isLocalHost(last), last).toBe(true);
+      expect(isLocalHost(after), after).toBe(false);
+    }
+    expect(isLocalHost('8.8.8.8')).toBe(false);
+    expect(isLocalHost('255.255.255.255')).toBe(false);
+  });
+
+  it('reads IPv4 addresses however they are written, once URL has read them', () => {
+    for (const address of ['http://0x7f.1/', 'http://2130706433/', 'http://127.1/', 'http://017700000001/', 'http://0/', 'http://127.0.0.1./', 'http://192.168.1.1:8080/a.png']) {
+      expect(local(address), address).toBe(true);
+    }
+    expect(local('http://0x8.8.8.8/')).toBe(false);
+  });
+
+  it('knows the local IPv6 addresses and ranges, in brackets as URL gives them', () => {
+    const inside = ['http://[::]/', 'http://[::1]/', 'http://[0:0:0:0:0:0:0:1]/',
+      'http://[fc00::]/', 'http://[fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]/', // fc00::/7
+      'http://[fe80::]/', 'http://[FE80::1]/', 'http://[febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff]/']; // fe80::/10
+    const outside = ['http://[::2]/', 'http://[fbff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]/', 'http://[fe00::]/',
+      'http://[fe7f:ffff:ffff:ffff:ffff:ffff:ffff:ffff]/', 'http://[fec0::]/', 'http://[2001:db8::1]/', 'http://[2606:4700::1111]/'];
+    for (const address of inside) expect(local(address), address).toBe(true);
+    for (const address of outside) expect(local(address), address).toBe(false);
+  });
+
+  it('knows a local IPv4 address mapped to IPv6, at the edges of each range', () => {
+    expect(host('http://[::ffff:127.0.0.1]/')).toBe('[::ffff:7f00:1]'); // as URL writes it
+    for (const v4 of ['0.0.0.0', '10.0.0.0', '10.255.255.255', '100.64.0.0', '100.127.255.255', '127.0.0.1', '169.254.0.0', '172.16.0.0', '172.31.255.255', '192.168.0.0', '192.168.255.255']) {
+      expect(local(`http://[::ffff:${v4}]/`), v4).toBe(true);
+    }
+    for (const v4 of ['1.0.0.0', '9.255.255.255', '11.0.0.0', '100.63.255.255', '100.128.0.0', '128.0.0.0', '169.255.0.0', '172.15.255.255', '172.32.0.0', '192.169.0.0', '8.8.8.8']) {
+      expect(local(`http://[::ffff:${v4}]/`), v4).toBe(false);
+    }
+    // The dotted form, as people write it, reads the same.
+    expect(isLocalHost('[::ffff:192.168.1.1]')).toBe(true);
+    expect(isLocalHost('[::ffff:8.8.8.8]')).toBe(false);
+    // Only ::ffff: maps an IPv4 address.
+    expect(local('http://[::fffe:7f00:1]/')).toBe(false);
+    expect(local('http://[0:0:0:0:1:ffff:7f00:1]/')).toBe(false);
+  });
+
+  it('is false for what is not a host it knows', () => {
+    for (const text of ['[]', '[::1', '[1::2::3]', '[1:2:3:4:5:6:7:8:9]', '[xyz::1]', '256.0.0.1', '10.0.0', 'fe80::1']) {
+      expect(isLocalHost(text), text).toBe(false);
+    }
   });
 });
 
