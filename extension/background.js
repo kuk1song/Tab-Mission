@@ -4,6 +4,10 @@ import { coverFrontTab, startCovers, tidyCovers } from './src/covers.js';
 import { trackUnseenTabs } from './src/unseen.js';
 import { movePreviewsOfReplacedTabs } from './src/thumbnail.js';
 
+// Measurement branch only (test/measure-install-timing), not for merge: the
+// tm: marks time the install for tests/e2e/fixtures.mjs.
+performance.mark('tm:script');
+
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
 let overviewOpenedAt = 0; // when this worker last opened the overview
@@ -337,10 +341,12 @@ chrome.action.onClicked.addListener(() => {
 // First install: open a short welcome page that shows the shortcut (or says
 // that none could be assigned) so new users are not left guessing.
 chrome.runtime.onInstalled.addListener(({ reason }) => {
+	performance.mark('tm:installed'); // measurement only, not for merge
 	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
 		// A new user: the Tab Mission window shows its tips until learned.
 		startTips();
-		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') }).catch(() => {});
+		// The mark is measurement only, not for merge.
+		chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') }).then(() => performance.mark('tm:welcome-created')).catch(() => {});
 	}
 	if (reason === chrome.runtime.OnInstalledReason.UPDATE) {
 		// Drop keys that older versions saved: the last search text, the window
