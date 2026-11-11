@@ -271,6 +271,29 @@ test('options page: Help is one Show tips switch, off by default, that saves at 
   await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('showTips'))).toEqual({ showTips: true });
 });
 
+// Privacy, between how Tab Mission opens and Help: one switch for page
+// pictures (covers.spec has what it does), saved and announced like the others.
+test('options page: Privacy is one Page pictures switch, on by default, that saves at once and stays', async ({ ext, context }) => {
+  const { page } = await openOptions(ext, context);
+  const message = (key) => page.evaluate((k) => chrome.i18n.getMessage(k), key);
+  expect(await page.locator('main > section').evaluateAll((sections) => sections.map((s) => s.getAttribute('aria-labelledby'))))
+    .toEqual(['shortcuts-heading', 'open-heading', 'privacy-heading', 'help-heading']);
+  await expect(page.locator('#privacy-heading')).toHaveText(await message('optionPrivacyHeading'));
+  await expect(page.locator('section[aria-labelledby="privacy-heading"] .row')).toHaveCount(1);
+  const pictures = page.locator('#page-pictures');
+  await expect(pictures).toHaveAttribute('role', 'switch');
+  await expect(pictures).toHaveAccessibleName(await message('optionPagePictures'));
+  await expect(pictures).toHaveAccessibleDescription(await message('optionPagePicturesNote'));
+  await expect(pictures).toBeChecked();
+  await page.locator('label[for="page-pictures"]').click();
+  await expect(pictures).not.toBeChecked();
+  await expect(page.locator('#saved')).toHaveText(await message('optionSaved'));
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('pagePictures'))).toEqual({ pagePictures: false });
+  await page.reload();
+  await expect(page.locator('html')).not.toHaveClass(/loading/);
+  await expect(pictures).not.toBeChecked();
+});
+
 // Chrome has no event for a changed shortcut: the welcome and settings pages
 // read it again when the user comes back to their tab or window.
 test('welcome and settings pages: a shortcut changed elsewhere shows on coming back', async ({ ext, context }) => {

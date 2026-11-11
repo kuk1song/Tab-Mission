@@ -29,7 +29,7 @@ One shortcut shows the tabs in your window as cards, most recent first, with pic
 - **Any Size:** Drag the Tab Mission window to any size or place, even a tall strip at the side of your screen, and it remembers both; the reset button next to the gear brings back the default.
 - **Keyboard or Mouse:** `↑↓←→` + `Enter`, or click. Middle-click or `×` closes a tab; `Shift + Delete` closes the selected card's tab (`Shift + fn + Delete` on a Mac laptop; `Shift + Backspace` also works while the search box is empty). `Esc` steps back: it clears the search, then leaves the site view, then closes.
 - **Page Pictures:** Each card shows a small picture of the page, taken while it was in front of you and kept after a restart, with its title underneath; until it has one, the preview image the page provides (not a logo), or the site's icon on a card in the icon's color. Light or dark, as your system is.
-- **Private by Design:** No developer-run server, analytics or tracking. Tab information and page pictures stay on your computer (a tab's picture is deleted when you close the tab, and none is taken of incognito tabs); preview images load from their original hosts, and site icons come from Chrome's own store.
+- **Private by Design:** No developer-run server, analytics or tracking. Tab information and page pictures stay on your computer (a tab's picture is deleted when you close the tab, none is taken of incognito tabs, and turning page pictures off in the settings deletes them all); preview images load from their original hosts, and site icons come from Chrome's own store.
 
 ## 🚀 Getting Started
 

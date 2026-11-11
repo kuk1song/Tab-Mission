@@ -14,9 +14,11 @@ import { isCapturableUrl } from './utils.js';
 // a new id, and its picture moves with it. Incognito tabs, browser pages and
 // popups are never captured, nor the tabs of a window without focus, except
 // the one in front when you press the shortcut or click the toolbar button
-// (coverFrontTab).
+// (coverFrontTab). With the "Page pictures" setting off, none is taken or
+// shown, and the ones kept are deleted (picturesOn).
 const COVER_PREFIX = 'cover:';
 const INDEX_KEY = 'coverIndex';
+const SETTING = 'pagePictures'; // settings.js, on unless set to false
 export const SETTLE_MS = 500; // after a switch or a load, let the page paint
 // Pictures again after these further delays while the tab stays in front,
 // each after the one before (about 3 s and 15 s after the switch), then none
@@ -50,8 +52,27 @@ let writes = Promise.resolve(); // storage updates, one at a time
 const timers = new Map(); // tab id to its pending capture
 const budgets = new Map(); // tab id to { left, at }: captures left at that time (performance.now)
 let closing = null; // ids of tabs closed since the last storage update
+let setting = null; // whether pictures are wanted (picturesOn), once read
+let offs = 0; // times the setting went off: a capture begun before is never stored
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Whether the "Page pictures" setting is on: read once, then kept current by
+// startCovers's storage listener (in the worker; a Tab Mission window reads
+// it once). When it cannot be read, no picture is taken or shown, and it is
+// read again next time.
+function picturesOn() {
+  if (!setting) {
+    const read = chrome.storage.local.get({ [SETTING]: true }).then(
+      (stored) => stored[SETTING] !== false,
+      () => {
+        if (setting === read) setting = null;
+        return false;
+      });
+    setting = read;
+  }
+  return setting;
+}
 
 // The promise's result, or a rejection once ms have passed without one.
 function within(ms, promise) {
@@ -108,6 +129,46 @@ export function startCovers(options = {}) {
       return [String(removedTabId)];
     }, moved);
   });
+  // The "Page pictures" setting, switched on the settings page. Chrome wakes
+  // a sleeping worker for it, as for the events above. Off: nothing pending
+  // is taken and every picture goes; on again: the page in front is pictured
+  // as for a switch. The local area's own event, not chrome.storage.onChanged:
+  // that one fires for every area, and the Tab Mission window writes
+  // chrome.storage.session often (preview cache, overviewBlurredAt, unseen
+  // tabs), which would wake or keep alive the worker each time.
+  chrome.storage.local.onChanged.addListener((changes) => {
+    if (!(SETTING in changes)) return;
+    const on = changes[SETTING].newValue !== false;
+    setting = Promise.resolve(on);
+    if (on) {
+      chrome.tabs.query({ active: true, lastFocusedWindow: true, windowType: 'normal' })
+        .then(([tab]) => tab && scheduleChange(tab.id), () => {});
+    } else {
+      offs++;
+      removePictures();
+    }
+  });
+  // Off when the worker starts (switched while it was stopped, or a removal
+  // cut short): what is left goes now.
+  picturesOn().then((on) => on || removePictures());
+}
+
+// Every picture and the index, deleted (the setting turned off), and no
+// capture pending. In turn with the other storage updates: a picture stored
+// before goes with the rest, and one stored after checks the setting first
+// (capture). Pictures left out of the index (a removal cut short) go too.
+function removePictures() {
+  for (const timer of timers.values()) clearTimeout(timer);
+  timers.clear();
+  writes = writes.then(async () => {
+    const keys = typeof chrome.storage.local.getKeys === 'function'
+      ? await chrome.storage.local.getKeys() // Chrome 130
+      : Object.keys(await chrome.storage.local.get(null));
+    const pictures = keys.filter((key) => key === INDEX_KEY || key.startsWith(COVER_PREFIX));
+    if (pictures.length) await chrome.storage.local.remove(pictures);
+    return true;
+  }).catch(() => false);
+  return writes;
 }
 
 // A tab gone (closed, or swapped for another) takes no more pictures.
@@ -169,6 +230,8 @@ function canCover(tab, loading = false) {
 // refused the capture or did not answer in time (the follow-ups try again;
 // an answer that comes later is dropped).
 async function capture(tabId, { front = false, loading = false } = {}) {
+  if (!(await picturesOn())) return false;
+  const era = offs;
   const tab = await chrome.tabs.get(tabId);
   if (!canCover(tab, loading)) return canCover(tab, true) ? 'loading' : false;
   // The same page, still in front in the same window.
@@ -204,9 +267,10 @@ async function capture(tabId, { front = false, loading = false } = {}) {
     index[tabId] = { url: tab.url, bytes: img.length, at: Date.now() };
     return overBudget(index, MAX_BYTES);
   }, { [coverKey(tabId)]: { url: tab.url, img } },
-  // A tab closed while its picture was being shrunk is not stored again
-  // after its clean-up.
-  () => chrome.tabs.get(tabId).then(() => true, () => false));
+  // A tab closed while its picture was being taken or shrunk is not stored
+  // again after its clean-up, nor a picture begun before the setting went
+  // off, even when it is on again.
+  async () => offs === era && (await picturesOn()) && chrome.tabs.get(tabId).then(() => true, () => false));
 }
 
 // Change the index (the change returns, or resolves to, the tab ids whose
@@ -310,11 +374,13 @@ async function shrinkImage(dataUrl) {
 
 // The overview's side: the picture for a tab, if one was taken of the page
 // the tab shows now: its own, or one kept from before a restart (tidyCovers).
+// None with the setting off, even one not deleted yet.
 let pictured = null; // the index, read once per page
 
 export async function readCover(tab) {
   if (tab.incognito) return null;
   try {
+    if (!(await picturesOn())) return null;
     const own = await readEntry(tab.id);
     if (own?.url === tab.url) return own.img;
     pictured ??= chrome.storage.local.get(INDEX_KEY).then((stored) => stored[INDEX_KEY] || {});

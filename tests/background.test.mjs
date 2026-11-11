@@ -38,7 +38,13 @@ function fakeChrome() {
     },
     commands: { onCommand: event('onCommand') },
     action: { onClicked: event('onClicked') },
-    storage: { local: store(), session: store() },
+    // Covers (src/covers.js) listen for the page pictures setting on the
+    // local area's own event; the event for every area stays unheard.
+    storage: {
+      local: { ...store(), onChanged: event('storage.local.onChanged') },
+      session: store(),
+      onChanged: event('storage.onChanged'),
+    },
     // One 1600 x 1000 display; tests may replace _displays and _focused.
     _displays: [{ isPrimary: true, workArea: { left: 0, top: 0, width: 1600, height: 1000 } }],
     _focused: { left: 0, top: 0, width: 1600, height: 1000, state: 'normal' },
@@ -359,6 +365,13 @@ describe('background.js', () => {
     chrome.listeners.onClicked();
     await vi.waitFor(() => expect(chrome.tabs.query.mock.calls.filter(([q]) => q.lastFocusedWindow)).toHaveLength(3));
     expect(chrome.tabs.query).toHaveBeenCalledWith(front);
+  });
+
+  // chrome.storage.onChanged fires for every area; the page pictures setting
+  // is heard on the local area's own event (src/covers.js).
+  it('starting the worker registers no listener on chrome.storage.onChanged: session writes from the Tab Mission window would wake the worker', () => {
+    expect(chrome.listenerCount('storage.onChanged')).toBe(0);
+    expect(chrome.listenerCount('storage.local.onChanged')).toBe(1);
   });
 
   it('opens the welcome page on install, and gives the new user the window tips', () => {
