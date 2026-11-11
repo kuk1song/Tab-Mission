@@ -19,6 +19,7 @@
     "package": "node scripts/package.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.1",
     "eslint": "^10.13.0",
     "globals": "^17.13.0",
