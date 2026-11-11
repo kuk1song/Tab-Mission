@@ -3,6 +3,7 @@
 import { localizeStaticText, t } from './i18n.js';
 import { loadSettings, saveSettings } from './settings.js';
 import { shortcutKeys, openShortcutSettings } from './shortcuts.js';
+import { issueFormUrl, browserName, systemName } from './feedback.js';
 
 async function main() {
   const preselect = document.getElementById('preselect-previous');
@@ -12,7 +13,7 @@ async function main() {
     localizeStaticText();
     const { version } = chrome.runtime.getManifest();
     document.getElementById('version').textContent = t('optionVersion', [version]) || `Version ${version}`;
-    const [settings] = await Promise.all([loadSettings(), showShortcuts()]);
+    const [settings] = await Promise.all([loadSettings(), showShortcuts(), linkFeedback(version)]);
     preselect.checked = settings.preselectPrevious;
     showTips.checked = settings.showTips;
     groupBySite.checked = settings.groupBySite;
@@ -40,6 +41,23 @@ async function main() {
 function reveal(preselect) {
   void getComputedStyle(preselect, '::before').transform;
   document.documentElement.classList.remove('loading');
+}
+
+// "Report a problem" opens GitHub's issue form with the version, the browser
+// and the system filled in (feedback.js). If anything here fails, the link
+// keeps the address options.html gives it: the list of issues.
+async function linkFeedback(version) {
+  try {
+    let platform = null;
+    try {
+      platform = await chrome.runtime.getPlatformInfo();
+    } catch {} // the system's name then comes from userAgentData
+    document.getElementById('link-feedback').href = issueFormUrl({
+      version,
+      browser: browserName(navigator.userAgentData, navigator.userAgent),
+      os: systemName(platform, navigator.userAgentData),
+    });
+  } catch {}
 }
 
 // A live region repeats a message only when its text changes, so clear it
