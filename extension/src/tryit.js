@@ -30,7 +30,10 @@ export function recordTryIt(...steps) {
 // A new install (background.js).
 export function startTips() {
   try {
-    chrome.storage.local.set({ [TIPS_KEY]: Object.fromEntries(Object.keys(TRY_IT_KEYS).map((step) => [step, TIP_SHOWS])) }).catch(() => {});
+    // The mark is measurement only (test/measure-install-timing), not for
+    // merge: tests/e2e/fixtures.mjs reads when the write resolved.
+    chrome.storage.local.set({ [TIPS_KEY]: Object.fromEntries(Object.keys(TRY_IT_KEYS).map((step) => [step, TIP_SHOWS])) })
+      .then(() => performance.mark('tm:tips-written')).catch(() => {});
   } catch {}
 }
 

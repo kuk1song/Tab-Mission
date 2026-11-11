@@ -109,6 +109,9 @@ async function main() {
   } finally {
     // Shown complete, a few frames after load (see welcome.css).
     document.documentElement.classList.remove('loading');
+    // Measurement branch only (test/measure-install-timing), not for merge:
+    // when the page shows, for tests/e2e/fixtures.mjs.
+    performance.mark('tm:welcome-shown');
   }
   // A shortcut changed at chrome://extensions/shortcuts shows on coming back
   // to this tab or window (Chrome has no event for it).

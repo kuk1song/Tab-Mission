@@ -197,11 +197,98 @@ function recordCaptures(worker) {
   });
 }
 
+// Measurement branch only (test/measure-install-timing), not for merge: how
+// long the install takes in each test, in milliseconds from the start of the
+// browser's launch (context) to each step. Printed as one line per test,
+// once the browser is closed, also for a test that failed or timed out
+// (steps not reached are null):
+//   INSTALL-TIMING {"os":"win32","test":"keyboard.spec.mjs:35 ...",...}
+// scripts/install-timing-summary.mjs reads these lines from a saved CI log.
+// Fixture side: launchMs (the browser started), swMs (Playwright has its
+// worker, which can be before the worker's script runs; swEarly: it had it
+// already when the browser started), welcomeMs (the welcome page found),
+// tipsMs (tipsLeft read back), tipsWaitMs (tipsMs after welcomeMs: the wait
+// that has 5 s on main). Worker side, from marks in background.js and
+// tryit.js: swOriginMs (the worker's time origin), swScriptMs (background.js
+// starts to run), installedMs (onInstalled fires; the tipsLeft write goes
+// out at once), tipsWrittenMs (that write resolves), welcomeCreatedMs
+// (tabs.create of the welcome page resolves); setMs is tipsWrittenMs after
+// installedMs. Welcome page side: welcomeOriginMs (its navigation starts),
+// welcomeLoadedMs (its load event ends), welcomeShownMs (its content shows,
+// after its own reads of storage; mark in welcome.js). tipsPolls is how
+// many reads the wait made, tipsEvalMaxMs the slowest read's round trip
+// from here, tipsGetMaxMs the slowest chrome.storage.local.get inside the
+// worker.
+function since(t0, epoch) {
+  return t0 === null || epoch === null || epoch === undefined ? null : epoch - t0;
+}
+
+// The worker's and the welcome page's marks, read on their own clocks
+// (performance.timeOrigin) and moved onto Date.now(), the clock t0 is on.
+async function installMarks(sw, welcome) {
+  const worker = await sw.evaluate(() => {
+    const skew = Date.now() - (performance.timeOrigin + performance.now());
+    const at = (t) => Math.round(performance.timeOrigin + t + skew);
+    const marks = { origin: at(0) };
+    for (const mark of performance.getEntriesByType('mark')) {
+      if (mark.name.startsWith('tm:')) marks[mark.name.slice(3)] = at(mark.startTime);
+    }
+    return marks;
+  }).catch(() => ({}));
+  return { worker, page: await welcomeMarks(welcome) };
+}
+
+function welcomeMarks(welcome) {
+  if (!welcome) return {};
+  return welcome.evaluate(() => {
+    const skew = Date.now() - (performance.timeOrigin + performance.now());
+    const at = (t) => Math.round(performance.timeOrigin + t + skew);
+    const nav = performance.getEntriesByType('navigation')[0];
+    const shown = performance.getEntriesByName('tm:welcome-shown')[0];
+    return { origin: at(0), loaded: nav?.loadEventEnd ? at(nav.loadEventEnd) : null, shown: shown ? at(shown.startTime) : null };
+  }).catch(() => ({}));
+}
+
 export const test = base.extend({
   // Extra Chromium switches (e.g. a simulated screen) and whether to draw
   // scrollbars (Playwright hides them in headless mode by default).
   launchArgs: [[], { option: true }],
   showScrollbars: [false, { option: true }],
+
+  // Measurement only, not for merge (see installMarks above): filled in by
+  // context, sw and ext, printed after the browser has closed.
+  // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's needs from its first parameter, which must be an object pattern.
+  installTiming: async ({}, use, testInfo) => {
+    const timing = { t0: null, at: {}, marks: { worker: {}, page: {} }, polls: { count: 0, evalMax: null, getMax: null } };
+    await use(timing);
+    const { t0, at, marks: { worker, page }, polls } = timing;
+    const line = {
+      os: process.platform,
+      project: testInfo.project.name,
+      test: `${path.basename(testInfo.file)}:${testInfo.line} ${testInfo.titlePath.slice(1).join(' > ')}`,
+      retry: testInfo.retry,
+      status: testInfo.status,
+      launchMs: since(t0, at.launch),
+      swMs: since(t0, at.sw),
+      swEarly: at.swEarly ?? null,
+      welcomeMs: since(t0, at.welcome),
+      tipsMs: since(t0, at.tips),
+      tipsWaitMs: since(at.welcome ?? null, at.tips),
+      swOriginMs: since(t0, worker.origin),
+      swScriptMs: since(t0, worker.script),
+      installedMs: since(t0, worker.installed),
+      tipsWrittenMs: since(t0, worker['tips-written']),
+      setMs: since(worker.installed ?? null, worker['tips-written']),
+      welcomeCreatedMs: since(t0, worker['welcome-created']),
+      welcomeOriginMs: since(t0, page.origin),
+      welcomeLoadedMs: since(t0, page.loaded),
+      welcomeShownMs: since(t0, page.shown),
+      tipsPolls: polls.count,
+      tipsEvalMaxMs: polls.evalMax,
+      tipsGetMaxMs: polls.getMax,
+    };
+    console.log(`INSTALL-TIMING ${JSON.stringify(line)}`);
+  },
 
   // One local web server per worker.
   // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's needs from its first parameter, which must be an object pattern.
@@ -220,8 +307,10 @@ export const test = base.extend({
     rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   },
 
-  context: async ({ profile, launchArgs, showScrollbars, headless }, use) => {
+  context: async ({ profile, launchArgs, showScrollbars, headless, installTiming }, use) => {
+    installTiming.t0 = Date.now(); // measurement only, not for merge
     const context = await launch(profile, { launchArgs, showScrollbars, headless });
+    installTiming.at.launch = Date.now(); // measurement only, not for merge
     await use(context);
     await context.close();
   },
@@ -241,23 +330,50 @@ export const test = base.extend({
   // browser's, not the test's, so it has its own time, outside the test's
   // 30 s: on windows-latest it once came 23 s after the browser (CI run
   // 40283127745), and the test's time ran out before the test began.
-  sw: [async ({ context, swConsole }, use) => {
+  sw: [async ({ context, swConsole, installTiming }, use) => {
     let [worker] = context.serviceWorkers();
+    installTiming.at.swEarly = Boolean(worker); // measurement only, not for merge
     worker ??= await context.waitForEvent('serviceworker');
+    installTiming.at.sw = Date.now(); // measurement only, not for merge
     worker.on('console', (message) => swConsole.push(`${message.type()}: ${message.text()}`));
     await recordCaptures(worker);
     await use(worker);
   }, { timeout: 60_000 }],
 
-  ext: async ({ context, sw, swConsole, site, profile, launchArgs, headless }, use) => {
-    // The welcome page opens on install; it doubles as the extension page
-    // that sends "shortcut presses" to background.js.
-    await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html')), { timeout: 15_000 }).toBe(true);
-    const welcome = context.pages().find((p) => p.url().endsWith('/welcome.html'));
-    // A new install gives the Tab Mission window its tips (background.js).
-    // tips.spec gives them back where it tests them; elsewhere they would
-    // cover cards that tests point at.
-    await expect.poll(() => sw.evaluate(() => chrome.storage.local.get('tipsLeft').then((r) => r.tipsLeft))).toEqual({ open: 3, back: 3, point: 3 });
+  ext: async ({ context, sw, swConsole, site, profile, launchArgs, headless, installTiming }, use) => {
+    // Measurement only, not for merge: the try reads the marks of the
+    // install (installMarks) also when a wait below fails.
+    const { polls } = installTiming;
+    let welcome;
+    try {
+      // The welcome page opens on install; it doubles as the extension page
+      // that sends "shortcut presses" to background.js.
+      await expect.poll(() => context.pages().some((p) => p.url().endsWith('/welcome.html')), { timeout: 15_000 }).toBe(true);
+      installTiming.at.welcome = Date.now(); // measurement only, not for merge
+      welcome = context.pages().find((p) => p.url().endsWith('/welcome.html'));
+      // A new install gives the Tab Mission window its tips (background.js).
+      // tips.spec gives them back where it tests them; elsewhere they would
+      // cover cards that tests point at.
+      // Measurement branch only, not for merge: the same read at the same
+      // intervals as on main, timed, and waited for up to 20 s instead of
+      // the default 5 s, so a slow install is measured instead of failing
+      // the test here.
+      await expect.poll(async () => {
+        polls.count++;
+        const start = Date.now();
+        const { tipsLeft, getMs } = await sw.evaluate(async () => {
+          const start = performance.now();
+          const { tipsLeft } = await chrome.storage.local.get('tipsLeft');
+          return { tipsLeft, getMs: Math.round(performance.now() - start) };
+        });
+        polls.evalMax = Math.max(polls.evalMax ?? 0, Date.now() - start);
+        polls.getMax = Math.max(polls.getMax ?? 0, getMs);
+        return tipsLeft;
+      }, { timeout: 20_000 }).toEqual({ open: 3, back: 3, point: 3 });
+      installTiming.at.tips = Date.now(); // measurement only, not for merge
+    } finally {
+      installTiming.marks = await installMarks(sw, welcome);
+    }
     await sw.evaluate(() => chrome.storage.local.remove('tipsLeft'));
     // Grouping by site is on for users by default and applies to any number
     // of tabs, so each recent tab would have a second tile. Most tests are
@@ -452,6 +568,11 @@ export const test = base.extend({
       },
     };
     await use(ext);
+    // Measurement only, not for merge: a welcome page that had not shown
+    // when tipsLeft was read is asked again (null if it is gone by now).
+    if (installTiming.marks.page.shown == null) {
+      installTiming.marks.page.shown = (await welcomeMarks(welcome)).shown ?? null;
+    }
   },
 });
 
