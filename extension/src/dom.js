@@ -219,7 +219,7 @@ function createTile(tab, index) {
   const close = document.createElement('span');
   close.className = 'tile-close';
   close.textContent = '×';
-  close.title = t('closeTabTitle') || 'Close tab (or middle-click)';
+  close.title = t('closeTabTitle') || 'Close tab (Shift+Delete or middle-click)';
   close.setAttribute('aria-hidden', 'true');
   tile.appendChild(close);
 
@@ -300,13 +300,19 @@ function addressOf(url) {
   return addressLabel(url, addressNames);
 }
 
+// A card's title: the page's, or its address until it has one (events.js
+// also names a closed tab by it).
+export function cardTitle(tab) {
+  return tab.title || pageAddress(tab.url) || t('untitled') || 'Untitled';
+}
+
 function createMetaElement(tab) {
   const meta = document.createElement('div');
   meta.className = 'meta';
 
   const title = document.createElement('div');
   title.className = 'title';
-  title.textContent = tab.title || pageAddress(tab.url) || t('untitled') || 'Untitled';
+  title.textContent = cardTitle(tab);
   meta.appendChild(title);
 
   const url = document.createElement('div');

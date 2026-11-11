@@ -15,7 +15,8 @@ import { state } from './state.js';
 import { noteTipShown } from './tryit.js';
 
 // Say this to screen readers, through the window's one live region (#status
-// in overview.html; '' clears it). A tip and the empty grid use it.
+// in overview.html; '' clears it). A tip, the empty grid and a closed tab
+// (events.js) use it.
 export function announce(text) {
   const status = document.getElementById('status');
   if (status && status.textContent !== text) status.textContent = text;
