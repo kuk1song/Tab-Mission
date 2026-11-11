@@ -231,6 +231,18 @@
     "message": "Prima le cinque schede più recenti, poi un pannello per ogni sito con almeno due schede, poi le altre. Quando cambi scheda, i pannelli restano dove sono.",
     "description": "Settings page: one line under the group-by-site switch."
   },
+  "optionPrivacyHeading": {
+    "message": "Privacy",
+    "description": "Settings page: heading of the section with the page pictures switch."
+  },
+  "optionPagePictures": {
+    "message": "Immagini delle pagine",
+    "description": "Settings page: label of the switch for the pictures of pages shown on the cards (on by default)."
+  },
+  "optionPagePicturesNote": {
+    "message": "I riquadri mostrano ogni pagina com'era l'ultima volta che l'hai vista. Le immagini restano su questo computer. Se disattivata, Tab Mission non ne acquisisce e cancella quelle che ha; i riquadri mostrano l'immagine di anteprima della pagina o l'icona del sito.",
+    "description": "Settings page: what the page pictures switch does."
+  },
   "optionHelpHeading": {
     "message": "Aiuto",
     "description": "Settings page: heading of the help section."

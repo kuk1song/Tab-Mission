@@ -1,4 +1,7 @@
 import { test, expect } from './fixtures.mjs';
+// When a picture comes after a switch: the settle delay, then at most the gap
+// between captures (covers.js; the module only defines things on import).
+import { SETTLE_MS, CAPTURE_GAP_MS } from '../../extension/src/covers.js';
 
 // Covers (src/covers.js): a picture of a page, taken by the service worker
 // while the page was in front, kept on disk and shown on its card.
@@ -150,6 +153,76 @@ test('pictures last through a browser restart, and those of pages no longer open
   } finally {
     await context.close();
   }
+});
+
+// The settings page's "Page pictures" switch (covers.js picturesOn).
+test('Page pictures off deletes the pictures, takes none and shows none; on again, pages are pictured', async ({ ext, context }) => {
+  const { windowId, tabIds } = await ext.openWindow(['beta', 'gamma']);
+  const pictureKeys = () => ext.sw.evaluate(() => chrome.storage.local.get(null).then((all) =>
+    Object.keys(all).filter((key) => key === 'coverIndex' || key.startsWith('cover:')).sort()));
+  // A page in front in a window with focus (real focus when headed), as a
+  // picture needs.
+  const lookAt = async (tabId) => {
+    await ext.sw.evaluate(async ({ windowId, tabId }) => {
+      await chrome.tabs.update(tabId, { active: true });
+      await chrome.windows.update(windowId, { focused: true });
+    }, { windowId, tabId });
+    await expect.poll(() => ext.sw.evaluate((id) => chrome.windows.get(id).then((w) => w.focused), windowId)).toBe(true);
+  };
+  await expect.poll(() => coverOf(ext, tabIds.gamma).then((c) => c?.url), { timeout: 10_000 }).toBe(ext.url('gamma'));
+
+  // Off on the settings page, in a window of its own: every picture goes.
+  const opened = context.waitForEvent('page', (p) => p.url().endsWith('/options.html'));
+  await ext.sw.evaluate(() => chrome.windows.create({ url: chrome.runtime.getURL('options.html') }));
+  const options = await opened;
+  await expect(options.locator('html')).not.toHaveClass(/loading/);
+  const toggle = options.locator('#page-pictures');
+  await expect(toggle).toBeChecked();
+  await options.locator('label[for="page-pictures"]').click();
+  await expect(toggle).not.toBeChecked();
+  await expect.poll(pictureKeys).toEqual([]);
+
+  // Looking at a page asks for no picture at all.
+  await ext.sw.evaluate(() => {
+    self.asked_ = 0;
+    const capture = chrome.tabs.captureVisibleTab;
+    chrome.tabs.captureVisibleTab = (...args) => {
+      self.asked_++;
+      return capture(...args);
+    };
+  });
+  await lookAt(tabIds.beta);
+  await options.waitForTimeout(SETTLE_MS + CAPTURE_GAP_MS); // when one would have been asked for
+  expect(await ext.sw.evaluate(() => self.asked_)).toBe(0);
+  expect(await pictureKeys()).toEqual([]);
+
+  // A picture of gamma's page still in storage (as one stored in a race
+  // could be) never shows on its card.
+  await ext.sw.evaluate((url) => chrome.storage.local.set({
+    'cover:999999': { url, img: 'data:image/webp;base64,UklGRg==' },
+    coverIndex: { 999999: { url, bytes: 30, at: Date.now() } },
+  }), ext.url('gamma'));
+  // (Searched for: a search covers every window, whichever Chrome takes for
+  // the current one.)
+  const page = await ext.open();
+  await page.keyboard.type('gamma');
+  await expect(page.locator(`.tile[data-tab-id="${tabIds.gamma}"]`)).toHaveCount(1);
+  // Settled once a picture shows, or once the page's own image was looked
+  // for, which happens only without one.
+  const cover = page.locator(`.tile[data-tab-id="${tabIds.gamma}"] img.thumbnail.cover`);
+  await expect.poll(async () => (await cover.count()) > 0 || ext.sw.evaluate((id) =>
+    chrome.storage.session.get('previewCache').then((r) => id in (r.previewCache ?? {})), String(tabIds.gamma))).toBe(true);
+  await expect(cover).toHaveCount(0);
+  await page.keyboard.press('Escape'); // clears the search
+  await ext.pressToClose(page, 'Escape');
+
+  // On again: the page you look at is pictured.
+  await options.bringToFront();
+  await options.locator('label[for="page-pictures"]').click();
+  await expect(toggle).toBeChecked();
+  await lookAt(tabIds.gamma);
+  await expect.poll(() => coverOf(ext, tabIds.gamma).then((c) => c?.url), { timeout: 10_000 }).toBe(ext.url('gamma'));
+  expect(await ext.sw.evaluate(() => self.asked_)).toBeGreaterThan(0);
 });
 
 test('a page held up by a slow image is pictured while it still loads', async ({ ext }) => {

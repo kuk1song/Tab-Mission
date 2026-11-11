@@ -16,6 +16,10 @@ const DEFAULTS = {
   // at any window size and number of tabs. Not "artMode":
   // updates delete that old key (background.js).
   groupBySite: true,
+  // On by default (off on the settings page): the service worker takes
+  // pictures of the pages you look at for their cards (covers.js). Off, it
+  // takes none and deletes the ones it kept.
+  pagePictures: true,
 };
 
 /**

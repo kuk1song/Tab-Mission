@@ -8,6 +8,7 @@ async function main() {
   const preselect = document.getElementById('preselect-previous');
   const showTips = document.getElementById('show-tips');
   const groupBySite = document.getElementById('group-by-site');
+  const pagePictures = document.getElementById('page-pictures');
   try {
     localizeStaticText();
     const { version } = chrome.runtime.getManifest();
@@ -16,12 +17,14 @@ async function main() {
     preselect.checked = settings.preselectPrevious;
     showTips.checked = settings.showTips;
     groupBySite.checked = settings.groupBySite;
+    pagePictures.checked = settings.pagePictures;
   } finally {
     reveal(preselect);
   }
   // Each switch saves at once; the switch shows the new state and screen
-  // readers also hear "Saved."
-  for (const [input, key] of [[preselect, 'preselectPrevious'], [groupBySite, 'groupBySite'], [showTips, 'showTips']]) {
+  // readers also hear "Saved." (Page pictures turned off: the service worker
+  // deletes the pictures, covers.js.)
+  for (const [input, key] of [[preselect, 'preselectPrevious'], [groupBySite, 'groupBySite'], [pagePictures, 'pagePictures'], [showTips, 'showTips']]) {
     input.addEventListener('change', async () => {
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
     });

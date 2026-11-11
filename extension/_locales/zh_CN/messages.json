@@ -231,6 +231,18 @@
     "message": "最近用过的 5 个标签页排在最前；接着，有两个或更多标签页的网站各占一个面板；其余的排在最后。切换标签页时，面板待在原处。",
     "description": "Settings page: one line under the group-by-site switch."
   },
+  "optionPrivacyHeading": {
+    "message": "隐私",
+    "description": "Settings page: heading of the section with the page pictures switch."
+  },
+  "optionPagePictures": {
+    "message": "网页截图",
+    "description": "Settings page: label of the switch for the pictures of pages shown on the cards (on by default)."
+  },
+  "optionPagePicturesNote": {
+    "message": "卡片显示每个网页你上次看到时的样子，截图只保存在这台电脑上。关闭后，Tab Mission 不再截图，并删除已有的截图；卡片改为显示网页的预览图或网站图标。",
+    "description": "Settings page: what the page pictures switch does."
+  },
   "optionHelpHeading": {
     "message": "帮助",
     "description": "Settings page: heading of the help section."

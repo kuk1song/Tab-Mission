@@ -18,9 +18,16 @@ function fakeChrome() {
     _tabs: tabs, _windows: windows,
     storage: {
       local: {
-        get: vi.fn(async (key) => (key in data ? { [key]: structuredClone(data[key]) } : {})),
+        // One key, every key (null), or keys with their defaults.
+        get: vi.fn(async (keys) => {
+          if (keys === null) return structuredClone(data);
+          if (typeof keys === 'string') return keys in data ? { [keys]: structuredClone(data[keys]) } : {};
+          return Object.fromEntries(Object.entries(keys).map(([k, fallback]) => [k, k in data ? structuredClone(data[k]) : fallback]));
+        }),
+        getKeys: vi.fn(async () => Object.keys(data)),
         set: vi.fn(async (items) => { Object.assign(data, structuredClone(items)); }),
         remove: vi.fn(async (keys) => { for (const k of [].concat(keys)) delete data[k]; }),
+        onChanged: event('storage.local.onChanged'),
       },
     },
   };
@@ -481,6 +488,143 @@ describe('covers', () => {
     expect(chrome.data['cover:11']).toBeUndefined();
     expect(chrome.data['cover:12']).toEqual({ url: 'https://site.test/12', img: 'data:image/webp;base64,SMALL' });
     expect(Object.keys(chrome.data.coverIndex)).toEqual(['12']);
+  });
+});
+
+describe('the page pictures setting', () => {
+  const SMALL = 'data:image/webp;base64,SMALL';
+  const pictureKeys = () => Object.keys(chrome.data).filter((k) => k === 'coverIndex' || k.startsWith('cover:')).sort();
+  // The settings page's switch: Chrome stores the setting, then tells the
+  // worker (the local area's own event, which passes only the changes).
+  const setPictures = (on) => {
+    chrome.data.pagePictures = on;
+    chrome.listeners['storage.local.onChanged']({ pagePictures: { oldValue: !on, newValue: on } });
+  };
+  // A new service worker: the old one's timers and state are gone.
+  async function restartWorker() {
+    vi.clearAllTimers();
+    vi.resetModules();
+    covers = await import('../extension/src/covers.js');
+    covers.startCovers({ shrink: (shot) => shrinkImpl(shot) });
+  }
+
+  it('off, takes no picture: not on a switch, a load, a focus or the shortcut', async () => {
+    chrome.data.pagePictures = false;
+    await restartWorker();
+    const tab = page(11, { status: 'loading' });
+    switchTo(tab);
+    tab.status = 'complete';
+    chrome.listeners.onUpdated(11, { status: 'complete' }, tab);
+    chrome.listeners.onFocusChanged(1);
+    await covers.coverFrontTab();
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.FOLLOW_UP_MS[0] + covers.FOLLOW_UP_MS[1]);
+    expect(chrome.shots).toHaveLength(0);
+    expect(pictureKeys()).toEqual([]);
+    // Closing a tab or tidying up writes no index either.
+    chrome.listeners.onRemoved(11);
+    await covers.tidyCovers();
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
+  });
+
+  it('turned off, deletes every picture and the index, and takes none after', async () => {
+    chrome.data.showTips = true; // another setting, which stays
+    switchTo(page(11));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    switchTo(page(12));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
+    // And one left out of the index by a removal cut short.
+    chrome.data['cover:99'] = { url: 'https://site.test/gone', img: 'data:x' };
+    expect(pictureKeys()).toEqual(['cover:11', 'cover:12', 'cover:99', 'coverIndex']);
+    const shots = chrome.shots.length;
+    setPictures(false);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(chrome.data).toEqual({ showTips: true, pagePictures: false });
+    // Tab 12's follow-ups were pending; then a switch and the shortcut.
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0] + covers.FOLLOW_UP_MS[1]);
+    switchTo(page(13));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
+    await covers.coverFrontTab();
+    expect(chrome.shots).toHaveLength(shots);
+    expect(pictureKeys()).toEqual([]);
+  });
+
+  it('a picture under way when it is turned off is not stored', async () => {
+    let answer;
+    chrome.tabs.captureVisibleTab.mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }));
+    switchTo(page(11));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    expect(answer).toBeTypeOf('function'); // asked, not answered yet
+    setPictures(false);
+    await vi.advanceTimersByTimeAsync(0);
+    answer('data:image/jpeg;base64,RAW');
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0] + covers.FOLLOW_UP_MS[1]);
+    expect(pictureKeys()).toEqual([]);
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
+  });
+
+  it('a picture being shrunk when it is turned off is not stored, even once it is on again', async () => {
+    switchTo(page(11));
+    shrinkImpl = async () => {
+      shrinkImpl = async () => SMALL;
+      setPictures(false);
+      setPictures(true);
+      return SMALL;
+    };
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    expect(chrome.shots).toHaveLength(1);
+    expect(pictureKeys()).toEqual([]);
+    // On again, the page in front gets a picture of its own (in its turn
+    // after the one dropped).
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
+    expect(chrome.shots).toHaveLength(2);
+    expect(chrome.data['cover:11']).toEqual({ url: page(11).url, img: SMALL });
+  });
+
+  it('after a worker restart with it off, deletes what was left and takes none', async () => {
+    const tab = page(11);
+    chrome.data['cover:11'] = { url: tab.url, img: 'data:x' };
+    chrome.data['cover:99'] = { url: 'https://site.test/gone', img: 'data:x' };
+    chrome.data.coverIndex = { 11: { url: tab.url, bytes: 6, at: 1 } };
+    // Switched off while the worker was stopped.
+    chrome.data.pagePictures = false;
+    await restartWorker();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(pictureKeys()).toEqual([]);
+    expect(chrome.data).toEqual({ pagePictures: false });
+    switchTo(tab);
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
+    expect(chrome.shots).toHaveLength(0);
+  });
+
+  it('turned on again, pictures the page in front, then the pages you switch to', async () => {
+    chrome.data.pagePictures = false;
+    await restartWorker();
+    show(page(11)); // in front, with no event since
+    setPictures(true);
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS - 1);
+    expect(chrome.shots).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(chrome.data['cover:11']).toEqual({ url: page(11).url, img: SMALL });
+    switchTo(page(12));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
+    expect(chrome.data['cover:12']).toEqual({ url: page(12).url, img: SMALL });
+  });
+
+  it('a Tab Mission window shows no picture with it off, even one not deleted yet', async () => {
+    const tab = page(11);
+    chrome.data['cover:11'] = { url: tab.url, img: 'data:x' };
+    chrome.data.coverIndex = { 11: { url: tab.url, bytes: 6, at: 1 } };
+    const windowCopy = async () => {
+      vi.resetModules();
+      return import('../extension/src/covers.js');
+    };
+    chrome.data.pagePictures = false;
+    let overview = await windowCopy();
+    expect(await overview.readCover(tab)).toBe(null);
+    expect(await overview.readCover(page(31, { url: tab.url }))).toBe(null); // nor one kept from before a restart
+    chrome.data.pagePictures = true;
+    overview = await windowCopy();
+    expect(await overview.readCover(tab)).toBe('data:x');
   });
 });
 
