@@ -264,9 +264,22 @@ test('a key before a card\'s tip comes stops it', async ({ ext }) => {
   await ext.sw.evaluate(() => chrome.storage.local.set({ tipsLeft: { open: 0, back: 0, point: 3 } }));
   const page = await ext.open();
   await settle(page);
-  await pointAt(page, page.locator('.tile').nth(2));
-  await page.keyboard.press('ArrowLeft');
-  await page.waitForTimeout(POINT_TIP_WAIT_MS);
+  // The key must come within the pointer's 600 ms, and a slow runner can
+  // take longer than that between two steps. So the page's timers stand
+  // still from here on (Playwright's clock, installed a minute back so that
+  // it can stop at the real time: it cannot go back), and the 600 ms pass
+  // only when the test runs the clock.
+  const now = Date.now();
+  await page.clock.install({ time: now - 60_000 });
+  await page.clock.pauseAt(now);
+  // On the last card, ArrowRight leaves the selection there: what stops the
+  // tip is the key itself, not the selection leaving the card (which stops
+  // it too).
+  const card = page.locator('.tile').last();
+  await pointAt(page, card);
+  await page.keyboard.press('ArrowRight');
+  await expect(card).toHaveClass(/\bselected\b/);
+  await page.clock.runFor(POINT_TIP_WAIT_MS);
   await expect(page.locator('.tip')).toHaveCount(0);
   expect(await tipsLeft(ext)).toEqual({ open: 0, back: 0, point: 3 });
 });
