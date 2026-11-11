@@ -71,6 +71,78 @@ export function isCapturableUrl(url) {
   }
 }
 
+// Whether a host names this computer or the local network: the names kept
+// for local use (localhost, local, internal and home.arpa, and any name
+// under them) and IP addresses in the "this network" (0/8),
+// private (10/8, 172.16/12, 192.168/16), shared (100.64/10), loopback
+// (127/8) and link-local (169.254/16) ranges, or IPv6 ::, ::1, fc00::/7,
+// fe80::/10 and those IPv4 ranges written as IPv6 (::ffff:a.b.c.d). It
+// takes a host as URL's hostname gives it: URL has already turned other ways
+// of writing an IPv4 address (0x7f.1, 2130706433) into a.b.c.d, and puts
+// IPv6 in brackets. Only the name is read, so a public name that resolves
+// to a local address is not caught.
+export function isLocalHost(hostname) {
+  const host = String(hostname ?? '').toLowerCase().replace(/\.$/, '');
+  if (/(^|\.)(localhost|local|internal|home\.arpa)$/.test(host)) return true;
+  const v4 = ipv4(host);
+  if (v4) return isLocalIPv4(v4);
+  if (host.startsWith('[') && host.endsWith(']')) {
+    const v6 = ipv6(host.slice(1, -1));
+    return v6 ? isLocalIPv6(v6) : false;
+  }
+  return false;
+}
+
+const OCTET = '(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)';
+const IPV4 = new RegExp(`^${OCTET}\\.${OCTET}\\.${OCTET}\\.${OCTET}$`);
+
+// a.b.c.d as four numbers, or null.
+function ipv4(text) {
+  const match = IPV4.exec(text);
+  return match ? match.slice(1).map(Number) : null;
+}
+
+function isLocalIPv4([a, b]) {
+  return a === 0 || a === 10 || a === 127
+    || (a === 100 && b >= 64 && b <= 127)
+    || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168);
+}
+
+// An IPv6 address (without brackets) as eight 16-bit numbers, or null. It
+// reads "::" and a dotted IPv4 end (::ffff:127.0.0.1), as people write them.
+function ipv6(text) {
+  const halves = text.split('::');
+  if (halves.length > 2) return null;
+  const groups = (half) => {
+    const parts = half ? half.split(':') : [];
+    const out = [];
+    for (const [i, part] of parts.entries()) {
+      const v4 = i === parts.length - 1 ? ipv4(part) : null;
+      if (v4) out.push((v4[0] << 8) | v4[1], (v4[2] << 8) | v4[3]);
+      else if (/^[0-9a-f]{1,4}$/.test(part)) out.push(parseInt(part, 16));
+      else return null;
+    }
+    return out;
+  };
+  const head = groups(halves[0]);
+  const tail = halves.length === 2 ? groups(halves[1]) : [];
+  if (!head || !tail) return null;
+  if (halves.length === 1) return head.length === 8 ? head : null;
+  const zeros = 8 - head.length - tail.length;
+  return zeros >= 1 ? [...head, ...Array(zeros).fill(0), ...tail] : null;
+}
+
+function isLocalIPv6(g) {
+  const zeroUpTo = (n) => g.slice(0, n).every((x) => x === 0);
+  if (zeroUpTo(7) && (g[7] === 0 || g[7] === 1)) return true; // :: and ::1
+  if ((g[0] & 0xfe00) === 0xfc00) return true; // fc00::/7, unique local
+  if ((g[0] & 0xffc0) === 0xfe80) return true; // fe80::/10, link-local
+  // An IPv4 address mapped to IPv6, ::ffff:a.b.c.d.
+  return zeroUpTo(5) && g[5] === 0xffff && isLocalIPv4([g[6] >> 8, g[6] & 0xff]);
+}
+
 // A tab is "sleeping" when Chrome has discarded it (Memory Saver) or it was
 // restored without loading. Such tabs cannot run scripts until reloaded.
 export function isSleeping(tab) {
