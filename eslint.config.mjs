@@ -1,9 +1,13 @@
+import js from '@eslint/js';
 import globals from 'globals';
 
-// A deliberately small rule set: enough to catch the class of bug that
-// motivated it (a `window` reference in the MV3 service worker, where no
-// `window` global exists) plus dead code, without forcing a wider refactor.
+// ESLint's recommended rules (@eslint/js): likely bugs, not style. Three
+// are set apart: no-undef catches the bug that brought ESLint in (a
+// `window` reference in the MV3 service worker, where no `window` global
+// exists); unused arguments and caught errors may keep their names; and a
+// catch may be empty (a failure that changes nothing).
 const rules = {
+  ...js.configs.recommended.rules,
   'no-undef': 'error',
   'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }],
   'no-empty': ['error', { allowEmptyCatch: true }],

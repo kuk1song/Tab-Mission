@@ -204,6 +204,7 @@ export const test = base.extend({
   showScrollbars: [false, { option: true }],
 
   // One local web server per worker.
+  // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's needs from its first parameter, which must be an object pattern.
   site: [async ({}, use) => {
     const server = await startSite();
     await use({ port: server.address().port });
@@ -211,6 +212,7 @@ export const test = base.extend({
   }, { scope: 'worker' }],
 
   // The browser profile, a fresh folder per test (read by browserCommand).
+  // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's needs from its first parameter, which must be an object pattern.
   profile: async ({}, use) => {
     const dir = mkdtempSync(path.join(tmpdir(), 'tab-mission-e2e-'));
     await use(dir);
@@ -226,6 +228,7 @@ export const test = base.extend({
 
   // What the service workers write to their console (a page picture Chrome
   // refuses is logged there), attached to a test that fails.
+  // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's needs from its first parameter, which must be an object pattern.
   swConsole: async ({}, use, testInfo) => {
     const lines = [];
     await use(lines);
