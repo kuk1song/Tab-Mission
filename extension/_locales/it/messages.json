@@ -265,13 +265,33 @@
     "message": "Scuro",
     "description": "Settings page: choice for the dark appearance."
   },
-  "optionFrosted": {
-    "message": "Sfondo smerigliato",
-    "description": "Settings page: label of the frosted backdrop switch."
+  "optionBackdrop": {
+    "message": "Sfondo",
+    "description": "Label of a setting on the settings page: what is shown behind the cards in the Tab Mission window."
   },
-  "optionFrostedNote": {
-    "message": "Dietro la finestra di Tab Mission, un’immagine sfocata della pagina in cui eri. Tinta unita quando non c’è un’immagine di quella pagina.",
-    "description": "Settings page: one line under the frosted backdrop switch."
+  "optionBackdropNote": {
+    "message": "Dietro le schede. Nella griglia resta tenue, così i titoli si leggono; con le schede sparse si vede bene.",
+    "description": "Explanation under the backdrop setting."
+  },
+  "optionBackdropPlain": {
+    "message": "Tinta unita",
+    "description": "Backdrop choice: a plain background, as before."
+  },
+  "optionBackdropPage": {
+    "message": "La pagina in cui eri, sfocata",
+    "description": "Backdrop choice: a blurred picture of the page the user was on. Plain when there is no picture of it."
+  },
+  "optionBackdropWallpaper": {
+    "message": "Colori di sfondo",
+    "description": "Backdrop choice: a soft gradient of colors that come with Tab Mission."
+  },
+  "optionSpread": {
+    "message": "Sparpaglia le schede",
+    "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
+  },
+  "optionSpreadNote": {
+    "message": "Tutte le schede in vista, più grandi quelle usate per ultime. Con troppe schede per distinguerle, la finestra mostra la griglia.",
+    "description": "Explanation under the spread-out switch."
   },
   "optionHelpHeading": {
     "message": "Aiuto",

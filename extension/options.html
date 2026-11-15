@@ -55,10 +55,21 @@
           </div>
           <div class="row">
             <div class="text">
-              <label class="title" for="frosted" data-i18n="optionFrosted">Frosted backdrop</label>
-              <p id="frosted-note" class="desc" data-i18n="optionFrostedNote">Behind the Tab Mission window, a blurred picture of the page you were on. Plain when there is no picture of that page.</p>
+              <label class="title" for="backdrop" data-i18n="optionBackdrop">Backdrop</label>
+              <p id="backdrop-note" class="desc" data-i18n="optionBackdropNote">Behind the cards. In the grid it stays faint, so titles remain readable; with the cards spread out it shows clearly.</p>
             </div>
-            <input id="frosted" class="switch" type="checkbox" role="switch" aria-describedby="frosted-note" />
+            <select id="backdrop" class="select" aria-describedby="backdrop-note">
+              <option value="plain" data-i18n="optionBackdropPlain">Plain</option>
+              <option value="page" data-i18n="optionBackdropPage">The page you were on, blurred</option>
+              <option value="wallpaper" data-i18n="optionBackdropWallpaper">Wallpaper colors</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="text">
+              <label class="title" for="spread" data-i18n="optionSpread">Spread the cards out</label>
+              <p id="spread-note" class="desc" data-i18n="optionSpreadNote">Every tab in view at once, the ones you used last larger. With too many tabs to tell apart, the window shows its grid.</p>
+            </div>
+            <input id="spread" class="switch" type="checkbox" role="switch" aria-describedby="spread-note" />
           </div>
         </div>
       </section>

@@ -88,6 +88,16 @@ export function initializeEventListeners(commandShortcuts = []) {
   window.addEventListener('resize', () => {
     if (shownColumns !== undefined && tilesPerRow() !== shownColumns) scheduleFilterChange();
   });
+  // Spread out, the cards are placed for the grid's size: placed again when
+  // it changes (the window resized, the toolbar wrapping onto a second row),
+  // once per frame.
+  const gridEl = document.getElementById('grid');
+  if (state.spreadOut && gridEl) {
+    new ResizeObserver(() => {
+      const area = spreadArea();
+      if (area.width !== shownArea?.width || area.height !== shownArea?.height) scheduleFilterChange();
+    }).observe(gridEl);
+  }
 
   window.addEventListener('keydown', handleKeydown);
   // When focus leaves the window: a toolbar click right after closes Tab
@@ -143,6 +153,7 @@ function handleShortcut(scope) {
 }
 
 let shownColumns; // tiles per row at the last draw, while grouping by site applies
+let shownArea; // the grid's size at the last draw, while the cards may be spread out
 
 function readUiState() {
   const searchEl = document.getElementById('search');
@@ -150,6 +161,7 @@ function readUiState() {
   const toggleAllWindows = document.getElementById('toggle-all-windows');
   // Only needed to group by site, which applies while browsing.
   shownColumns = state.groupBySite && !state.siteHost && !searchEl?.value.trim() ? tilesPerRow() : undefined;
+  shownArea = state.spreadOut ? spreadArea() : null;
   return {
     searchTerm: searchEl ? searchEl.value : '',
     showSleeping: toggleSleeping ? toggleSleeping.checked : false,
@@ -157,7 +169,16 @@ function readUiState() {
     preselectPrevious: state.preselectPrevious,
     groupBySite: state.groupBySite,
     columns: shownColumns,
+    spread: shownArea,
   };
+}
+
+// The room the cards have when spread out (the setting): the grid's own box,
+// whatever it shows now. Its sizes come from the layout, which the window's
+// fade-in (a scale) leaves alone, and do not count a scrollbar.
+function spreadArea() {
+  const gridEl = document.getElementById('grid');
+  return gridEl ? { width: gridEl.offsetWidth, height: gridEl.offsetHeight } : null;
 }
 
 
@@ -391,8 +412,9 @@ function handleKeydown(e) {
     case 'ArrowRight':
       e.preventDefault();
       flushFilterChange();
-      if (state.groups) {
-        // Grouped by site, tiles do not form one grid: go by their boxes.
+      if (state.groups || state.spread) {
+        // Grouped by site or spread out, tiles do not form one grid: go by
+        // their boxes.
         const tiles = document.querySelectorAll('#grid .tile');
         moveSelectionByRects(e.key, Array.from(tiles, (tile) => tile.getBoundingClientRect()));
       } else {

@@ -92,7 +92,10 @@ function place(el, anchor, root) {
   const a = anchor.getBoundingClientRect();
   const r = root.getBoundingClientRect();
   const center = a.left + a.width / 2 - r.left;
-  const below = a.bottom - r.top + 12;
+  // A card spread out has its label under its picture, outside its own box:
+  // the tip goes below the label, not on it.
+  const label = anchor.querySelector('.meta')?.getBoundingClientRect();
+  const below = Math.max(a.bottom, label?.bottom ?? 0) - r.top + 12;
   const top = below + el.offsetHeight <= root.clientHeight - 8 ? below : a.top - r.top - el.offsetHeight - 12;
   const left = clamp(center - el.offsetWidth / 2, 8, root.clientWidth - el.offsetWidth - 8);
   el.classList.toggle('above', top !== below);

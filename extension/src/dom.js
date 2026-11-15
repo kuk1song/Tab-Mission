@@ -98,6 +98,7 @@ export function render() {
   if (!gridEl) return;
 
   document.getElementById('search')?.setAttribute('aria-expanded', String(state.filteredTabs.length > 0));
+  showLayout(gridEl);
   if (state.filteredTabs.length === 0) {
     shown = null;
     gridEl.classList.remove('grouped');
@@ -125,7 +126,7 @@ export function render() {
   // moves the selection: putting hundreds of tiles back costs a layout.
   // Panels span columns, so a change in their number redraws them too.
   const columns = state.groups ? state.columns || DEFAULT_COLUMNS : 0;
-  const now = JSON.stringify([state.groups, state.filteredTabs.map((tab) => tab.id), columns]);
+  const now = JSON.stringify([state.groups, state.filteredTabs.map((tab) => tab.id), columns, Boolean(state.spread)]);
   if (now !== shown) {
     shown = now;
     gridEl.classList.toggle('grouped', Boolean(state.groups));
@@ -133,8 +134,39 @@ export function render() {
     gridEl.replaceChildren(...(state.groups ? state.groups.map((group) => createGroup(group, nodes, columns)) : nodes));
   }
 
+  if (state.spread) placeTiles(nodes, state.filteredTabs, state.spread.boxes);
+
   updateSelection();
   observeTiles(nodes);
+}
+
+// Which layout the grid shows (state.spread): the styles of the cards
+// spread out, of their small form, and of the backdrop under them, hang on
+// these (overview.css).
+function showLayout(gridEl) {
+  gridEl.classList.toggle('spread', Boolean(state.spread));
+  gridEl.classList.toggle('small', Boolean(state.spread?.small));
+  if (state.spread) document.documentElement.dataset.layout = 'spread';
+  else delete document.documentElement.dataset.layout;
+}
+
+// Spread out, each card goes where spread.js put it. Left on a card that
+// the grid shows later, the places do nothing (overview.css reads them only
+// while spread out). The label under a picture starts with the site's icon,
+// added the first time a card is spread out.
+function placeTiles(nodes, tabs, boxes) {
+  nodes.forEach((tile, index) => {
+    const { x, y, w } = boxes[index];
+    tile.style.setProperty('--x', `${x.toFixed(1)}px`);
+    tile.style.setProperty('--y', `${y.toFixed(1)}px`);
+    tile.style.setProperty('--w', `${w.toFixed(1)}px`);
+    if (tile.dataset.labelIcon || !isCapturableUrl(tabs[index].url)) return;
+    tile.dataset.labelIcon = '1';
+    const icon = document.createElement('span');
+    icon.className = 'meta-icon';
+    icon.appendChild(siteIcon(tabs[index].url));
+    tile.querySelector('.meta')?.prepend(icon);
+  });
 }
 
 // Mark the tiles and group labels in the grid's view, the only ones worth

@@ -1,6 +1,7 @@
 // state.js
 import { getHostname, isSleeping, isCapturableUrl, withPendingAddress } from './utils.js';
 import { unseenTabIds } from './unseen.js';
+import { spreadLayout } from './spread.js';
 
 export const state = {
   allTabs: [],
@@ -18,6 +19,10 @@ export const state = {
   // { other } when there is one), else null.
   groups: null,
   columns: 0, // tiles per row the groups were made for (0: not measured)
+  spreadOut: false, // mirrors the setting "spread"
+  // With spreadOut, when the cards fit: where each of filteredTabs goes
+  // ({ boxes, small }, spread.js), else null and the grid shows them.
+  spread: null,
   unseen: new Set(), // ids of tabs opened in the background and not shown yet (unseen.js)
 };
 
@@ -133,9 +138,14 @@ export function applyFilters(uiState) {
   // changes how many tiles a row holds. Nothing is stored. uiState.columns
   // is how many tiles fit in a row: each site's panel spans as many columns
   // as it has tiles (overview.css), and the panels are packed row by row.
+  // Spread out (the setting, off by default): every card in view at once,
+  // in recent order, in the area uiState.spread gives; with more cards than
+  // fit at a readable size, the grid below shows them as it would without
+  // the setting.
+  state.spread = uiState.spread ? spreadLayout(tabs.length, uiState.spread.width, uiState.spread.height) : null;
   state.groups = null;
   state.columns = uiState.columns || 0;
-  if (uiState.groupBySite && !searching && !state.siteHost) {
+  if (!state.spread && uiState.groupBySite && !searching && !state.siteHost) {
     const { entries, groups } = groupBySite(tabs, RECENT_MAX, uiState.columns || DEFAULT_COLUMNS);
     tabs = entries;
     state.groups = groups;

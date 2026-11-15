@@ -19,9 +19,14 @@ const DEFAULTS = {
   // 'system' follows the system's light or dark appearance; 'light' or
   // 'dark' fixes it for the Tab Mission window (settings page).
   appearance: 'system',
-  // Off by default: a blurred picture of the page you were on behind the
-  // Tab Mission window (backdrop.js).
-  frosted: false,
+  // What is behind the cards (backdrop.js): 'plain'; 'page', a blurred
+  // picture of the page you were on; or 'wallpaper', colors of Tab Mission's
+  // own.
+  backdrop: 'plain',
+  // Off by default: the cards spread out, every one in view at once, the
+  // tabs used more recently larger (spread.js); the grid when they would be
+  // too small.
+  spread: false,
 };
 
 /**

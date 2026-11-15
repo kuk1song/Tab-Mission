@@ -43,6 +43,23 @@ function tipGeometry(page) {
   });
 }
 
+// Spread out (the setting), a card's title is a label under its picture.
+test('with the cards spread out, the tip sits below the card\'s label, not on it', async ({ ext, context }) => {
+  const { windowId } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  await giveTips(ext);
+  await ext.sw.evaluate(() => chrome.storage.local.set({ spread: true }));
+  const overview = await openWithShortcut(ext, context, windowId);
+  await expect(overview.locator('#grid')).toHaveClass(/\bspread\b/);
+  const tip = overview.locator('.tip');
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveAttribute('data-anchor', 'card');
+  const label = await overview.locator('.tile.selected .meta').boundingBox();
+  const card = await overview.locator('.tile.selected .preview').boundingBox();
+  const { top, arrowX } = await tipGeometry(overview);
+  expect(top).toBeGreaterThan(label.y + label.height);
+  expect(Math.abs(arrowX - (card.x + card.width / 2))).toBeLessThan(2);
+});
+
 test('opened with the shortcut, a tip points at the previous tab, with no button, letting the pointer through', async ({ ext, context }) => {
   const { windowId } = await ext.openWindow(['alpha', 'beta']);
   await giveTips(ext);

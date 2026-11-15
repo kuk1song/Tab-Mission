@@ -20,7 +20,7 @@ async function main() {
   const params = new URLSearchParams(location.search);
   const [settings, , tryIt, shortcuts] = await Promise.all([loadSettings(), fetchAllTabs(), readTryIt(), readShortcuts()]);
   const shortcut = shortcuts['open-overview'];
-  // The frosted backdrop, when chosen, comes in on its own: nothing waits for it.
+  // The picture behind the cards, when chosen, comes in on its own: nothing waits for it.
   showBackdrop();
 
   const toggleSleeping = document.getElementById('toggle-sleeping');
@@ -31,6 +31,7 @@ async function main() {
   if (toggleAllWindows) toggleAllWindows.checked = settings.showAllWindows;
   state.preselectPrevious = settings.preselectPrevious;
   state.groupBySite = settings.groupBySite;
+  state.spreadOut = settings.spread === true;
 
   // Opened by the "current site" shortcut: show only this site's tabs.
   if (params.get('scope') === 'site') {
@@ -43,6 +44,10 @@ async function main() {
   // on GitHub's macOS runners): ended by the clock alone, it would take the
   // entrance from the tiles still waiting for their turn. 2 s at most, for a
   // window that draws no frames.
+  // The badge first: it can wrap the toolbar onto a second row, and cards
+  // spread out are placed for the room the toolbar leaves.
+  updateShortcutHint(shortcut);
+
   const gridEl = document.getElementById('grid');
   gridEl?.classList.add('entering');
   handleFilterChange({ persist: false });
@@ -60,8 +65,6 @@ async function main() {
     const pressed = params.get('scope') === 'site' ? shortcuts['open-overview-site'] || shortcut : shortcut;
     showTip({ showTips: settings.showTips, tryIt, shortcut: pressed, viaClick: params.get('via') === 'click' });
   });
-
-  updateShortcutHint(shortcut);
 
   initializeEventListeners(Object.values(shortcuts));
   searchEl?.focus();

@@ -326,6 +326,27 @@ describe('background.js', () => {
     expect(url(1)).toBe('chrome-extension://test/overview.html?via=click');
   });
 
+  it('hands the look chosen on the settings page to the window in its address, and nothing by default', async () => {
+    const url = (i) => chrome.windows.create.mock.calls[i][0].url;
+    Object.assign(chrome.storage.local.data, { appearance: 'light', backdrop: 'wallpaper' });
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+    expect(url(0)).toBe('chrome-extension://test/overview.html?look=light&backdrop=wallpaper');
+    chrome.listeners.onRemoved(chrome.storage.session.data.overviewWindowId);
+    await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeNull());
+    // The defaults, and values it does not know, add nothing.
+    Object.assign(chrome.storage.local.data, { appearance: 'system', backdrop: 'plain' });
+    chrome.listeners.onCommand('open-overview');
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(2));
+    expect(url(1)).toBe('chrome-extension://test/overview.html');
+    chrome.listeners.onRemoved(chrome.storage.session.data.overviewWindowId);
+    await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeNull());
+    Object.assign(chrome.storage.local.data, { appearance: 'sepia', backdrop: 'page' });
+    chrome.listeners.onCommand('open-overview-site');
+    await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(3));
+    expect(url(2)).toBe('chrome-extension://test/overview.html?scope=site&backdrop=page');
+  });
+
   describe("the welcome page's first step (press a shortcut)", () => {
     it('a keyboard command records it; the toolbar button and the page button do not', async () => {
       chrome.listeners.onClicked();

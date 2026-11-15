@@ -29,6 +29,7 @@
   --danger: #e5484d;
   --shadow-elevated: 0 8px 40px rgba(20, 30, 50, 0.18);
   --group-bg: #ffffff; /* a site's panel, grouped by site */
+  --caption-bg: rgba(255, 255, 255, 0.9); /* a title's label, spread out */
   /* The check mark of a ticked view toggle, in --accent-fg. */
   --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
@@ -59,6 +60,7 @@
     --overlay-fg: #f0f0f0;
     --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.4);
     --group-bg: rgba(255, 255, 255, 0.035);
+    --caption-bg: rgba(0, 0, 0, 0.55);
     --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%230b1020' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 }
@@ -93,6 +95,7 @@
   --overlay-fg: #f0f0f0;
   --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.4);
   --group-bg: rgba(255, 255, 255, 0.035);
+  --caption-bg: rgba(0, 0, 0, 0.55);
   --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%230b1020' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
@@ -795,68 +798,156 @@ html, body {
   #scope-label { max-width: 96px; }
 }
 
+/* Spread out (settings page, off by default; src/spread.js, dom.js): every
+   card in view at once, as windows in Mission Control, each where dom.js
+   puts it (--x, --y, --w), the tabs used more recently larger. A title is a
+   label under its picture, on a backing of its own, so it reads over any
+   backdrop; the site's icon moves from the picture's corner into the label. */
+.grid.spread {
+  display: block;
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+.grid.spread .tile {
+  position: absolute;
+  display: block;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+}
+.grid.spread .preview { border-radius: 9px; }
+.grid.spread .meta {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 7px);
+  translate: -50% 0;
+  box-sizing: border-box;
+  /* 10 px past the picture on each side at most: labels of neighbours,
+     26 px apart (spread.js), never touch. */
+  max-width: calc(100% + 20px);
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 9px;
+  background: var(--caption-bg);
+}
+.grid.spread .meta:has(.meta-icon:not([data-icon="missing"])) { padding-left: 4px; }
+.grid.spread .title {
+  display: block;
+  font-size: 0.71875rem;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
+.grid.spread .url { display: none; }
+.meta-icon { display: none; }
+.grid.spread .meta-icon { display: block; flex: none; width: 15px; height: 15px; }
+.grid.spread .meta-icon img { display: block; width: 15px; height: 15px; border-radius: 4px; }
+.grid.spread .meta-icon[data-icon="missing"] { display: none; }
+.grid.spread .preview:has(.thumbnail.loaded) .site-badge { display: none; }
+/* Many cards: no room for every title. The site's icon stays on the
+   picture's corner, and only the selected card shows its label. */
+.grid.spread.small .tile:not(.selected) .meta { display: none; }
+.grid.spread.small .preview:has(.thumbnail.loaded) .site-badge { display: grid; }
 
-/* Frosted backdrop (settings page): a blurred picture of the page you were
-   on, behind everything (src/backdrop.js). One still layer, blurred once: a
-   live backdrop-filter slowed the window with many tabs (1.5.0). The tint
-   stays strong so text keeps its contrast over any page. */
+/* Backdrop (settings page; src/look.js, src/backdrop.js): behind the cards, a
+   blurred picture of the page you were on ("page") or colors of Tab
+   Mission's own ("wallpaper"), under a tint of the window's background
+   color. One still layer and no filter: a live backdrop-filter slowed the
+   window with many tabs (1.5.0). Not shown to people who ask their system
+   for less transparency or more contrast (look.js).
+   How strong the tint is depends on what stands on the backdrop. In the
+   grid, titles and addresses stand on it directly, so the tint is as strong
+   as their contrast needs (4.5:1 for each of --fg, --muted and --accent):
+   a fixed strength for the wallpaper, one worked out from the picture for a
+   page (--backdrop-safe, backdrop.js; opaque until then). Spread out, every
+   title has its label and the toolbar a backing, both strong enough for the
+   lightest and darkest picture, so the tint is light and the backdrop
+   shows. */
 #backdrop { display: none; }
-:root[data-frost] #backdrop {
+:root[data-backdrop] #backdrop {
   display: block;
   position: fixed;
   inset: 0;
   overflow: hidden;
   background: var(--bg);
 }
-:root[data-frost] #backdrop::before {
-  content: "";
-  position: absolute;
-  inset: -48px;
-  background: var(--backdrop-image, none) center / cover no-repeat;
-  filter: blur(28px) saturate(1.5);
-  opacity: 0;
-  transition: opacity 0.2s ease-out;
-}
-:root[data-frost] #backdrop[data-place="page"]::before {
-  inset: auto;
-  left: var(--backdrop-x);
-  top: var(--backdrop-y);
-  width: var(--backdrop-w);
-  height: var(--backdrop-h);
-  background-size: 100% 100%;
-}
-:root[data-frost="on"] #backdrop::before { opacity: 1; }
-:root[data-frost] #backdrop::after {
+:root[data-backdrop] #backdrop::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--frost-tint);
 }
-:root[data-frost] body,
-:root[data-frost] #root { background: transparent; }
-:root[data-frost] {
-  --frost-tint: rgba(244, 244, 247, 0.76);
+:root[data-backdrop="wallpaper"] #backdrop::before { background: var(--wallpaper); }
+:root[data-backdrop="page"] #backdrop::before {
+  /* Blurred already (backdrop.js): a small image, stretched. */
+  background: var(--backdrop-image, none) center / cover no-repeat;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+:root[data-backdrop="page"] #backdrop[data-picture]::before { opacity: 1; }
+:root[data-backdrop] #backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: var(--backdrop-strength);
+  transition: opacity 0.2s ease-out;
+}
+:root[data-backdrop] body,
+:root[data-backdrop] #root { background: transparent; }
+/* In the grid, the selected title stands on the backdrop: the accent color,
+   4.8:1 on the plain light background, would fall under 4.5:1 on anything
+   darker. The ring around the picture still marks the card. */
+:root[data-backdrop] .grid:not(.spread) .tile.selected .title { color: var(--fg); }
+/* The search box's hint text: Chrome's own grey would not keep its contrast
+   on a backdrop. */
+:root[data-backdrop] #search::placeholder { color: var(--muted); }
+:root[data-backdrop] {
+  --wallpaper: radial-gradient(120% 90% at 20% 10%, #dfe9ff 0%, #c4d6fb 40%, #a9c0f2 75%, #93aeea 100%);
+  --backdrop-strength: var(--backdrop-safe, 1);
   --group-bg: rgba(255, 255, 255, 0.5);
   --surface: rgba(255, 255, 255, 0.66);
   --surface-focus: rgba(255, 255, 255, 0.88);
   --toolbar-bg: rgba(255, 255, 255, 0.3);
 }
+:root[data-backdrop="wallpaper"] { --backdrop-strength: 0.66; }
+:root[data-backdrop][data-layout="spread"] {
+  --backdrop-strength: 0.5;
+  --toolbar-bg: rgba(255, 255, 255, 0.8);
+}
 @media (prefers-color-scheme: dark) {
-  :root[data-frost]:not([data-appearance="light"]) {
-    --frost-tint: rgba(18, 18, 22, 0.72);
-    --group-bg: rgba(255, 255, 255, 0.06);
-    --surface: rgba(255, 255, 255, 0.08);
-    --surface-focus: rgba(255, 255, 255, 0.14);
+  :root[data-backdrop]:not([data-appearance="light"]) {
+    --wallpaper: radial-gradient(120% 90% at 20% 10%, #3b6fd6 0%, #1d3f9a 38%, #0c1f5c 70%, #071238 100%);
+    --group-bg: rgba(0, 0, 0, 0.18);
+    --surface: rgba(0, 0, 0, 0.22); /* darker, not lighter: the hint text in it keeps its contrast */
+    --surface-focus: rgba(0, 0, 0, 0.34);
     --toolbar-bg: rgba(0, 0, 0, 0.14);
   }
+  :root[data-backdrop="wallpaper"]:not([data-appearance="light"]) { --backdrop-strength: 0.68; }
+  :root[data-backdrop][data-layout="spread"]:not([data-appearance="light"]) {
+    --backdrop-strength: 0.42;
+    --toolbar-bg: rgba(18, 18, 22, 0.82);
+  }
 }
-:root[data-frost][data-appearance="dark"] {
-  --frost-tint: rgba(18, 18, 22, 0.72);
-  --group-bg: rgba(255, 255, 255, 0.06);
-  --surface: rgba(255, 255, 255, 0.08);
-  --surface-focus: rgba(255, 255, 255, 0.14);
+:root[data-backdrop][data-appearance="dark"] {
+  --wallpaper: radial-gradient(120% 90% at 20% 10%, #3b6fd6 0%, #1d3f9a 38%, #0c1f5c 70%, #071238 100%);
+  --group-bg: rgba(0, 0, 0, 0.18);
+  --surface: rgba(0, 0, 0, 0.22);
+  --surface-focus: rgba(0, 0, 0, 0.34);
   --toolbar-bg: rgba(0, 0, 0, 0.14);
 }
+:root[data-backdrop="wallpaper"][data-appearance="dark"] { --backdrop-strength: 0.68; }
+:root[data-backdrop][data-layout="spread"][data-appearance="dark"] {
+  --backdrop-strength: 0.42;
+  --toolbar-bg: rgba(18, 18, 22, 0.82);
+}
 @media (prefers-reduced-motion: reduce) {
-  :root[data-frost] #backdrop::before { transition: none; }
+  :root[data-backdrop] #backdrop::before,
+  :root[data-backdrop] #backdrop::after { transition: none; }
 }

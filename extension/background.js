@@ -275,7 +275,7 @@ function overviewPath(scope, source, look = {}) {
 	if (scope === 'site') params.set('scope', 'site');
 	if (source !== 'shortcut') params.set('via', 'click');
 	if (look.appearance === 'light' || look.appearance === 'dark') params.set('look', look.appearance);
-	if (look.frosted === true) params.set('frost', '1');
+	if (look.backdrop === 'page' || look.backdrop === 'wallpaper') params.set('backdrop', look.backdrop);
 	return params.size ? `overview.html?${params}` : 'overview.html';
 }
 
@@ -290,7 +290,7 @@ async function createOverviewWindow(scope, source) {
 
 		const bounds = await overviewBounds(displays, await getSavedOverviewBounds());
 
-		const look = await chrome.storage.local.get({ appearance: 'system', frosted: false }).catch(() => ({}));
+		const look = await chrome.storage.local.get({ appearance: 'system', backdrop: 'plain' }).catch(() => ({}));
 		const win = await chrome.windows.create({
 			url: chrome.runtime.getURL(overviewPath(scope, source, look)),
 			type: 'popup',

@@ -265,13 +265,33 @@
     "message": "深色",
     "description": "Settings page: choice for the dark appearance."
   },
-  "optionFrosted": {
-    "message": "毛玻璃背景",
-    "description": "Settings page: label of the frosted backdrop switch."
+  "optionBackdrop": {
+    "message": "背景",
+    "description": "Label of a setting on the settings page: what is shown behind the cards in the Tab Mission window."
   },
-  "optionFrostedNote": {
-    "message": "在 Tab Mission 窗口后面垫一张你刚才所在页面的虚化图片。没有那个页面的图片时用纯色背景。",
-    "description": "Settings page: one line under the frosted backdrop switch."
+  "optionBackdropNote": {
+    "message": "卡片后面的背景。网格里它会很淡，这样标题才看得清；卡片散开时最明显。",
+    "description": "Explanation under the backdrop setting."
+  },
+  "optionBackdropPlain": {
+    "message": "纯色",
+    "description": "Backdrop choice: a plain background, as before."
+  },
+  "optionBackdropPage": {
+    "message": "刚才所在的页面（虚化）",
+    "description": "Backdrop choice: a blurred picture of the page the user was on. Plain when there is no picture of it."
+  },
+  "optionBackdropWallpaper": {
+    "message": "壁纸色",
+    "description": "Backdrop choice: a soft gradient of colors that come with Tab Mission."
+  },
+  "optionSpread": {
+    "message": "把卡片散开",
+    "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
+  },
+  "optionSpreadNote": {
+    "message": "所有标签页一眼看全，越近用过的越大。标签页多到分不清时，窗口改用网格。",
+    "description": "Explanation under the spread-out switch."
   },
   "optionHelpHeading": {
     "message": "帮助",

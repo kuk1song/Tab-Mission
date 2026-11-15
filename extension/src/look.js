@@ -5,6 +5,11 @@
   const params = new URLSearchParams(location.search);
   const look = params.get('look');
   if (look === 'light' || look === 'dark') document.documentElement.dataset.appearance = look;
-  // 'wait' until backdrop.js has the picture, then 'on'.
-  if (params.get('frost') === '1') document.documentElement.dataset.frost = 'wait';
+  // 'page' shows once backdrop.js has the picture (overview.css). People
+  // who ask their system for less transparency or more contrast, or use
+  // forced colors, keep the plain background.
+  const backdrop = params.get('backdrop');
+  const plain = ['(prefers-reduced-transparency: reduce)', '(prefers-contrast: more)', '(forced-colors: active)']
+    .some((query) => matchMedia(query).matches);
+  if ((backdrop === 'page' || backdrop === 'wallpaper') && !plain) document.documentElement.dataset.backdrop = backdrop;
 })();
