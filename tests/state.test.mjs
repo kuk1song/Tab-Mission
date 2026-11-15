@@ -588,14 +588,14 @@ describe('applyFilters: spread out', () => {
     expect(state.spread.boxes).toHaveLength(3);
   });
 
-  it('with more cards than fit, shows the grid as without the setting', () => {
+  it('with more cards than fit in view, keeps them spread out, to scroll through, and still makes no groups', () => {
     state.allTabs = tabsOf(60);
     applyFilters(ui({ groupBySite: true, columns: 5, spread: area }));
-    expect(state.spread).toBeNull();
-    const withSetting = { groups: state.groups, ids: state.filteredTabs.map((tab) => tab.id) };
-    applyFilters(ui({ groupBySite: true, columns: 5 }));
-    expect(withSetting).toEqual({ groups: state.groups, ids: state.filteredTabs.map((tab) => tab.id) });
-    expect(state.groups[0]).toMatchObject({ recent: true, count: RECENT_MAX });
+    expect(state.spread.boxes).toHaveLength(60);
+    expect(state.spread.scrolls).toBe(true);
+    expect(state.spread.height).toBeGreaterThan(area.height);
+    expect(state.groups).toBeNull();
+    expect(state.filteredTabs.slice(0, 3).map((tab) => tab.id)).toEqual([2, 1, 3]);
   });
 
   it('is off without the setting, and with nothing to show', () => {

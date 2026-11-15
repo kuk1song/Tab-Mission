@@ -1,18 +1,18 @@
 import { test, expect, PAGES, selectedTitle, pointAt } from './fixtures.mjs';
 
 // "Spread the cards out" and "Backdrop" (settings page, both off by
-// default; src/spread.js, src/backdrop.js): every card in view at once, the
-// tabs used more recently larger, a label under each picture; behind them
-// a wallpaper or a blurred picture of the page you were on.
+// default; src/spread.js, src/backdrop.js): the tabs used more recently
+// larger, a label under each picture, every card in view while they fit;
+// behind them a wallpaper or a blurred picture of the page you were on.
 const VISITED = ['alpha', 'doc1', 'tube1', 'beta', 'tube2', 'gamma'];
 // By last use: the previous tab first, the current one beside it.
 const ORDER = ['tube2', 'gamma', 'beta', 'tube1', 'doc1', 'alpha'];
-// Two more: too many to keep their titles in that window, few enough to stay spread out.
 const EIGHT = [...VISITED, 'code1', 'notes1'];
+// Sixteen cards: more than that window holds in view.
+const SIXTEEN = [...EIGHT, ...EIGHT.map((id) => `${id}?again`)];
 
 // A window that fits the Windows runner's 1024 px screen. Six cards spread
-// out in it keep their titles, eight show icons, sixteen go to the grid
-// (spread.test covers the sizes).
+// out are all in view in it; sixteen are not (spread.test covers the sizes).
 async function openWith(ext, settings) {
   await ext.sw.evaluate((settings) => chrome.storage.local.set({ overviewBounds: { width: 800, height: 600 }, ...settings }), settings);
   const page = await ext.open();
@@ -90,7 +90,7 @@ test('spread out: every card in view, none on another, the previous tab first an
   await ext.openWindow(VISITED);
   const page = await openWith(ext, { spread: true });
   await expect(page.locator('#grid')).toHaveClass(/\bspread\b/);
-  await expect(page.locator('#grid')).not.toHaveClass(/\bsmall\b/);
+  await expect(page.locator('#grid')).not.toHaveClass(/\bscrolls\b/);
   expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('spread');
 
   const shown = await cards(page);
@@ -189,57 +189,90 @@ test('spread out: a search places its matches again; the pointer selects, × clo
   await expect.poll(() => ext.sw.evaluate((id) => chrome.tabs.get(id).then(() => true, () => false), tabIds.tube1)).toBe(false);
 });
 
-test('spread out: too many tabs to tell apart show the grid; a search that leaves a few spreads them out', async ({ ext }) => {
-  await ext.openWindow([...EIGHT, ...EIGHT.map((id) => `${id}?again`)]);
+test('spread out: more tabs than fit in view stay spread out and scroll; the arrows bring a card and its label into view', async ({ ext }) => {
+  await ext.openWindow(SIXTEEN);
   const page = await openWith(ext, { spread: true });
   await expect(page.locator('#grid .tile')).toHaveCount(16);
+  await expect(page.locator('#grid')).toHaveClass(/\bspread\b/);
+  await expect(page.locator('#grid')).toHaveClass(/\bscrolls\b/);
+  expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('spread');
+  // Every card has its picture and its label, none on another; they only reach further down than the grid.
+  const shown = await cards(page);
+  const all = shown.flatMap((card) => [card.picture, card.label]);
+  expect(all.every(Boolean)).toBe(true);
+  for (let i = 0; i < all.length; i++) {
+    for (let j = i + 1; j < all.length; j++) expect(overlap(all[i], all[j]), `boxes ${i} and ${j}`).toBe(false);
+  }
+  const grid = () => page.locator('#grid').evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, scrollTop: el.scrollTop, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, sideways: el.scrollWidth > el.clientWidth };
+  });
+  const before = await grid();
+  expect(before.sideways).toBe(false);
+  expect(before.scrollHeight).toBeGreaterThan(before.clientHeight);
+  for (const box of all) {
+    expect(box.left).toBeGreaterThanOrEqual(before.left);
+    expect(box.right).toBeLessThanOrEqual(before.right);
+  }
+  const lowest = Math.max(...all.map((box) => box.bottom));
+  expect(lowest).toBeGreaterThan(before.bottom);
+  // The grid is as long as the cards reach, and no longer than a small margin more.
+  expect(before.scrollHeight - (lowest - before.top)).toBeGreaterThanOrEqual(0);
+  expect(before.scrollHeight - (lowest - before.top)).toBeLessThan(40);
+
+  // The last card, by the arrows: scrolled into view with its label.
+  for (let i = 0; i < 15; i++) await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#grid .tile.selected')).toHaveAttribute('data-index', '15');
+  await expect.poll(async () => (await grid()).scrollTop).toBeGreaterThan(0);
+  await expect.poll(async () => {
+    const view = await grid();
+    const label = await page.locator('#grid .tile.selected .meta').evaluate((el) => el.getBoundingClientRect().bottom);
+    return label <= view.bottom;
+  }).toBe(true);
+
+  // A search that leaves a few: all in view again, nothing to scroll.
+  await page.keyboard.type('Tube');
+  await expect(page.locator('#grid .tile')).toHaveCount(4);
+  await expect(page.locator('#grid')).not.toHaveClass(/\bscrolls\b/);
+  expect((await grid()).scrollHeight).toBe((await grid()).clientHeight);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#grid .tile')).toHaveCount(16);
+  await expect(page.locator('#grid')).toHaveClass(/\bscrolls\b/);
+});
+
+test('spread out, then turned off: the same window shows the grid as before', async ({ ext }) => {
+  await ext.openWindow(EIGHT);
+  let page = await openWith(ext, { spread: true });
+  await expect(page.locator('#grid')).toHaveClass(/\bspread\b/);
+  await ext.pressToClose(page, 'Escape');
+  page = await openWith(ext, { spread: false });
   await expect(page.locator('#grid')).not.toHaveClass(/spread/);
   expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBeUndefined();
-  // The grid as without the setting: the cards on its columns, an address under each title.
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('grid')).display)).toBe('grid');
   await expect(page.locator('#grid .tile .url').first()).toBeVisible();
   expect(await page.locator('#grid .tile').first().evaluate((tile) => getComputedStyle(tile).position)).toBe('relative');
-
-  await page.keyboard.type('Tube');
-  await expect(page.locator('#grid .tile')).toHaveCount(4);
-  await expect(page.locator('#grid')).toHaveClass(/\bspread\b/);
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#grid .tile')).toHaveCount(16);
-  await expect(page.locator('#grid')).not.toHaveClass(/spread/);
-  expect(await page.locator('#grid .tile').first().evaluate((tile) => getComputedStyle(tile).position)).toBe('relative');
-});
-
-test('spread out: a few more tabs than keep their titles show icons, and the selected card its label', async ({ ext }) => {
-  await ext.openWindow(EIGHT);
-  const page = await openWith(ext, { spread: true });
-  await expect(page.locator('#grid')).toHaveClass(/\bspread\b/);
-  await expect(page.locator('#grid')).toHaveClass(/\bsmall\b/);
-  await expect(page.locator('#grid .tile')).toHaveCount(8);
-  await expect(page.locator('#grid .tile .meta:visible')).toHaveCount(1);
-  await expect(page.locator('#grid .tile.selected .title')).toHaveText(PAGES.code1.title);
-  await page.keyboard.press('ArrowRight');
-  await expect(page.locator('#grid .tile .meta:visible')).toHaveCount(1);
-  await expect(page.locator('#grid .tile.selected .title')).toHaveText(PAGES.notes1.title);
-  // Nothing is cut off here either.
-  const grid = await page.locator('#grid').evaluate((el) => el.getBoundingClientRect().toJSON());
-  for (const card of await cards(page)) {
-    expect(card.picture.right).toBeLessThanOrEqual(grid.right);
-    expect(card.picture.bottom).toBeLessThanOrEqual(grid.bottom);
-  }
 });
 
 test('spread out: resizing the window places the cards for its new size', async ({ ext }) => {
   await ext.openWindow(VISITED);
   const page = await openWith(ext, { spread: true });
   const before = await cards(page);
-  await page.evaluate(() => chrome.windows.getCurrent().then((w) => chrome.windows.update(w.id, { width: 700, height: 560 })));
-  await expect.poll(async () => (await cards(page))[0].picture.width).toBeLessThan(before[0].picture.width - 1);
-  const after = await cards(page);
+  const resize = (width, height) => page.evaluate(({ width, height }) => chrome.windows.getCurrent().then((w) => chrome.windows.update(w.id, { width, height })), { width, height });
+  // Larger: larger cards, still all in view.
+  await resize(900, 660);
+  await expect.poll(async () => (await cards(page))[0].picture.width).toBeGreaterThan(before[0].picture.width + 1);
+  await expect(page.locator('#grid')).not.toHaveClass(/\bscrolls\b/);
   const grid = await page.locator('#grid').evaluate((el) => el.getBoundingClientRect().toJSON());
-  for (const card of after) {
+  for (const card of await cards(page)) {
     expect(card.picture.right).toBeLessThanOrEqual(grid.right);
     expect(card.label.bottom).toBeLessThanOrEqual(grid.bottom);
   }
+  // Too low for six cards: they keep their smallest size, and the grid scrolls.
+  await resize(700, 420);
+  await expect(page.locator('#grid')).toHaveClass(/\bscrolls\b/);
+  await expect.poll(() => page.locator('#grid').evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  const narrow = await page.locator('#grid').evaluate((el) => el.getBoundingClientRect().toJSON());
+  for (const card of await cards(page)) expect(card.picture.right).toBeLessThanOrEqual(narrow.right);
 });
 
 for (const appearance of ['light', 'dark']) {
@@ -284,8 +317,23 @@ test('page backdrop: a blurred picture of the page you were on, tinted as much a
   for (const [kind, ratio] of Object.entries(worst)) expect(ratio, kind).toBeGreaterThanOrEqual(4.5);
   await ext.pressToClose(page, 'Escape');
 
-  // From a browser page, which is never pictured: the plain background.
+  // From a browser page, which is never pictured: the page you were on before it.
   await ext.openTab(windowId, 'chrome://version/', { active: true });
+  page = await openWith(ext, { backdrop: 'page', appearance: 'dark' });
+  await expect(page.locator('#backdrop')).toHaveAttribute('data-picture', '');
+  expect(await page.evaluate(() => document.documentElement.dataset.backdrop)).toBe('page');
+  await ext.pressToClose(page, 'Escape');
+
+  // In a window with no pictured page at all: the plain background.
+  await ext.sw.evaluate(async () => {
+    const win = await chrome.windows.create({ url: 'chrome://version/', width: 900, height: 700 });
+    for (;;) {
+      const last = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+      const [tab] = await chrome.tabs.query({ windowId: win.id });
+      if (last.id === win.id && tab.url === 'chrome://version/') break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  });
   page = await openWith(ext, { backdrop: 'page', appearance: 'dark' });
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.backdrop)).toBeUndefined();
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('backdrop')).display)).toBe('none');

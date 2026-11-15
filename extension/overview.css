@@ -798,11 +798,14 @@ html, body {
   #scope-label { max-width: 96px; }
 }
 
-/* Spread out (settings page, off by default; src/spread.js, dom.js): every
-   card in view at once, as windows in Mission Control, each where dom.js
-   puts it (--x, --y, --w), the tabs used more recently larger. A title is a
-   label under its picture, on a backing of its own, so it reads over any
-   backdrop; the site's icon moves from the picture's corner into the label. */
+/* Spread out (settings page, off by default; src/spread.js, dom.js): the
+   cards as windows in Mission Control, each where dom.js puts it (--x, --y,
+   --w), the tabs used more recently larger, every one in view while they
+   fit. A title is a label under its picture, on a backing of its own, so it
+   reads over any backdrop; the site's icon moves from the picture's corner
+   into the label. With more cards than fit, the rows go on below and the
+   grid scrolls (down to --spread-height: the cards are out of the flow, so
+   a mark there gives the grid its length). */
 .grid.spread {
   display: block;
   position: relative;
@@ -810,12 +813,23 @@ html, body {
   overflow: hidden;
   scrollbar-gutter: auto;
 }
+.grid.spread.scrolls { overflow-y: auto; }
+.grid.spread.scrolls::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(var(--spread-height) - 1px);
+  width: 1px;
+  height: 1px;
+}
 .grid.spread .tile {
   position: absolute;
   display: block;
   left: var(--x);
   top: var(--y);
   width: var(--w);
+  /* The arrows bring a card into view with its label and its ring. */
+  scroll-margin: 12px 0 36px;
 }
 .grid.spread .preview { border-radius: 9px; }
 .grid.spread .meta {
@@ -851,10 +865,6 @@ html, body {
 .grid.spread .meta-icon img { display: block; width: 15px; height: 15px; border-radius: 4px; }
 .grid.spread .meta-icon[data-icon="missing"] { display: none; }
 .grid.spread .preview:has(.thumbnail.loaded) .site-badge { display: none; }
-/* Many cards: no room for every title. The site's icon stays on the
-   picture's corner, and only the selected card shows its label. */
-.grid.spread.small .tile:not(.selected) .meta { display: none; }
-.grid.spread.small .preview:has(.thumbnail.loaded) .site-badge { display: grid; }
 
 /* Backdrop (settings page; src/look.js, src/backdrop.js): behind the cards, a
    blurred picture of the page you were on ("page") or colors of Tab

@@ -290,7 +290,7 @@
     "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
   },
   "optionSpreadNote": {
-    "message": "Every tab in view at once, the ones you used last larger. With too many tabs to tell apart, the window shows its grid.",
+    "message": "The tabs you used last are larger, and every tab is in view at once while they fit. With more tabs, scroll down for the rest.",
     "description": "Explanation under the spread-out switch."
   },
   "optionHelpHeading": {

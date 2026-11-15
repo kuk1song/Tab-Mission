@@ -290,7 +290,7 @@
     "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
   },
   "optionSpreadNote": {
-    "message": "Tutte le schede in vista, più grandi quelle usate per ultime. Con troppe schede per distinguerle, la finestra mostra la griglia.",
+    "message": "Le schede usate per ultime sono più grandi e, finché ci stanno, sono tutte in vista. Con più schede, scorri verso il basso per le altre.",
     "description": "Explanation under the spread-out switch."
   },
   "optionHelpHeading": {

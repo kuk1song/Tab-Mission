@@ -23,9 +23,8 @@ const DEFAULTS = {
   // picture of the page you were on; or 'wallpaper', colors of Tab Mission's
   // own.
   backdrop: 'plain',
-  // Off by default: the cards spread out, every one in view at once, the
-  // tabs used more recently larger (spread.js); the grid when they would be
-  // too small.
+  // Off by default: the cards spread out, the tabs used more recently
+  // larger, every one in view while they fit (spread.js).
   spread: false,
 };
 

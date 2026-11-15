@@ -141,13 +141,17 @@ export function render() {
 }
 
 // Which layout the grid shows (state.spread): the styles of the cards
-// spread out, of their small form, and of the backdrop under them, hang on
-// these (overview.css).
+// spread out and of the backdrop under them hang on these (overview.css).
+// With more cards than fit in view, the grid scrolls down to --spread-height.
 function showLayout(gridEl) {
   gridEl.classList.toggle('spread', Boolean(state.spread));
-  gridEl.classList.toggle('small', Boolean(state.spread?.small));
-  if (state.spread) document.documentElement.dataset.layout = 'spread';
-  else delete document.documentElement.dataset.layout;
+  gridEl.classList.toggle('scrolls', Boolean(state.spread?.scrolls));
+  if (state.spread) {
+    document.documentElement.dataset.layout = 'spread';
+    gridEl.style.setProperty('--spread-height', `${Math.ceil(state.spread.height)}px`);
+  } else {
+    delete document.documentElement.dataset.layout;
+  }
 }
 
 // Spread out, each card goes where spread.js put it. Left on a card that

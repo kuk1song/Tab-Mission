@@ -290,7 +290,7 @@
     "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
   },
   "optionSpreadNote": {
-    "message": "所有标签页一眼看全，越近用过的越大。标签页多到分不清时，窗口改用网格。",
+    "message": "越近用过的标签页越大；放得下时，所有标签页一眼看全。放不下时，向下滚动看其余的。",
     "description": "Explanation under the spread-out switch."
   },
   "optionHelpHeading": {

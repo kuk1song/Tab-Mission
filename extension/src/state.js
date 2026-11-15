@@ -20,8 +20,8 @@ export const state = {
   groups: null,
   columns: 0, // tiles per row the groups were made for (0: not measured)
   spreadOut: false, // mirrors the setting "spread"
-  // With spreadOut, when the cards fit: where each of filteredTabs goes
-  // ({ boxes, small }, spread.js), else null and the grid shows them.
+  // With spreadOut: where each of filteredTabs goes ({ boxes, height,
+  // scrolls }, spread.js), else null and the grid shows them.
   spread: null,
   unseen: new Set(), // ids of tabs opened in the background and not shown yet (unseen.js)
 };
@@ -138,10 +138,9 @@ export function applyFilters(uiState) {
   // changes how many tiles a row holds. Nothing is stored. uiState.columns
   // is how many tiles fit in a row: each site's panel spans as many columns
   // as it has tiles (overview.css), and the panels are packed row by row.
-  // Spread out (the setting, off by default): every card in view at once,
-  // in recent order, in the area uiState.spread gives; with more cards than
-  // fit at a readable size, the grid below shows them as it would without
-  // the setting.
+  // Spread out (the setting, off by default): the cards in recent order,
+  // placed for the area uiState.spread gives, every one in view while they
+  // fit. It takes the place of the grid and its groups.
   state.spread = uiState.spread ? spreadLayout(tabs.length, uiState.spread.width, uiState.spread.height) : null;
   state.groups = null;
   state.columns = uiState.columns || 0;

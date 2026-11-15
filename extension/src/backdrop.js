@@ -1,7 +1,9 @@
 // backdrop.js: the picture behind the cards (settings page, "The page you
 // were on"; the wallpaper needs no code, overview.css draws it). It is the
 // one covers.js took while that page was in front, so nothing new is
-// captured. Without one (a browser page, a private window, pictures not
+// captured. A page that is never pictured (Tab Mission's settings, a
+// browser page, a local file) shows the page you were on before it; with
+// no picture among the last few pages (a private window, pictures not
 // taken yet) the window keeps its plain background. The picture is blurred
 // here, once and small, and shown as a plain image: a filter on a layer the
 // size of the window, like the backdrop-filter 1.5.0 removed, could cost
@@ -15,18 +17,21 @@ const CONTRAST = 4.8;
 // The tint is never lighter than this: what the cards spread out use, where
 // no text stands on the backdrop itself (overview.css).
 const MIN_STRENGTH = 0.42;
-// The blurred picture: a quarter of a stored one (640 px wide, 16:10), the
-// blur about what 28 px is in a window 1280 px wide.
-const BLURRED = { width: 160, height: 100, blur: 3.5, past: 12 };
+// The blurred picture: half of a stored one (640 px wide, 16:10), the blur
+// about what 12 px is in a window 1280 px wide: enough that no text of the
+// page can be read, little enough that its blocks and colors still show (a
+// stronger blur turned most pages into one flat color).
+const BLURRED = { width: 320, height: 200, blur: 3, past: 16 };
 const SAMPLE = { width: 64, height: 40 };
+// How many of the window's pages to go back for one with a picture.
+const LOOK_BACK = 8;
 
 export async function showBackdrop() {
   const root = document.documentElement;
   if (root.dataset.backdrop !== 'page') return;
   const el = document.getElementById('backdrop');
   try {
-    const tab = state.allTabs.find((candidate) => candidate.id === state.currentTabId);
-    const picture = el && tab ? await readCover(tab) : null;
+    const picture = el ? await lastPicture() : null;
     if (!picture) {
       delete root.dataset.backdrop;
       return;
@@ -47,6 +52,20 @@ export async function showBackdrop() {
   } catch {
     delete root.dataset.backdrop;
   }
+}
+
+// The picture of the page in front when Tab Mission opened, or else of the
+// page of its window used last before it that has one.
+async function lastPicture() {
+  const pages = state.allTabs
+    .filter((tab) => tab.windowId === state.currentWindowId)
+    .sort((a, b) => (b.id === state.currentTabId) - (a.id === state.currentTabId) || (b.lastAccessed || 0) - (a.lastAccessed || 0))
+    .slice(0, LOOK_BACK);
+  for (const tab of pages) {
+    const picture = await readCover(tab);
+    if (picture) return picture;
+  }
+  return null;
 }
 
 // The picture small, blurred, its colors a little stronger. Drawn past the
