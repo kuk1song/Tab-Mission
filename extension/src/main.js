@@ -6,6 +6,7 @@ import { localizeStaticText, t } from './i18n.js';
 import { readTryIt } from './tryit.js';
 import { showTip } from './tips.js';
 import { markInView } from './dom.js';
+import { showBackdrop } from './backdrop.js';
 
 async function main() {
   // Apply localization for any static text before interacting with the UI
@@ -19,6 +20,8 @@ async function main() {
   const params = new URLSearchParams(location.search);
   const [settings, , tryIt, shortcuts] = await Promise.all([loadSettings(), fetchAllTabs(), readTryIt(), readShortcuts()]);
   const shortcut = shortcuts['open-overview'];
+  // The frosted backdrop, when chosen, comes in on its own: nothing waits for it.
+  showBackdrop();
 
   const toggleSleeping = document.getElementById('toggle-sleeping');
   const toggleAllWindows = document.getElementById('toggle-all-windows');

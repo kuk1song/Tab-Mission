@@ -241,6 +241,38 @@
     "message": "Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest. The panels stay where they are as you switch tabs.",
     "description": "Settings page: one line under the group-by-site switch."
   },
+  "optionLookHeading": {
+    "message": "Appearance",
+    "description": "Settings page: heading of the appearance section."
+  },
+  "optionAppearance": {
+    "message": "Light or dark",
+    "description": "Settings page: label of the light or dark choice."
+  },
+  "optionAppearanceNote": {
+    "message": "For the Tab Mission window. It follows your system unless you choose one here.",
+    "description": "Settings page: one line under the light or dark choice."
+  },
+  "optionAppearanceSystem": {
+    "message": "Follow the system",
+    "description": "Settings page: choice that follows the system appearance."
+  },
+  "optionAppearanceLight": {
+    "message": "Light",
+    "description": "Settings page: choice for the light appearance."
+  },
+  "optionAppearanceDark": {
+    "message": "Dark",
+    "description": "Settings page: choice for the dark appearance."
+  },
+  "optionFrosted": {
+    "message": "Frosted backdrop",
+    "description": "Settings page: label of the frosted backdrop switch."
+  },
+  "optionFrostedNote": {
+    "message": "Behind the Tab Mission window, a blurred picture of the page you were on. Plain when there is no picture of that page.",
+    "description": "Settings page: one line under the frosted backdrop switch."
+  },
   "optionHelpHeading": {
     "message": "Help",
     "description": "Settings page: heading of the help section."

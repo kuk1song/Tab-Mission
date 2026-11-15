@@ -241,6 +241,38 @@
     "message": "Prima le cinque schede più recenti, poi un pannello per ogni sito con almeno due schede, poi le altre. Quando cambi scheda, i pannelli restano dove sono.",
     "description": "Settings page: one line under the group-by-site switch."
   },
+  "optionLookHeading": {
+    "message": "Aspetto",
+    "description": "Settings page: heading of the appearance section."
+  },
+  "optionAppearance": {
+    "message": "Chiaro o scuro",
+    "description": "Settings page: label of the light or dark choice."
+  },
+  "optionAppearanceNote": {
+    "message": "Per la finestra di Tab Mission. Segue il sistema, a meno che tu non ne scelga uno qui.",
+    "description": "Settings page: one line under the light or dark choice."
+  },
+  "optionAppearanceSystem": {
+    "message": "Segui il sistema",
+    "description": "Settings page: choice that follows the system appearance."
+  },
+  "optionAppearanceLight": {
+    "message": "Chiaro",
+    "description": "Settings page: choice for the light appearance."
+  },
+  "optionAppearanceDark": {
+    "message": "Scuro",
+    "description": "Settings page: choice for the dark appearance."
+  },
+  "optionFrosted": {
+    "message": "Sfondo smerigliato",
+    "description": "Settings page: label of the frosted backdrop switch."
+  },
+  "optionFrostedNote": {
+    "message": "Dietro la finestra di Tab Mission, un’immagine sfocata della pagina in cui eri. Tinta unita quando non c’è un’immagine di quella pagina.",
+    "description": "Settings page: one line under the frosted backdrop switch."
+  },
   "optionHelpHeading": {
     "message": "Aiuto",
     "description": "Settings page: heading of the help section."

@@ -34,7 +34,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-appearance="light"]) {
     --bg: #161618;
     --fg: #f0f0f0;
     --muted: #a0a0aa;
@@ -61,6 +61,39 @@
     --group-bg: rgba(255, 255, 255, 0.035);
     --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%230b1020' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
+}
+
+/* The settings page can fix the appearance (src/look.js sets the attribute
+   before the first paint). The dark colors are repeated here: a rule cannot
+   be shared between a media query and a selector. */
+:root[data-appearance="light"] { color-scheme: light; }
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+  --bg: #161618;
+  --fg: #f0f0f0;
+  --muted: #a0a0aa;
+  --accent: #00d4ff;
+  --accent-fg: #0b1020;
+  --accent-soft: rgba(0, 212, 255, 0.14);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-focus: rgba(255, 255, 255, 0.08);
+  --toolbar-bg: rgba(255, 255, 255, 0.02);
+  --hover: rgba(255, 255, 255, 0.08);
+  --preview-bg: #232327;
+  --preview-line: rgba(255, 255, 255, 0.08);
+  --preview-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --plate-base: #1d1d21;
+  --plate-base-2: #141417;
+  --plate-mix-1: 42%;
+  --plate-mix-2: 16%;
+  --plate-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --overlay-fg: #f0f0f0;
+  --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.4);
+  --group-bg: rgba(255, 255, 255, 0.035);
+  --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%230b1020' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 html, body {
@@ -762,3 +795,68 @@ html, body {
   #scope-label { max-width: 96px; }
 }
 
+
+/* Frosted backdrop (settings page): a blurred picture of the page you were
+   on, behind everything (src/backdrop.js). One still layer, blurred once: a
+   live backdrop-filter slowed the window with many tabs (1.5.0). The tint
+   stays strong so text keeps its contrast over any page. */
+#backdrop { display: none; }
+:root[data-frost] #backdrop {
+  display: block;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+:root[data-frost] #backdrop::before {
+  content: "";
+  position: absolute;
+  inset: -48px;
+  background: var(--backdrop-image, none) center / cover no-repeat;
+  filter: blur(28px) saturate(1.5);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+:root[data-frost] #backdrop[data-place="page"]::before {
+  inset: auto;
+  left: var(--backdrop-x);
+  top: var(--backdrop-y);
+  width: var(--backdrop-w);
+  height: var(--backdrop-h);
+  background-size: 100% 100%;
+}
+:root[data-frost="on"] #backdrop::before { opacity: 1; }
+:root[data-frost] #backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--frost-tint);
+}
+:root[data-frost] body,
+:root[data-frost] #root { background: transparent; }
+:root[data-frost] {
+  --frost-tint: rgba(244, 244, 247, 0.76);
+  --group-bg: rgba(255, 255, 255, 0.5);
+  --surface: rgba(255, 255, 255, 0.66);
+  --surface-focus: rgba(255, 255, 255, 0.88);
+  --toolbar-bg: rgba(255, 255, 255, 0.3);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-frost]:not([data-appearance="light"]) {
+    --frost-tint: rgba(18, 18, 22, 0.72);
+    --group-bg: rgba(255, 255, 255, 0.06);
+    --surface: rgba(255, 255, 255, 0.08);
+    --surface-focus: rgba(255, 255, 255, 0.14);
+    --toolbar-bg: rgba(0, 0, 0, 0.14);
+  }
+}
+:root[data-frost][data-appearance="dark"] {
+  --frost-tint: rgba(18, 18, 22, 0.72);
+  --group-bg: rgba(255, 255, 255, 0.06);
+  --surface: rgba(255, 255, 255, 0.08);
+  --surface-focus: rgba(255, 255, 255, 0.14);
+  --toolbar-bg: rgba(0, 0, 0, 0.14);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-frost] #backdrop::before { transition: none; }
+}

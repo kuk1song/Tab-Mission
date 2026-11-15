@@ -241,6 +241,38 @@
     "message": "最近用过的 5 个标签页排在最前；接着，有两个或更多标签页的网站各占一个面板；其余的排在最后。切换标签页时，面板待在原处。",
     "description": "Settings page: one line under the group-by-site switch."
   },
+  "optionLookHeading": {
+    "message": "外观",
+    "description": "Settings page: heading of the appearance section."
+  },
+  "optionAppearance": {
+    "message": "浅色或深色",
+    "description": "Settings page: label of the light or dark choice."
+  },
+  "optionAppearanceNote": {
+    "message": "用于 Tab Mission 窗口。默认跟随系统，也可以在这里固定一种。",
+    "description": "Settings page: one line under the light or dark choice."
+  },
+  "optionAppearanceSystem": {
+    "message": "跟随系统",
+    "description": "Settings page: choice that follows the system appearance."
+  },
+  "optionAppearanceLight": {
+    "message": "浅色",
+    "description": "Settings page: choice for the light appearance."
+  },
+  "optionAppearanceDark": {
+    "message": "深色",
+    "description": "Settings page: choice for the dark appearance."
+  },
+  "optionFrosted": {
+    "message": "毛玻璃背景",
+    "description": "Settings page: label of the frosted backdrop switch."
+  },
+  "optionFrostedNote": {
+    "message": "在 Tab Mission 窗口后面垫一张你刚才所在页面的虚化图片。没有那个页面的图片时用纯色背景。",
+    "description": "Settings page: one line under the frosted backdrop switch."
+  },
   "optionHelpHeading": {
     "message": "帮助",
     "description": "Settings page: heading of the help section."

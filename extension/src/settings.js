@@ -16,6 +16,12 @@ const DEFAULTS = {
   // at any window size and number of tabs. Not "artMode":
   // updates delete that old key (background.js).
   groupBySite: true,
+  // 'system' follows the system's light or dark appearance; 'light' or
+  // 'dark' fixes it for the Tab Mission window (settings page).
+  appearance: 'system',
+  // Off by default: a blurred picture of the page you were on behind the
+  // Tab Mission window (backdrop.js).
+  frosted: false,
 };
 
 /**

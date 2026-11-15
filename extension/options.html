@@ -39,6 +39,30 @@
         </div>
       </section>
 
+      <section aria-labelledby="look-heading">
+        <h2 id="look-heading" data-i18n="optionLookHeading">Appearance</h2>
+        <div class="group">
+          <div class="row">
+            <div class="text">
+              <label class="title" for="appearance" data-i18n="optionAppearance">Light or dark</label>
+              <p id="appearance-note" class="desc" data-i18n="optionAppearanceNote">For the Tab Mission window. It follows your system unless you choose one here.</p>
+            </div>
+            <select id="appearance" class="select" aria-describedby="appearance-note">
+              <option value="system" data-i18n="optionAppearanceSystem">Follow the system</option>
+              <option value="light" data-i18n="optionAppearanceLight">Light</option>
+              <option value="dark" data-i18n="optionAppearanceDark">Dark</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="text">
+              <label class="title" for="frosted" data-i18n="optionFrosted">Frosted backdrop</label>
+              <p id="frosted-note" class="desc" data-i18n="optionFrostedNote">Behind the Tab Mission window, a blurred picture of the page you were on. Plain when there is no picture of that page.</p>
+            </div>
+            <input id="frosted" class="switch" type="checkbox" role="switch" aria-describedby="frosted-note" />
+          </div>
+        </div>
+      </section>
+
       <section aria-labelledby="help-heading">
         <h2 id="help-heading" data-i18n="optionHelpHeading">Help</h2>
         <div class="group">

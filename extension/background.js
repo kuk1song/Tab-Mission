@@ -268,10 +268,14 @@ function loaded(tabId) {
 
 // Opened with a click (the toolbar button or the welcome page's button), the
 // window may teach the shortcut (tips.js).
-function overviewPath(scope, source) {
+// The look chosen on the settings page rides in the address, so the window
+// has it before its first paint (src/look.js); the defaults add nothing.
+function overviewPath(scope, source, look = {}) {
 	const params = new URLSearchParams();
 	if (scope === 'site') params.set('scope', 'site');
 	if (source !== 'shortcut') params.set('via', 'click');
+	if (look.appearance === 'light' || look.appearance === 'dark') params.set('look', look.appearance);
+	if (look.frosted === true) params.set('frost', '1');
 	return params.size ? `overview.html?${params}` : 'overview.html';
 }
 
@@ -286,8 +290,9 @@ async function createOverviewWindow(scope, source) {
 
 		const bounds = await overviewBounds(displays, await getSavedOverviewBounds());
 
+		const look = await chrome.storage.local.get({ appearance: 'system', frosted: false }).catch(() => ({}));
 		const win = await chrome.windows.create({
-			url: chrome.runtime.getURL(overviewPath(scope, source)),
+			url: chrome.runtime.getURL(overviewPath(scope, source, look)),
 			type: 'popup',
 			...bounds,
 		});
