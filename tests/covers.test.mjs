@@ -18,7 +18,7 @@ function fakeChrome() {
     _tabs: tabs, _windows: windows,
     storage: {
       local: {
-        get: vi.fn(async (key) => (key in data ? { [key]: structuredClone(data[key]) } : {})),
+        get: vi.fn(async (keys) => Object.fromEntries([].concat(keys).filter((key) => key in data).map((key) => [key, structuredClone(data[key])]))),
         set: vi.fn(async (items) => { Object.assign(data, structuredClone(items)); }),
         remove: vi.fn(async (keys) => { for (const k of [].concat(keys)) delete data[k]; }),
       },
@@ -286,17 +286,17 @@ describe('covers', () => {
   });
 
   // A trial (src/host.js): the overview as a layer over the page in front.
-  it('takes no picture of a page while the overview is on it, takes one once it is off, and drops one that was on its way when it came', async () => {
+  it('takes no picture of a page while the overview shows on it, takes one once it is off, and drops one that was on its way when it came', async () => {
     const session = {};
     chrome.storage.session = { get: vi.fn(async (defaults) => ({ ...defaults, ...session })) };
     const tab = page(11);
-    session.overviewHost = { kind: 'page', tabId: 11, windowId: 1, at: Date.now() };
+    session.overviewHost = { kind: 'page', tabId: 11, windowId: 1, at: Date.now(), shown: Date.now() };
     switchTo(tab);
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
     expect(chrome.shots).toHaveLength(0);
     // The overview on another tab's page does not matter here; off this
     // one, the follow-up takes the picture that was due.
-    session.overviewHost = { kind: 'page', tabId: 12, windowId: 3, at: Date.now() };
+    session.overviewHost = { kind: 'page', tabId: 12, windowId: 3, at: Date.now(), shown: Date.now() };
     session.overlayLast = { tabId: 11, until: Date.now() };
     await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0]);
     expect(chrome.shots).toHaveLength(1);
@@ -334,6 +334,56 @@ describe('covers', () => {
     });
     await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
     expect(chrome.data['cover:11']).toBeUndefined();
+  });
+
+  // The overview's layer goes on the page unseen, as the key is pressed, and
+  // shows once the picture has been taken (src/host.js).
+  it('pictures the page under a layer that does not show yet, says when the picture is taken, and keeps it when the layer shows right then', async () => {
+    const session = {};
+    chrome.storage.session = { get: vi.fn(async (defaults) => ({ ...defaults, ...session })) };
+    show(page(11));
+    session.overviewHost = { kind: 'page', tabId: 11, windowId: 1, at: Date.now() };
+    const taken = vi.fn(() => {
+      if (taken.mock.calls.length > 1) return; // said again when all is done
+      // Stored only later: the picture is taken, not yet kept.
+      expect(chrome.shots).toHaveLength(1);
+      expect(chrome.data['cover:11']).toBeUndefined();
+      session.overviewHost.shown = Date.now();
+    });
+    await covers.coverFrontTab(taken);
+    expect(taken).toHaveBeenCalled();
+    expect(chrome.data['cover:11']).toEqual({ url: 'https://site.test/11', img: 'data:image/webp;base64,SMALL' });
+
+    // A layer that showed while Chrome took the picture may be in it: dropped.
+    await vi.advanceTimersByTimeAsync(covers.CAPTURE_GAP_MS);
+    show(page(21));
+    session.overviewHost = { kind: 'page', tabId: 21, windowId: 1, at: Date.now() };
+    chrome.tabs.captureVisibleTab.mockImplementationOnce(async (windowId) => {
+      chrome.shots.push({ windowId, at: Date.now() });
+      session.overviewHost.shown = Date.now();
+      await vi.advanceTimersByTimeAsync(5);
+      return 'data:image/jpeg;base64,RAW';
+    });
+    await covers.coverFrontTab();
+    expect(chrome.shots).toHaveLength(2);
+    expect(chrome.data['cover:21']).toBeUndefined();
+  });
+
+  it('says so at once when no picture of the front tab will be taken', async () => {
+    show(page(11, { url: 'chrome://settings/' }));
+    const taken = vi.fn();
+    await covers.coverFrontTab(taken);
+    expect(taken).toHaveBeenCalled();
+    expect(chrome.shots).toHaveLength(0);
+  });
+
+  it('reads the pictures of several tabs in one go: each tab\'s own, for the page it shows now', async () => {
+    chrome.data['cover:11'] = { url: 'https://site.test/11', img: 'data:image/webp;base64,A' };
+    chrome.data['cover:12'] = { url: 'https://site.test/elsewhere', img: 'data:image/webp;base64,B' };
+    chrome.data['cover:13'] = { url: 'https://site.test/13', img: 'data:image/webp;base64,C' };
+    const got = await covers.readCovers([page(11), page(12), page(13, { incognito: true }), page(14)]);
+    expect([...got]).toEqual([[11, 'data:image/webp;base64,A']]);
+    expect(await covers.readCovers([])).toEqual(new Map());
   });
 
   it('pictures the front tab at once for the shortcut and the toolbar button', async () => {

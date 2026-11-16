@@ -3,7 +3,7 @@ import { recordTryIt, startTips } from './src/tryit.js';
 import { coverFrontTab, startCovers, tidyCovers } from './src/covers.js';
 import { trackUnseenTabs } from './src/unseen.js';
 import { movePreviewsOfReplacedTabs } from './src/thumbnail.js';
-import { readHost, frontTab, openOnPage, claimOverlay, closeOverlay, hostTabRemoved, hostTabLeft, tellHost, dropHost } from './src/host.js';
+import { readHost, frontTab, openOnPage, claimOverlay, showOverlay, closeOverlay, hostTabRemoved, hostTabLeft, tellHost, dropHost } from './src/host.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -189,7 +189,7 @@ async function overviewBounds(displays, saved, cover = false, under = null) {
 // 'button' (the welcome page's button). A press that arrives while a toggle
 // is still running is dropped, so a double press during a service worker cold
 // start cannot open a second window.
-// pictured: the picture being taken of the page in front (coverFrontTab), if any.
+// pictured: resolves once the picture of the page in front has been taken (pictureFront), if one is.
 function toggleOverviewWindow(scope, source = 'shortcut', pictured = null) {
 	toggling ??= runToggle(scope, source, pictured).finally(() => {
 		toggling = null;
@@ -336,9 +336,17 @@ function overviewPath(scope, source, look = {}, extra = {}, page = 'overview.htm
 	return params.size ? `${page}?${params}` : page;
 }
 
-// How long opening on a page waits for the picture of the page in front:
-// the overview would be in a picture taken later.
+// How long the overview on a page stays unseen for the picture of the page
+// in front to be taken: it would be in a picture taken later.
 const PICTURE_WAIT_MS = 200;
+
+// The picture of the page in front, as a press takes it (covers.js):
+// resolves once it has been taken, or none will be.
+function pictureFront() {
+	return new Promise((resolve) => {
+		coverFrontTab(resolve);
+	});
+}
 
 // Open the overview: in a window of its own over the browser window, or,
 // with the cards spread out and the trial setting "Open as" at "tab strip in
@@ -355,7 +363,9 @@ async function openOverview(scope, source, pictured) {
 			under = front;
 			// Only web pages and files take a layer: no time is lost on the rest.
 			if (/^(https?|file):/.test(front.url || '')) {
-				if (pictured) await Promise.race([pictured, new Promise((resolve) => setTimeout(resolve, PICTURE_WAIT_MS))]);
+				// The layer goes on at once, unseen, and shows once the picture
+				// has been taken (src/host.js).
+				const clear = Promise.race([pictured ?? Promise.resolve(), new Promise((resolve) => setTimeout(resolve, PICTURE_WAIT_MS))]);
 				const pathFor = (extra, page) => overviewPath(scope, source, look, extra, page);
 				// A layer whose frame never shows up (src/host.js) is taken off and
 				// the window opened, unless a press is being handled just then.
@@ -364,7 +374,7 @@ async function openOverview(scope, source, pictured) {
 						toggling = null;
 					});
 				};
-				if (await openOnPage(front, pathFor, orElse)) return;
+				if (await openOnPage(front, pathFor, orElse, clear)) return;
 			}
 		}
 	}
@@ -411,16 +421,16 @@ movePreviewsOfReplacedTabs();
 chrome.commands.onCommand.addListener((command) => {
 	if (command === 'open-overview') {
 		recordTryIt('open');
-		toggleOverviewWindow(undefined, 'shortcut', coverFrontTab());
+		toggleOverviewWindow(undefined, 'shortcut', pictureFront());
 	} else if (command === 'open-overview-site') {
 		recordTryIt('open');
-		toggleOverviewWindow('site', 'shortcut', coverFrontTab());
+		toggleOverviewWindow('site', 'shortcut', pictureFront());
 	}
 });
 
 // Also listen for the browser action icon click to toggle.
 chrome.action.onClicked.addListener(() => {
-	toggleOverviewWindow(undefined, 'toolbar', coverFrontTab());
+	toggleOverviewWindow(undefined, 'toolbar', pictureFront());
 });
 
 // First install: open a short welcome page that shows the shortcut (or says
@@ -466,6 +476,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	// its token is taken here, and asks to be taken off when it is done.
 	if (request?.action === 'claimOverlay') {
 		claimOverlay(request.token, sender).then((ok) => sendResponse({ ok }), () => sendResponse({ ok: false }));
+		return true; // async response
+	}
+	if (request?.action === 'showOverlay') {
+		showOverlay(sender).then((ok) => sendResponse({ ok }), () => sendResponse({ ok: false }));
 		return true; // async response
 	}
 	if (request?.action === 'closeOverlay') {

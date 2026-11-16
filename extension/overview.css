@@ -547,6 +547,14 @@ html, body {
 .thumbnail.loaded {
   opacity: 1;
 }
+/* On its card from the first frame (thumbnail.js preloadCovers): no fade. */
+.thumbnail.loaded.ready { transition: none; }
+
+/* Until the first frame is ready (look.js, main.js), every entrance holds at
+   its start: the window and its cards, pictures on them, then come in as
+   one. */
+:root[data-wait] #root,
+:root[data-wait] #root * { animation-play-state: paused !important; }
 
 /* A picture of the page (covers.js): its top, where the page says what it is. */
 .thumbnail.cover {

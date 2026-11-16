@@ -7,6 +7,7 @@ import { readTryIt } from './tryit.js';
 import { showTip } from './tips.js';
 import { markInView, prepareSpreadEntrance } from './dom.js';
 import { showBackdrop } from './backdrop.js';
+import { preloadCovers, followCurrentCover } from './thumbnail.js';
 
 async function main() {
   const params = new URLSearchParams(location.search);
@@ -70,11 +71,13 @@ async function main() {
   if (gridEl) prepareSpreadEntrance(gridEl);
   markInView();
   const entrance = (gridEl?.getAnimations({ subtree: true }) ?? []).filter((a) => ENTRANCES.includes(a.animationName));
-  const after = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  Promise.race([
+  followCurrentCover();
+  // The entrance holds at its first frame (look.js, overview.css) until the
+  // cards in view have their pictures, and then plays as one.
+  firstFrame(gridEl).then(() => Promise.race([
     Promise.all([after(700), Promise.allSettled(entrance.map((a) => a.finished))]),
     after(2000),
-  ]).then(() => {
+  ])).then(() => {
     gridEl?.classList.remove('entering');
     // A tip, if one is due, once the cards have settled (tips.js). Opened
     // with the site shortcut, the tip names that key: pressed again, it too
@@ -86,6 +89,29 @@ async function main() {
   initializeEventListeners(Object.values(shortcuts));
   searchEl?.focus();
   return true;
+}
+
+const after = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// How long the first frame waits for the pictures of the cards in view, and,
+// on a page, for background.js to show the layer (src/host.js).
+const PICTURES_WAIT_MS = 100;
+const SHOW_WAIT_MS = 400;
+
+// Let the entrance go (look.js holds it): once the cards in view have their
+// pictures and, on a page, the layer shows. Late pictures fade in as ever.
+async function firstFrame(gridEl) {
+  try {
+    const tiles = gridEl ? [...gridEl.querySelectorAll('.tile.in-view')] : [];
+    await Promise.race([preloadCovers(tiles), after(PICTURES_WAIT_MS)]);
+    if (state.host === 'page') {
+      await Promise.race([chrome.runtime.sendMessage({ action: 'showOverlay' }).catch(() => {}), after(SHOW_WAIT_MS)]);
+    }
+  } catch {}
+  release();
+}
+
+function release() {
+  delete document.documentElement.dataset.wait;
 }
 
 async function claimFrame(params) {
@@ -149,6 +175,7 @@ function start() {
   main().then((shown) => {
     if (shown !== false) markReady();
   }, (error) => {
+    release();
     markReady();
     throw error;
   });

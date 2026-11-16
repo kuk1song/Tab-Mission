@@ -13,6 +13,11 @@
 // empty frame: the overview shows in a frame only with a token this worker
 // made for that tab moments before, and each token works once
 // (claimOverlay).
+//
+// The layer goes on unseen and lets clicks through, while its frame loads
+// and draws its cards. It shows once the frame asks (showOverlay) and the
+// picture of the page, taken as the key was pressed (covers.js), has been
+// taken: the overview would be in a picture taken later.
 
 const KEY = 'overviewHost';
 export const OVERLAY_PAGE = 'overlay.html';
@@ -23,6 +28,9 @@ export const MOUNT_WAIT_MS = 300;
 // after this time (the page does not let the frame load): the layer would
 // lie over the page, empty, and take its clicks.
 export const CLAIM_WAIT_MS = 1500;
+// A frame that was let in and has not asked to be shown after this time (it
+// broke on its way) is shown as it is.
+export const SHOW_WAIT_MS = 1000;
 // A press goes to an overview that opened this recently even before it
 // listens (the shortcut pressed twice quickly), asked again until it does.
 const FRESH_MS = 2000;
@@ -33,7 +41,8 @@ const OFF_MARGIN_MS = 1000;
 
 const after = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// { kind: 'page', tabId, windowId, at, token, claimed?, frameId? }
+// { kind: 'page', tabId, windowId, at, token, claimed?, frameId?, shown? }
+// (shown: when the layer was let show, Date.now())
 // or null. Kept in chrome.storage.session: it survives a service worker
 // restart, not a browser restart (tab ids are unique only within one
 // browser session).
@@ -68,8 +77,13 @@ export async function frontTab() {
 // take it (a browser page, a page that is busy or has not arrived): the
 // caller opens the window then. So does orElse, later, when the layer's
 // frame never shows up.
-export async function openOnPage(front, pathFor, orElse) {
+// clear: resolves once the layer may show (the picture of the page has been
+// taken, or none is being taken).
+let showing = null; // { token, clear }: the layer put on last, by this worker
+
+export async function openOnPage(front, pathFor, orElse, clear = null) {
   const token = crypto.randomUUID();
+  showing = { token, clear };
   await writeHost({ kind: 'page', tabId: front.id, windowId: front.windowId, at: Date.now(), token });
   const mounting = chrome.scripting.executeScript({
     target: { tabId: front.id },
@@ -102,6 +116,28 @@ export async function claimOverlay(token, sender) {
   if (host?.kind !== 'page' || host.claimed || !token || host.token !== token) return false;
   if (sender?.tab?.id !== host.tabId || Date.now() - host.at > TOKEN_MS) return false;
   await writeHost({ ...host, claimed: true, frameId: sender.frameId ?? null });
+  after(SHOW_WAIT_MS).then(() => reveal(token));
+  return true;
+}
+
+// The overview's frame has drawn its cards and asks to be shown: true once
+// the layer shows. Only the frame that was let in is heard.
+export async function showOverlay(sender) {
+  const host = await readHost();
+  if (host?.kind !== 'page' || !host.claimed || sender?.tab?.id !== host.tabId || (sender.frameId ?? null) !== host.frameId) return false;
+  return reveal(host.token);
+}
+
+async function reveal(token) {
+  if (showing?.token === token) await showing.clear;
+  const host = await readHost();
+  if (host?.token !== token || !host.claimed) return false; // taken off meanwhile
+  if (host.shown) return true;
+  // Noted first: a picture taken from now on could show the overview.
+  await writeHost({ ...host, shown: Date.now() });
+  try {
+    await chrome.scripting.executeScript({ target: { tabId: host.tabId }, injectImmediately: true, func: revealOverlay, args: [token] });
+  } catch {}
   return true;
 }
 
@@ -136,17 +172,17 @@ async function forgetHost(host) {
   try {
     await chrome.storage.session.set({
       [KEY]: null,
-      [LAST_KEY]: { tabId: host.tabId, until: Date.now() + OFF_MARGIN_MS },
+      ...(host?.shown ? { [LAST_KEY]: { tabId: host.tabId, until: Date.now() + OFF_MARGIN_MS } } : {}),
     });
   } catch {}
 }
 
-// Whether the overview was over this tab's page at any time since `since`
-// (Date.now()), or still is.
-export async function overlaidSince(tabId, since) {
+// Whether the overview showed over this tab's page at any time since
+// `since` (Date.now()) and before `before`, or still does.
+export async function overlaidSince(tabId, since, before = Infinity) {
   try {
     const { [KEY]: host, [LAST_KEY]: last } = await chrome.storage.session.get({ [KEY]: null, [LAST_KEY]: null });
-    if (host?.kind === 'page' && host.tabId === tabId) return true;
+    if (host?.kind === 'page' && host.tabId === tabId && host.shown && host.shown < before) return true;
     return last?.tabId === tabId && last.until >= since;
   } catch {
     return false;
@@ -193,7 +229,9 @@ export async function dropHost(host) {
 // whole view, above everything the page shows (the top layer, where the
 // page's own dialogs and full-screen elements are). Inside a closed shadow
 // root, so the page's styles do not reach the frame and its scripts cannot
-// read the frame's address. Nothing else of the page is touched.
+// read the frame's address. Nothing else of the page is touched. Unseen and
+// out of the pointer's way until revealOverlay; the keyboard is the
+// frame's from the start.
 function mountOverlay(path, token) {
   const KEY = '__tabMissionOverlay';
   globalThis[KEY]?.host.remove();
@@ -205,6 +243,7 @@ function mountOverlay(path, token) {
   style(host, {
     all: 'initial', position: 'fixed', inset: '0', width: '100%', height: '100%', 'max-width': 'none', 'max-height': 'none',
     margin: '0', padding: '0', border: '0', background: 'none', overflow: 'hidden', display: 'block', 'z-index': '2147483647',
+    opacity: '0', 'pointer-events': 'none',
   });
   const frame = document.createElement('iframe');
   frame.title = 'Tab Mission';
@@ -221,6 +260,13 @@ function mountOverlay(path, token) {
   } catch {}
   frame.focus({ preventScroll: true });
   return true;
+}
+
+function revealOverlay(token) {
+  const overlay = globalThis.__tabMissionOverlay;
+  if (!overlay || overlay.token !== token) return;
+  overlay.host.style.setProperty('opacity', '1', 'important');
+  overlay.host.style.setProperty('pointer-events', 'auto', 'important');
 }
 
 function unmountOverlay(token) {

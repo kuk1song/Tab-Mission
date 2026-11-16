@@ -43,7 +43,7 @@ const MAX_BYTES = 6 * 1024 * 1024; // of local storage's 10 MB
 // A card is under 300 px wide in the default window, about 360 px at most.
 const COVER_WIDTH = 640;
 
-const coverKey = (tabId) => `${COVER_PREFIX}${tabId}`;
+export const coverKey = (tabId) => `${COVER_PREFIX}${tabId}`;
 
 let shrink = shrinkImage;
 let nextSlot = 0; // the earliest time (performance.now) the next capture may start
@@ -162,11 +162,15 @@ function capturesLeft(tabId, now) {
 // The tab in front of you when you press the shortcut or click the toolbar
 // button: the one you are leaving, and so the likeliest one to come back to.
 // Captured at once, before Tab Mission's window can cover it or take focus.
-export async function coverFrontTab() {
+// taken: called once the picture has been taken (it is shrunk and stored a
+// moment later), or once it is clear that none will be.
+export async function coverFrontTab(taken) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true, windowType: 'normal' });
-    if (tab) await capture(tab.id, { front: true });
-  } catch {}
+    if (tab) await capture(tab.id, { front: true, taken });
+  } catch {} finally {
+    taken?.();
+  }
 }
 
 // A page that has not finished loading may not have painted yet, so the
@@ -184,7 +188,7 @@ function canCover(tab, loading = false) {
 // Chrome refused the capture or did not answer in time, or the overview
 // lies over the page (the follow-ups try again; an answer that comes later
 // is dropped).
-async function capture(tabId, { front = false, loading = false } = {}) {
+async function capture(tabId, { front = false, loading = false, taken = null } = {}) {
   await fileAccess();
   const tab = await chrome.tabs.get(tabId);
   if (!canCover(tab, loading)) return canCover(tab, true) ? 'loading' : false;
@@ -215,10 +219,13 @@ async function capture(tabId, { front = false, loading = false } = {}) {
     console.warn('Tab Mission: could not picture the tab:', error?.message ?? error);
     return 'failed';
   }
+  // From here on the overview may show on the page: it is not in this picture.
+  const got = Date.now();
+  taken?.();
   // Switched away, moved to another window or on to another page meanwhile:
   // the picture may show something else.
   if (!unchanged(await chrome.tabs.get(tabId))) return false;
-  if (await overlaidSince(tabId, asked)) return 'covered';
+  if (await overlaidSince(tabId, asked, got)) return 'covered';
   const img = await shrink(raw);
   if (!img) return 'blank';
   return update((index) => {
@@ -332,6 +339,22 @@ async function shrinkImage(dataUrl) {
 // The overview's side: the picture for a tab, if one was taken of the page
 // the tab shows now: its own, or one kept from before a restart (tidyCovers).
 let pictured = null; // the index, read once per page
+
+// The pictures these tabs have of their own, read in one go for the first
+// draw (thumbnail.js preloadCovers): a Map of tab id -> picture. A tab
+// without one is asked for on its own (readCover).
+export async function readCovers(tabs) {
+  const own = new Map();
+  try {
+    const wanted = tabs.filter((tab) => !tab.incognito);
+    const stored = wanted.length ? await chrome.storage.local.get(wanted.map((tab) => coverKey(tab.id))) : {};
+    for (const tab of wanted) {
+      const entry = stored[coverKey(tab.id)];
+      if (typeof entry?.img === 'string' && entry.url === tab.url) own.set(tab.id, entry.img);
+    }
+  } catch {}
+  return own;
+}
 
 export async function readCover(tab) {
   if (tab.incognito) return null;

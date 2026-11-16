@@ -582,13 +582,14 @@ describe('background.js', () => {
       chrome.storage.local.data.openAs = 'page';
       const { token } = await open();
       await message({ action: 'claimOverlay', token }, frame);
+      expect(await message({ action: 'showOverlay' }, frame)).toEqual({ ok: true });
       chrome.tabs.sendMessage.mockImplementation(async () => ({ ok: true }));
       await pressed('shortcut', () => expect(lastMessage()).toEqual([11, { action: 'handleShortcut', scope: undefined }]));
       await pressed('toolbar', () => expect(lastMessage()).toEqual([11, { action: 'closeOverview' }]));
-      expect(scripts()).toEqual(['mountOverlay']);
+      expect(scripts()).toEqual(['mountOverlay', 'revealOverlay']);
 
       tell({ action: 'closeOverlay' }, frame);
-      await vi.waitFor(() => expect(scripts()).toEqual(['mountOverlay', 'unmountOverlay']));
+      await vi.waitFor(() => expect(scripts()).toEqual(['mountOverlay', 'revealOverlay', 'unmountOverlay']));
       expect(chrome.scripting.executeScript.mock.calls.at(-1)[0]).toMatchObject({ target: { tabId: 11 }, args: [null] });
       expect(host()).toBeNull();
       expect(chrome.storage.session.data.overlayLast).toMatchObject({ tabId: 11 });
@@ -756,7 +757,74 @@ describe('background.js', () => {
       }
     });
 
-    it('on a page: a frame let in stays', async () => {
+    // The page in front can be pictured (src/covers.js), and Chrome takes its time.
+    const picturing = (capture) => {
+      Object.assign(front, { incognito: false });
+      chrome.windows._all.set(1, { id: 1, type: 'normal', focused: true, state: 'normal', tabs: [front] });
+      chrome.tabs.captureVisibleTab = vi.fn(capture);
+    };
+
+    it('on a page: the layer goes on at once, unseen, and shows when its frame asks, once the picture of the page has been taken', async () => {
+      chrome.storage.local.data.openAs = 'page';
+      let taken = null;
+      picturing(() => new Promise((resolve) => {
+        taken = () => resolve('data:image/jpeg;base64,RAW');
+      }));
+      // On, while the picture is still being taken.
+      const { token } = await open();
+      await vi.waitFor(() => expect(taken).not.toBeNull());
+      expect(host().shown).toBeUndefined();
+      // A frame not let in yet is not heard, nor is another frame later.
+      expect(await message({ action: 'showOverlay' }, frame)).toEqual({ ok: false });
+      await message({ action: 'claimOverlay', token }, frame);
+      expect(await message({ action: 'showOverlay' }, { tab: { id: 11 }, frameId: 9 })).toEqual({ ok: false });
+      const shown = message({ action: 'showOverlay' }, frame);
+      await handled();
+      expect(scripts()).toEqual(['mountOverlay']);
+      expect(host().shown).toBeUndefined();
+      taken();
+      expect(await shown).toEqual({ ok: true });
+      expect(scripts()).toEqual(['mountOverlay', 'revealOverlay']);
+      expect(chrome.scripting.executeScript.mock.calls.at(-1)[0]).toMatchObject({ target: { tabId: 11 }, args: [token] });
+      expect(host().shown).toBeGreaterThan(0);
+      // Asked again, it shows already: nothing more is done.
+      expect(await message({ action: 'showOverlay' }, frame)).toEqual({ ok: true });
+      expect(scripts()).toEqual(['mountOverlay', 'revealOverlay']);
+    });
+
+    it('on a page: a picture that takes long holds the layer back for 200 ms only', async () => {
+      chrome.storage.local.data.openAs = 'page';
+      picturing(() => new Promise(() => {}));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+      try {
+        press();
+        await vi.advanceTimersByTimeAsync(50);
+        const { token } = host();
+        expect(await message({ action: 'claimOverlay', token }, frame)).toEqual({ ok: true });
+        const shown = message({ action: 'showOverlay' }, frame);
+        await vi.advanceTimersByTimeAsync(100);
+        expect(scripts()).toEqual(['mountOverlay']);
+        await vi.advanceTimersByTimeAsync(100);
+        expect(await shown).toEqual({ ok: true });
+        expect(scripts()).toEqual(['mountOverlay', 'revealOverlay']);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('on a page: a layer taken off before it showed leaves no mark, and is not shown later', async () => {
+      chrome.storage.local.data.openAs = 'page';
+      const { token } = await open();
+      await message({ action: 'claimOverlay', token }, frame);
+      tell({ action: 'closeOverlay' }, frame);
+      await vi.waitFor(() => expect(scripts()).toEqual(['mountOverlay', 'unmountOverlay']));
+      expect(host()).toBeNull();
+      expect(chrome.storage.session.data.overlayLast).toBeUndefined();
+      expect(await message({ action: 'showOverlay' }, frame)).toEqual({ ok: false });
+      expect(scripts()).toEqual(['mountOverlay', 'unmountOverlay']);
+    });
+
+    it('on a page: a frame let in stays, and is shown after a second even if it never asks', async () => {
       chrome.storage.local.data.openAs = 'page';
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
       try {
@@ -764,10 +832,13 @@ describe('background.js', () => {
         await vi.advanceTimersByTimeAsync(100);
         const { token } = host();
         expect(await message({ action: 'claimOverlay', token }, frame)).toEqual({ ok: true });
-        await vi.advanceTimersByTimeAsync(3000);
-        expect(host()).toMatchObject({ kind: 'page', tabId: 11, claimed: true });
-        expect(chrome.windows.create).not.toHaveBeenCalled();
+        await vi.advanceTimersByTimeAsync(900);
         expect(scripts()).toEqual(['mountOverlay']);
+        await vi.advanceTimersByTimeAsync(2100);
+        expect(host()).toMatchObject({ kind: 'page', tabId: 11, claimed: true });
+        expect(host().shown).toBeGreaterThan(0);
+        expect(chrome.windows.create).not.toHaveBeenCalled();
+        expect(scripts()).toEqual(['mountOverlay', 'revealOverlay']);
       } finally {
         vi.useRealTimers();
       }
