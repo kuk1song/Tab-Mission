@@ -13,8 +13,15 @@ const SIXTEEN = [...EIGHT, ...EIGHT.map((id) => `${id}?again`)];
 
 // A window that fits the Windows runner's 1024 px screen. Six cards spread
 // out are all in view in it; sixteen are not (spread.test covers the sizes).
+// Spread out, the overview takes the place of the browser window, so that
+// window gets the size too.
+const SIZE = { width: 800, height: 600 };
 async function openWith(ext, settings) {
-  await ext.sw.evaluate((settings) => chrome.storage.local.set({ overviewBounds: { width: 800, height: 600 }, ...settings }), settings);
+  await ext.sw.evaluate(async ({ settings, size }) => {
+    await chrome.storage.local.set({ overviewBounds: size, ...settings });
+    const browser = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+    await chrome.windows.update(browser.id, { left: 0, top: 0, ...size });
+  }, { settings, size: SIZE });
   const page = await ext.open();
   await page.locator('#grid:not(.entering)').waitFor();
   return page;
@@ -125,6 +132,41 @@ test('spread out: every card in view, none on another, the previous tab first an
   await expect(page.locator('#grid .tile .meta-icon img')).toHaveCount(6);
   const lines = await page.locator('#grid .tile .title').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
   expect(Math.max(...lines)).toBeLessThanOrEqual(20);
+});
+
+test('spread out: the window takes the place of the browser window, its size is not remembered, and the toolbar is a search box in the middle', async ({ ext }) => {
+  await ext.openWindow(VISITED);
+  const page = await openWith(ext, { spread: true });
+  const bounds = ({ left, top, width, height }) => ({ left, top, width, height });
+  const browser = bounds(await ext.sw.evaluate(() => chrome.windows.getLastFocused({ windowTypes: ['normal'] })));
+  expect(bounds(await page.evaluate(() => chrome.windows.getCurrent()))).toEqual(browser);
+  expect(new URL(page.url()).searchParams.get('layout')).toBe('spread');
+
+  // The search box in the middle, the shortcut's badge inside it, no reset button.
+  const box = (selector) => page.locator(selector).evaluate((el) => el.getBoundingClientRect().toJSON());
+  const [field, root] = [await box('.search-field'), await box('#root')];
+  expect(Math.abs((field.left + field.right) / 2 - (root.left + root.right) / 2)).toBeLessThanOrEqual(1);
+  expect(field.width).toBeLessThanOrEqual(root.width - 40);
+  await expect(page.locator('.search-field #shortcut-hint kbd')).toBeVisible();
+  await expect(page.locator('#reset-window')).toBeHidden();
+  await expect(page.locator('#open-settings')).toBeVisible();
+  await expect(page.locator('#toggle-all-windows')).toBeVisible();
+  await expect(page.locator('#search')).toBeFocused();
+
+  // The entrance: the page you were on shrinks into its card from the whole
+  // area, the others come out of the middle; when it is over, every card is
+  // in its place, untransformed.
+  const current = page.locator('#grid .tile.from-page');
+  await expect(current).toHaveCount(1);
+  await expect(current.locator('.title')).toHaveText(await page.locator('#grid .tile .title').nth(1).textContent());
+  expect(Number(await current.evaluate((el) => el.style.getPropertyValue('--zoom')))).toBeGreaterThan(1.5);
+  expect(await page.locator('#grid .tile').evaluateAll((tiles) => tiles.map((tile) => getComputedStyle(tile).transform))).toEqual(VISITED.map(() => 'none'));
+
+  // A size given to it is not the one to come back to: the saved one stays.
+  await page.evaluate(() => chrome.windows.getCurrent().then((w) => chrome.windows.update(w.id, { width: 640, height: 480 })));
+  await expect.poll(() => page.evaluate(() => innerWidth)).toBeLessThanOrEqual(640);
+  await ext.pressToClose(page, 'Escape');
+  expect((await ext.sw.evaluate(() => chrome.storage.local.get('overviewBounds'))).overviewBounds).toEqual(SIZE);
 });
 
 test('spread out: arrows go by position, Enter switches to the selected tab', async ({ ext }) => {
@@ -369,6 +411,6 @@ test('settings page: light or dark, the backdrop and the spread-out switch save 
   await options.close();
 
   const page = await openWith(ext, {});
-  expect(await page.evaluate(() => ({ ...document.documentElement.dataset }))).toEqual({ appearance: 'light', backdrop: 'wallpaper', layout: 'spread' });
+  expect(await page.evaluate(() => ({ ...document.documentElement.dataset }))).toEqual({ appearance: 'light', backdrop: 'wallpaper', layout: 'spread', spread: '' });
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('light');
 });

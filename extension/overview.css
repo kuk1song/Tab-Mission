@@ -866,6 +866,76 @@ html, body {
 .grid.spread .meta-icon[data-icon="missing"] { display: none; }
 .grid.spread .preview:has(.thumbnail.loaded) .site-badge { display: none; }
 
+/* Their entrance, on the first draw: the cards come out of the middle of
+   the area (--cx, --cy: dom.js prepareSpreadEntrance), all at once, and the
+   page you were on shrinks from the whole area (--zoom) into its card, its
+   label showing once it is nearly there. Transform and opacity only. */
+.grid.spread.entering .tile.in-view {
+  animation: spreadOut 440ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  animation-delay: 0ms;
+}
+.grid.spread.entering .tile.in-view.from-page { animation-name: pageIn; z-index: 2; }
+.grid.spread.entering .tile.in-view.from-page .meta { animation: labelIn 440ms ease both; }
+@keyframes spreadOut {
+  from {
+    transform: translate(calc(var(--cx) - var(--x) - var(--w) / 2), calc(var(--cy) - var(--y) - var(--w) / 3.2)) scale(0.3);
+    opacity: 0;
+  }
+  40% { opacity: 1; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes pageIn {
+  from { transform: translate(calc(var(--cx) - var(--x) - var(--w) / 2), calc(var(--cy) - var(--y) - var(--w) / 3.2)) scale(var(--zoom, 1)); }
+  to { transform: none; }
+}
+@keyframes labelIn {
+  from, 60% { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Spread out (look.js sets data-spread before the first paint), the toolbar
+   is a search box alone in the middle, the shortcut's badge at its end
+   (main.js), with the view toggles and the settings button at the right, or
+   under it in a narrower window. No strip behind them: each has a backing
+   of its own (--control-bg), strong enough on a backdrop for its text. The
+   window follows the browser window (background.js), so the reset button
+   has nothing to put back. */
+:root[data-spread] { --control-bg: var(--surface); }
+:root[data-spread] .toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 34rem) minmax(0, 1fr);
+  gap: 8px 12px;
+  padding: 14px 20px 4px;
+  background: none;
+  border-bottom: none;
+}
+:root[data-spread] .search-field {
+  grid-column: 2;
+  padding: 0 10px 0 14px;
+  border-radius: 999px;
+  background: var(--control-bg);
+}
+:root[data-spread] #search { padding: 9px 4px; }
+:root[data-spread] .search-field #shortcut-hint { flex: none; margin-right: 0; }
+:root[data-spread] .toolbar-controls { grid-column: 3; flex-wrap: wrap; justify-content: flex-end; gap: 6px 8px; }
+:root[data-spread] .toolbar-toggles { justify-content: flex-end; }
+:root[data-spread] .toolbar-actions { margin-left: 0; }
+:root[data-spread] #reset-window { display: none; }
+:root[data-spread] .ctrl,
+:root[data-spread] .icon-btn,
+:root[data-spread] .toolbar.searching .ctrl:has(input:checked) { background: var(--control-bg); }
+:root[data-spread] .ctrl:hover,
+:root[data-spread] .icon-btn:hover { background: linear-gradient(var(--hover), var(--hover)), var(--control-bg); }
+:root[data-spread] .toolbar:not(.searching) .ctrl:has(input:checked) { background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--control-bg); }
+@container overview (width < 80rem) {
+  :root[data-spread] .toolbar { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  :root[data-spread] .search-field { grid-column: 1; box-sizing: border-box; width: min(100%, 34rem); }
+  :root[data-spread] .toolbar-controls { grid-column: 1; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grid.spread.entering .tile .meta { animation: none !important; }
+}
+
 /* Backdrop (settings page; src/look.js, src/backdrop.js): behind the cards, a
    blurred picture of the page you were on ("page") or colors of Tab
    Mission's own ("wallpaper"), under a tint of the window's background
@@ -927,10 +997,8 @@ html, body {
   --toolbar-bg: rgba(255, 255, 255, 0.3);
 }
 :root[data-backdrop="wallpaper"] { --backdrop-strength: 0.66; }
-:root[data-backdrop][data-layout="spread"] {
-  --backdrop-strength: 0.5;
-  --toolbar-bg: rgba(255, 255, 255, 0.8);
-}
+:root[data-backdrop][data-layout="spread"] { --backdrop-strength: 0.5; }
+:root[data-backdrop][data-spread] { --control-bg: rgba(255, 255, 255, 0.8); }
 @media (prefers-color-scheme: dark) {
   :root[data-backdrop]:not([data-appearance="light"]) {
     --wallpaper: radial-gradient(120% 90% at 20% 10%, #3b6fd6 0%, #1d3f9a 38%, #0c1f5c 70%, #071238 100%);
@@ -940,10 +1008,8 @@ html, body {
     --toolbar-bg: rgba(0, 0, 0, 0.14);
   }
   :root[data-backdrop="wallpaper"]:not([data-appearance="light"]) { --backdrop-strength: 0.68; }
-  :root[data-backdrop][data-layout="spread"]:not([data-appearance="light"]) {
-    --backdrop-strength: 0.42;
-    --toolbar-bg: rgba(18, 18, 22, 0.82);
-  }
+  :root[data-backdrop][data-layout="spread"]:not([data-appearance="light"]) { --backdrop-strength: 0.42; }
+  :root[data-backdrop][data-spread]:not([data-appearance="light"]) { --control-bg: rgba(18, 18, 22, 0.82); }
 }
 :root[data-backdrop][data-appearance="dark"] {
   --wallpaper: radial-gradient(120% 90% at 20% 10%, #3b6fd6 0%, #1d3f9a 38%, #0c1f5c 70%, #071238 100%);
@@ -953,10 +1019,8 @@ html, body {
   --toolbar-bg: rgba(0, 0, 0, 0.14);
 }
 :root[data-backdrop="wallpaper"][data-appearance="dark"] { --backdrop-strength: 0.68; }
-:root[data-backdrop][data-layout="spread"][data-appearance="dark"] {
-  --backdrop-strength: 0.42;
-  --toolbar-bg: rgba(18, 18, 22, 0.82);
-}
+:root[data-backdrop][data-layout="spread"][data-appearance="dark"] { --backdrop-strength: 0.42; }
+:root[data-backdrop][data-spread][data-appearance="dark"] { --control-bg: rgba(18, 18, 22, 0.82); }
 @media (prefers-reduced-motion: reduce) {
   :root[data-backdrop] #backdrop::before,
   :root[data-backdrop] #backdrop::after { transition: none; }

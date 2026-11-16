@@ -123,11 +123,29 @@ function fitInto(display, b) {
 	};
 }
 
+// Whether the cards are spread out (the setting, off by default). The
+// overview then takes the place of the browser window instead of a size and
+// spot of its own.
+async function spreadOut() {
+	try {
+		return (await chrome.storage.local.get({ spread: false })).spread === true;
+	} catch {
+		return false;
+	}
+}
+
 // Where the overview opens: on the browser's display, at the size the user
 // last chose (else the default size), centered, or at the spot the user last
-// chose when that spot is on this display.
-async function overviewBounds(displays, saved) {
-	const display = displayFor(displays, await lastFocusedBrowser());
+// chose when that spot is on this display. With cover (the cards spread
+// out): right over the browser window the user is working in, as large as
+// it, so the whole browser turns into the overview; without such a window,
+// as above.
+async function overviewBounds(displays, saved, cover = false) {
+	const browser = await lastFocusedBrowser();
+	const display = displayFor(displays, browser);
+	if (cover && browser?.width > 0 && browser?.height > 0) {
+		return fitInto(display, { left: browser.left, top: browser.top, width: browser.width, height: browser.height });
+	}
 	const bounds = displayBounds(display);
 	if (saved?.width && saved?.height) {
 		const c = centerOf(bounds);
@@ -276,6 +294,7 @@ function overviewPath(scope, source, look = {}) {
 	if (source !== 'shortcut') params.set('via', 'click');
 	if (look.appearance === 'light' || look.appearance === 'dark') params.set('look', look.appearance);
 	if (look.backdrop === 'page' || look.backdrop === 'wallpaper') params.set('backdrop', look.backdrop);
+	if (look.spread === true) params.set('layout', 'spread');
 	return params.size ? `overview.html?${params}` : 'overview.html';
 }
 
@@ -288,9 +307,9 @@ async function createOverviewWindow(scope, source) {
 			throw new Error('No display information found.');
 		}
 
-		const bounds = await overviewBounds(displays, await getSavedOverviewBounds());
+		const look = await chrome.storage.local.get({ appearance: 'system', backdrop: 'plain', spread: false }).catch(() => ({}));
+		const bounds = await overviewBounds(displays, await getSavedOverviewBounds(), look.spread === true);
 
-		const look = await chrome.storage.local.get({ appearance: 'system', backdrop: 'plain' }).catch(() => ({}));
 		const win = await chrome.windows.create({
 			url: chrome.runtime.getURL(overviewPath(scope, source, look)),
 			type: 'popup',
@@ -365,7 +384,7 @@ async function resetWindowBounds() {
 	if (!storedId) return;
 	const displays = await chrome.system.display.getInfo();
 	ignoreBoundsUntil = Date.now() + 1000;
-	await chrome.windows.update(storedId, await overviewBounds(displays, null));
+	await chrome.windows.update(storedId, await overviewBounds(displays, null, await spreadOut()));
 }
 
 // Not an async listener: Chrome keeps the response channel open only when the
@@ -389,6 +408,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 chrome.windows.onBoundsChanged.addListener(async (win) => {
 	const id = overviewWindowId ?? await getStoredOverviewWindowId();
 	if (win.id !== id || Date.now() < ignoreBoundsUntil) return;
+	// Spread out, the overview follows the browser window: a size given to
+	// it then is not the one to come back to.
+	if (await spreadOut()) return;
 	try {
 		await chrome.storage.local.set({
 			overviewBounds: { width: win.width, height: win.height, top: win.top, left: win.left },

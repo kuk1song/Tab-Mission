@@ -5,7 +5,7 @@ import { loadSettings } from './settings.js';
 import { localizeStaticText, t } from './i18n.js';
 import { readTryIt } from './tryit.js';
 import { showTip } from './tips.js';
-import { markInView } from './dom.js';
+import { markInView, prepareSpreadEntrance } from './dom.js';
 import { showBackdrop } from './backdrop.js';
 
 async function main() {
@@ -51,8 +51,9 @@ async function main() {
   const gridEl = document.getElementById('grid');
   gridEl?.classList.add('entering');
   handleFilterChange({ persist: false });
+  if (gridEl) prepareSpreadEntrance(gridEl);
   markInView();
-  const entrance = (gridEl?.getAnimations({ subtree: true }) ?? []).filter((a) => a.animationName === 'fadeInUp');
+  const entrance = (gridEl?.getAnimations({ subtree: true }) ?? []).filter((a) => ENTRANCES.includes(a.animationName));
   const after = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   Promise.race([
     Promise.all([after(700), Promise.allSettled(entrance.map((a) => a.finished))]),
@@ -69,6 +70,9 @@ async function main() {
   initializeEventListeners(Object.values(shortcuts));
   searchEl?.focus();
 }
+
+// The tiles' entrance animations (overview.css): in the grid, and spread out.
+const ENTRANCES = ['fadeInUp', 'spreadOut', 'pageIn'];
 
 // Each command's shortcut as shown on the badge and in tips, read when the
 // window opens, so a key changed at chrome://extensions/shortcuts shows the
@@ -96,6 +100,9 @@ function updateShortcutHint(rawShortcut) {
   const kbd = document.createElement('kbd');
   kbd.textContent = rawShortcut;
   hintEl.replaceChildren(label, kbd);
+  // Spread out, the toolbar is a search box alone in the middle (look.js,
+  // overview.css): the badge sits inside it, at its end.
+  if ('spread' in document.documentElement.dataset) document.querySelector('.search-field')?.append(hintEl);
 }
 
 // Presses that came while the window was loading act once main() is done

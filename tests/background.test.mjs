@@ -480,5 +480,39 @@ describe('background.js', () => {
       await chrome.listeners.onBoundsChanged({ id, left: 320, top: 125, width: 960, height: 750 });
       expect(chrome.storage.local.data.overviewBounds).toBeNull();
     });
+
+    describe('with the cards spread out (the setting)', () => {
+      const saved = { left: 30, top: 40, width: 900, height: 600 };
+      beforeEach(() => {
+        Object.assign(chrome.storage.local.data, { spread: true, overviewBounds: { ...saved } });
+      });
+
+      it('opens right over the browser window, as large as it, whatever size was saved, and says so in its address', async () => {
+        chrome._focused = { left: 100, top: 60, width: 1300, height: 820, state: 'normal' };
+        expect(await opened()).toEqual({ left: 100, top: 60, width: 1300, height: 820 });
+        expect(chrome.windows.create.mock.calls.at(-1)[0].url).toBe('chrome-extension://test/overview.html?layout=spread');
+      });
+
+      it('stays inside the work area when the browser window reaches past it', async () => {
+        chrome._focused = { left: -20, top: 0, width: 1700, height: 1100, state: 'normal' };
+        expect(await opened()).toEqual({ left: 0, top: 0, width: 1600, height: 1000 });
+      });
+
+      it('falls back to the saved size and spot without a browser window to cover', async () => {
+        chrome._focused = null;
+        expect(await opened()).toEqual(saved);
+      });
+
+      it('does not remember a size given to it, and reset puts it back over the browser window', async () => {
+        chrome._focused = { left: 100, top: 60, width: 1300, height: 820, state: 'normal' };
+        await opened();
+        const id = chrome.storage.session.data.overviewWindowId;
+        await chrome.listeners.onBoundsChanged({ id, left: 0, top: 0, width: 500, height: 400 });
+        expect(chrome.storage.local.data.overviewBounds).toEqual(saved);
+        const reply = await new Promise((resolve) => chrome.listeners.onMessage({ action: 'resetWindowBounds' }, {}, resolve));
+        expect(reply).toEqual({ ok: true });
+        expect(chrome.windows.update).toHaveBeenCalledWith(id, { left: 100, top: 60, width: 1300, height: 820 });
+      });
+    });
   });
 });

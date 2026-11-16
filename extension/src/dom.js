@@ -173,6 +173,23 @@ function placeTiles(nodes, tabs, boxes) {
   });
 }
 
+// The first draw of the cards spread out (main.js, before the entrance
+// plays): they come out of the middle of the area, and the page you were on
+// shrinks from the whole area into its card, as windows do in Mission
+// Control (overview.css: spreadOut, pageIn).
+export function prepareSpreadEntrance(gridEl) {
+  if (!state.spread) return;
+  const width = gridEl.offsetWidth;
+  const height = gridEl.offsetHeight;
+  gridEl.style.setProperty('--cx', `${width / 2}px`);
+  gridEl.style.setProperty('--cy', `${height / 2}px`);
+  const box = state.spread.boxes[state.filteredTabs.findIndex((tab) => tab.id === state.currentTabId)];
+  const tile = box && document.getElementById(`tile-${state.currentTabId}`);
+  if (!tile) return;
+  tile.classList.add('from-page');
+  tile.style.setProperty('--zoom', Math.min(width / box.w, height / box.h).toFixed(3));
+}
+
 // Mark the tiles and group labels in the grid's view, the only ones worth
 // animating: with hundreds of tabs, animating all of them cost a long frame.
 // Every position is read before any class is written, so this takes one
