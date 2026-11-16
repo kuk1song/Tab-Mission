@@ -24,6 +24,30 @@ test('a page without a picture shows its site icon on a plate in the icon\'s col
   expect(await red.locator('.title').textContent()).toBe(PAGES.red.title);
 });
 
+test('the cards come in with their pictures on them: the entrance waits for the pictures, which do not fade in', async ({ ext, context }) => {
+  const { tabIds } = await ext.openWindow(['beta', 'gamma']);
+  await expect.poll(() => ext.sw.evaluate((key) => chrome.storage.local.get(key).then((r) => r[key]?.url ?? null), `cover:${tabIds.gamma}`), { timeout: 10_000 }).toBe(ext.url('gamma'));
+  // Noted in the window itself, at the moment the entrance is let go: the
+  // cards whose pictures are on them, decoded.
+  await context.addInitScript(() => {
+    if (location.pathname !== '/overview.html') return;
+    new MutationObserver((_, observer) => {
+      const root = document.documentElement;
+      if (!root || 'wait' in root.dataset) return;
+      observer.disconnect();
+      window.picturedAtStart = [...document.querySelectorAll('.thumbnail.cover.loaded.ready')]
+        .filter((img) => img.complete && img.naturalWidth > 0)
+        .map((img) => Number(img.closest('.tile').dataset.tabId));
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-wait'] });
+  });
+  const page = await ext.open();
+  await expect(page.locator('html')).not.toHaveAttribute('data-wait');
+  expect(await page.evaluate(() => window.picturedAtStart)).toContain(tabIds.gamma);
+  const picture = tile(page, tabIds.gamma).locator('.thumbnail');
+  expect(await picture.evaluate((img) => [getComputedStyle(img).opacity, getComputedStyle(img).transitionDuration])).toEqual(['1', '0s']);
+  await expect(tile(page, tabIds.gamma).locator('.preview-icon')).toBeHidden();
+});
+
 test('a card with a picture shows the site icon on its corner, and the selected card a ring around its picture', async ({ ext }) => {
   const { tabIds } = await ext.openWindow(['beta', 'gamma']);
   await expect.poll(() => ext.sw.evaluate((key) => chrome.storage.local.get(key).then((r) => r[key]?.url ?? null), `cover:${tabIds.gamma}`), { timeout: 10_000 }).toBe(ext.url('gamma'));

@@ -48,6 +48,13 @@ test.describe('on the page in front', () => {
     const windows = await ext.sw.evaluate(() => chrome.windows.getAll().then((all) => all.length));
     const frame = await openOn(ext, page);
     expect(ext.overviewPages()).toEqual([]);
+    // Put on unseen, the layer shows by now, and takes the pointer.
+    expect(await page.evaluate(() => {
+      const layer = document.documentElement.lastElementChild.style;
+      return [layer.getPropertyValue('opacity'), layer.getPropertyValue('pointer-events')];
+    })).toEqual(['1', 'auto']);
+    expect((await host(ext)).shown).toBeGreaterThan(0);
+    await expect(frame.locator('html')).not.toHaveAttribute('data-wait');
     expect(await ext.sw.evaluate(() => chrome.windows.getAll().then((all) => all.length))).toBe(windows);
     expect((await tabsOf(ext, windowId)).length).toBe(VISITED.length);
     expect(await host(ext)).toMatchObject({ kind: 'page', tabId: tabIds.gamma, claimed: true });
