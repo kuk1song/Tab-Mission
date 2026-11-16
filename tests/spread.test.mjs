@@ -93,6 +93,31 @@ describe('spreadLayout: the cards spread out', () => {
     expect(boxes[0].y + boxes[0].h / 2).toBeLessThan(AREA[1] * 0.7);
   });
 
+  it('keeps every card between the side margins, whatever the window and the number of cards', () => {
+    const SIDE = 34; // left and right of the rows (spread.js)
+    // Tall and narrow with a card or two: the height would let the first
+    // card be wider than the area.
+    for (const [count, width, height] of [[1, 305, 371], [2, 305, 438], [1, 1092, 1443], [3, 500, 1400]]) {
+      const { boxes, scrolls } = spreadLayout(count, width, height);
+      expect(scrolls).toBe(false);
+      for (const box of boxes) {
+        expect(box.x).toBeGreaterThanOrEqual(SIDE - 0.01);
+        expect(box.x + box.w).toBeLessThanOrEqual(width - SIDE + 0.01);
+      }
+    }
+    for (let width = 80; width <= 2600; width += 97) {
+      for (let height = 60; height <= 1500; height += 131) {
+        for (const count of [1, 2, 3, 5, 8, 13, 40, 150]) {
+          const { boxes } = spreadLayout(count, width, height);
+          expect(boxes).toHaveLength(count);
+          const left = Math.min(...boxes.map((b) => b.x));
+          const right = Math.max(...boxes.map((b) => b.x + b.w));
+          expect([count, width, height, left >= SIDE - 0.01, right <= width - SIDE + 0.01]).toEqual([count, width, height, true, true]);
+        }
+      }
+    }
+  });
+
   it('shrinks the cards to keep them all in view, down to their smallest; from there the rows go on below', () => {
     for (const area of [AREA, UPRIGHT, [1600, 900], [500, 700]]) {
       let scrolling = false;

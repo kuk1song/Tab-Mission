@@ -122,8 +122,11 @@ export function spreadLayout(count, width, height) {
     rows = even(floorRows.length);
   } else {
     // In view: evenly filled rows, as many of them as make the pictures
-    // largest (the first of equals, so fewer rows), no larger than the cap.
-    const cap = Math.max(areaH * MAX_UNIT, floorUnit);
+    // largest (the first of equals, so fewer rows), no larger than the cap:
+    // a share of the height, and never so large that the first card, the
+    // widest, alone in its row is wider than the area (a tall, narrow
+    // window with a card or two).
+    const cap = Math.min(Math.max(areaH * MAX_UNIT, floorUnit), 1 / need(0, 1));
     let best = null;
     while (starts.length <= count) {
       const r = oneMoreRow();
