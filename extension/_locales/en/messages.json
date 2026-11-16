@@ -47,14 +47,6 @@
     "message": "Show all windows",
     "description": "Label for the 'Show all windows' checkbox."
   },
-  "showAllWindowsShort": {
-    "message": "All windows",
-    "description": "Toggle in the Tab Mission window, short form of \"Show all windows\"."
-  },
-  "showSleepingShort": {
-    "message": "Sleeping",
-    "description": "Toggle in the Tab Mission window, short form of \"Show sleeping\"."
-  },
   "changeShortcutTitle": {
     "message": "Change shortcut",
     "description": "Button that opens chrome://extensions/shortcuts."
@@ -316,46 +308,6 @@
   "optionCardSizesEqual": {
     "message": "All the same size",
     "description": "Card sizes choice: every card has the same size."
-  },
-  "optionToolbar": {
-    "message": "The two switches at the top",
-    "description": "Label of a choice on the settings page: how the two switches at the top of the Tab Mission window look when the cards are spread out."
-  },
-  "optionToolbarLabels": {
-    "message": "Full words",
-    "description": "Switches choice: each shows its full words."
-  },
-  "optionToolbarShort": {
-    "message": "Short words",
-    "description": "Switches choice: each shows a short word."
-  },
-  "optionToolbarIcons": {
-    "message": "Icons only",
-    "description": "Switches choice: each is an icon without words."
-  },
-  "optionOpenAs": {
-    "message": "Open as (trial)",
-    "description": "Label of a choice on the settings page, a trial: where Tab Mission shows when the cards are spread out."
-  },
-  "optionOpenAsNote": {
-    "message": "With the cards spread out. \"On the page in front\" works on web pages; on other pages, and when a page does not answer, the window opens.",
-    "description": "Explanation under the open-as choice."
-  },
-  "optionOpenAsWindow": {
-    "message": "A window over the browser",
-    "description": "Open-as choice: a window of its own that covers the browser window."
-  },
-  "optionOpenAsFullscreen": {
-    "message": "A full-screen window",
-    "description": "Open-as choice: a window of its own that fills the screen."
-  },
-  "optionOpenAsTab": {
-    "message": "A tab in the browser window",
-    "description": "Open-as choice: a tab in the browser window you are in."
-  },
-  "optionOpenAsPage": {
-    "message": "On the page in front",
-    "description": "Open-as choice: a layer over the web page in front of you."
   },
   "optionHelpHeading": {
     "message": "Help",

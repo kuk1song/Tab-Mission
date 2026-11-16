@@ -9,13 +9,7 @@
   // the middle from the first paint (overview.css).
   if (params.get('layout') === 'spread') {
     document.documentElement.dataset.spread = '';
-    // The two switches beside it, as chosen: with short words, or as icons.
-    const bar = params.get('bar');
-    if (bar === 'short' || bar === 'icons') document.documentElement.dataset.bar = bar;
   }
-  // A trial (src/host.js): the overview as a tab, or in a frame on a page.
-  const host = params.get('host');
-  if (host === 'tab' || host === 'page') document.documentElement.dataset.host = host;
   // 'page' shows once backdrop.js has the picture (overview.css). People
   // who ask their system for less transparency or more contrast, or use
   // forced colors, keep the plain background.

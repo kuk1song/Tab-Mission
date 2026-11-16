@@ -194,27 +194,9 @@ test('spread out, cards all the same size (the setting): one size for every card
   expect(await page.locator('#grid .tile').evaluateAll((tiles) => tiles.map((tile) => getComputedStyle(tile).transform))).toEqual(EIGHT.map(() => 'none'));
 });
 
-// The two switches at the top, as chosen on the settings page: their full
-// words (above), a short word each, or an icon each.
-test('spread out, the two switches with short words (the setting): each shows its short word, its full words as a tooltip, and works', async ({ ext }) => {
+test('spread out, the two switches are icons: round buttons with their words for screen readers and as tooltips, a ring when on', async ({ ext }) => {
   await ext.openWindow(VISITED);
-  const page = await openWith(ext, { spread: true, toolbar: 'short' });
-  expect(new URL(page.url()).searchParams.get('bar')).toBe('short');
-  const words = await page.evaluate(() => ['showAllWindowsShort', 'showSleepingShort', 'showAllWindowsLabel', 'showSleepingLabel'].map((key) => chrome.i18n.getMessage(key)));
-  await expect(page.locator('.ctrl span')).toHaveText(words.slice(0, 2));
-  expect(await page.locator('.ctrl').evaluateAll((labels) => labels.map((label) => label.title))).toEqual(words.slice(2));
-  await expect(page.locator('.ctrl-icon').first()).toBeHidden();
-  await expect(page.locator('#toggle-all-windows')).toBeVisible();
-  await page.locator('.ctrl:has(#toggle-all-windows)').click();
-  await expect(page.locator('#toggle-all-windows')).toBeChecked();
-  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('showAllWindows'))).toEqual({ showAllWindows: true });
-  await expect(page.locator('#search')).toBeFocused();
-});
-
-test('spread out, the two switches as icons (the setting): round buttons with their words for screen readers and as tooltips, a ring when on', async ({ ext }) => {
-  await ext.openWindow(VISITED);
-  const page = await openWith(ext, { spread: true, toolbar: 'icons' });
-  expect(new URL(page.url()).searchParams.get('bar')).toBe('icons');
+  const page = await openWith(ext, { spread: true });
   const words = await page.evaluate(() => ['showAllWindowsLabel', 'showSleepingLabel'].map((key) => chrome.i18n.getMessage(key)));
   expect(await page.locator('.ctrl').evaluateAll((labels) => labels.map((label) => label.title))).toEqual(words);
   const look = () => page.locator('.ctrl').evaluateAll((labels) => labels.map((label) => {
@@ -248,14 +230,15 @@ test('spread out, the two switches as icons (the setting): round buttons with th
   }
 });
 
-test('the grid keeps its toolbar and its window whatever the spread-out settings say', async ({ ext }) => {
+test('the grid keeps its toolbar whatever the spread-out settings say', async ({ ext }) => {
   await ext.openWindow(VISITED);
-  const page = await openWith(ext, { spread: false, toolbar: 'icons', cardSizes: 'equal', openAs: 'page' });
-  expect(new URL(page.url()).search).not.toContain('bar');
-  expect(new URL(page.url()).search).not.toContain('host');
+  const page = await openWith(ext, { spread: false, cardSizes: 'equal' });
+  expect(new URL(page.url()).searchParams.get('layout')).toBeNull();
   expect(await page.evaluate(() => ({ ...document.documentElement.dataset }))).toEqual({});
-  expect(await page.evaluate(() => chrome.windows.getCurrent().then((win) => win.type))).toBe('popup');
   for (const shown of ['#toggle-all-windows', '#toggle-sleeping', '#open-settings', '#reset-window']) await expect(page.locator(shown)).toBeVisible();
+  // Its switches show their words, and no icon or tooltip.
+  await expect(page.locator('.ctrl span')).toHaveText(await page.evaluate(() => ['showAllWindowsLabel', 'showSleepingLabel'].map((key) => chrome.i18n.getMessage(key))));
+  expect(await page.locator('.ctrl span').evaluateAll((texts) => texts.every((text) => text.getBoundingClientRect().width > 20))).toBe(true);
   await expect(page.locator('.ctrl-icon').first()).toBeHidden();
   expect(await page.locator('.ctrl').evaluateAll((labels) => labels.map((label) => label.title))).toEqual(['', '']);
 });
@@ -426,7 +409,7 @@ for (const appearance of ['light', 'dark']) {
     page = await openWith(ext, { backdrop: 'wallpaper', appearance, spread: true });
     const tint = () => page.evaluate(() => Number(getComputedStyle(document.getElementById('backdrop'), '::after').opacity));
     await expect.poll(tint).toBeLessThanOrEqual(0.5);
-    const spread = await worstContrast(page, { title: '.tile:not(.selected) .title', selected: '.tile.selected .title', toggle: '.ctrl span', hint: '#shortcut-hint kbd', placeholder: '#search' });
+    const spread = await worstContrast(page, { title: '.tile:not(.selected) .title', selected: '.tile.selected .title', toggle: '.ctrl-icon', hint: '#shortcut-hint kbd', placeholder: '#search' });
     expect(Object.keys(spread)).toHaveLength(5);
     for (const [kind, ratio] of Object.entries(spread)) expect(ratio, `spread out, ${kind}`).toBeGreaterThanOrEqual(4.5);
   });
