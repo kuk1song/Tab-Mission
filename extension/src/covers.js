@@ -1,5 +1,5 @@
 // covers.js
-import { isCapturableUrl } from './utils.js';
+import { isPicturableUrl } from './utils.js';
 
 // Covers: a picture of a web page, taken while it was in front of you, shown
 // on its card. The service worker takes one with chrome.tabs.captureVisibleTab
@@ -50,6 +50,19 @@ let writes = Promise.resolve(); // storage updates, one at a time
 const timers = new Map(); // tab id to its pending capture
 const budgets = new Map(); // tab id to { left, at }: captures left at that time (performance.now)
 let closing = null; // ids of tabs closed since the last storage update
+// Local files are pictured too once you turn on "Allow access to file URLs"
+// for Tab Mission on Chrome's extensions page (off unless you do; Chrome
+// refuses to capture them otherwise). Asked once per start of the worker.
+let files = false;
+let asked = null;
+function fileAccess() {
+  asked ??= (async () => {
+    try {
+      files = (await chrome.extension?.isAllowedFileSchemeAccess?.()) === true;
+    } catch {}
+  })();
+  return asked;
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -66,6 +79,7 @@ function within(ms, promise) {
 // pass their own shrink, since images cannot be decoded outside a browser.
 export function startCovers(options = {}) {
   shrink = options.shrink ?? shrinkImage;
+  fileAccess();
   chrome.tabs.onActivated.addListener(({ tabId }) => schedule(tabId));
   chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
     if (tab.active && (change.status === 'complete' || change.url)) scheduleChange(tabId);
@@ -160,7 +174,7 @@ export async function coverFrontTab() {
 // stored (shrinkImage).
 function canCover(tab, loading = false) {
   const ready = tab?.status === 'complete' || (loading && tab?.status === 'loading');
-  return Boolean(tab?.active && ready && !tab.incognito && isCapturableUrl(tab.url));
+  return Boolean(tab?.active && ready && !tab.incognito && isPicturableUrl(tab.url, files));
 }
 
 // Resolves true when a picture was stored, and 'loading', 'blank' or
@@ -169,6 +183,7 @@ function canCover(tab, loading = false) {
 // refused the capture or did not answer in time (the follow-ups try again;
 // an answer that comes later is dropped).
 async function capture(tabId, { front = false, loading = false } = {}) {
+  await fileAccess();
   const tab = await chrome.tabs.get(tabId);
   if (!canCover(tab, loading)) return canCover(tab, true) ? 'loading' : false;
   // The same page, still in front in the same window.

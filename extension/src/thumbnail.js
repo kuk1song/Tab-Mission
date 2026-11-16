@@ -1,6 +1,6 @@
 // thumbnail.js
 import { state } from './state.js';
-import { getHostname, isCapturableUrl, isLocalHost, isSleeping, faviconUrl, dominantColor } from './utils.js';
+import { getHostname, isCapturableUrl, isPicturableUrl, isLocalHost, isSleeping, faviconUrl, dominantColor } from './utils.js';
 import { readCover } from './covers.js';
 
 // Preview image URLs are cached in chrome.storage.session (kept in memory and
@@ -101,7 +101,7 @@ async function loadThumbnail(tab, tile) {
   tile.dataset.thumb = 'done';
   const img = tile.querySelector('.thumbnail');
   // Pages we cannot read keep their icon card (a letter on a color).
-  if (!img || !isCapturableUrl(tab.url)) return;
+  if (!img || !isPicturableUrl(tab.url, true)) return;
 
   // A picture of the page as you last saw it (covers.js) says more than the
   // image the page declares for itself, and needs nothing from the tab, so
@@ -117,6 +117,8 @@ async function loadThumbnail(tab, tile) {
     img.src = cover;
     return;
   }
+  // A local file has only the picture taken of it, if any (covers.js).
+  if (!isCapturableUrl(tab.url)) return;
   tintIcon(tab, tile.querySelector('.preview'));
   // An incognito tab's page is never read and its images never loaded from
   // here (this window belongs to the normal profile, with its cache and

@@ -260,6 +260,31 @@ describe('covers', () => {
     expect(Object.keys(chrome.data)).toEqual([]);
   });
 
+  it('pictures a local file only when Chrome allows Tab Mission access to file addresses', async () => {
+    const file = page(21, { url: 'file:///Users/me/notes.html' });
+    switchTo(file);
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
+    expect(chrome.shots).toHaveLength(0);
+    expect(await covers.readCover(file)).toBeNull();
+
+    // Allowed (the switch on Chrome's extensions page): asked once per start.
+    vi.resetModules();
+    chrome = fakeChrome();
+    chrome.extension = { isAllowedFileSchemeAccess: vi.fn(async () => true) };
+    vi.stubGlobal('chrome', chrome);
+    covers = await import('../extension/src/covers.js');
+    covers.startCovers({ shrink: (shot) => shrinkImpl(shot) });
+    switchTo(file);
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS);
+    expect(chrome.shots).toHaveLength(1);
+    expect(await covers.readCover(file)).toBe('data:image/webp;base64,SMALL');
+    // Browser pages stay out, allowed or not.
+    switchTo(page(22, { url: 'chrome://settings/' }));
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
+    expect(chrome.shots).toHaveLength(1);
+    expect(chrome.extension.isAllowedFileSchemeAccess).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps Chrome\'s limit of two captures a second', async () => {
     chrome._windows.set(3, { id: 3, type: 'normal', focused: true, state: 'normal' });
     switchTo(page(11));
