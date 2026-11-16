@@ -285,6 +285,37 @@ describe('covers', () => {
     expect(chrome.extension.isAllowedFileSchemeAccess).toHaveBeenCalledTimes(1);
   });
 
+  // A trial (src/host.js): the overview as a layer over the page in front.
+  it('takes no picture of a page while the overview is on it, takes one once it is off, and drops one that was on its way when it came', async () => {
+    const session = {};
+    chrome.storage.session = { get: vi.fn(async (defaults) => ({ ...defaults, ...session })) };
+    const tab = page(11);
+    session.overviewHost = { kind: 'page', tabId: 11, windowId: 1, at: Date.now() };
+    switchTo(tab);
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
+    expect(chrome.shots).toHaveLength(0);
+    // The overview on another tab's page does not matter here; off this
+    // one, the follow-up takes the picture that was due.
+    session.overviewHost = { kind: 'page', tabId: 12, windowId: 3, at: Date.now() };
+    session.overlayLast = { tabId: 11, until: Date.now() };
+    await vi.advanceTimersByTimeAsync(covers.FOLLOW_UP_MS[0]);
+    expect(chrome.shots).toHaveLength(1);
+    expect(await covers.readCover(tab)).toBe('data:image/webp;base64,SMALL');
+
+    // The overview comes, and goes again, while Chrome takes the picture.
+    const other = page(21);
+    switchTo(other);
+    session.overviewHost = null;
+    chrome.tabs.captureVisibleTab.mockImplementationOnce(async (windowId) => {
+      chrome.shots.push({ windowId, at: Date.now() });
+      session.overlayLast = { tabId: 21, until: Date.now() };
+      return 'data:image/jpeg;base64,RAW';
+    });
+    await vi.advanceTimersByTimeAsync(covers.SETTLE_MS + covers.CAPTURE_GAP_MS);
+    expect(chrome.shots).toHaveLength(2);
+    expect(await covers.readCover(other)).toBeNull();
+  });
+
   it('keeps Chrome\'s limit of two captures a second', async () => {
     chrome._windows.set(3, { id: 3, type: 'normal', focused: true, state: 'normal' });
     switchTo(page(11));

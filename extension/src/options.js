@@ -12,14 +12,8 @@ async function main() {
   const backdrop = document.getElementById('backdrop');
   const spread = document.getElementById('spread');
   const cardSizes = document.getElementById('card-sizes');
-  const searchOnly = document.getElementById('search-only');
-  const showAllWindows = document.getElementById('show-all-windows');
-  const showSleeping = document.getElementById('show-sleeping');
-  // The two switches of Tab Mission's toolbar are here while it shows only
-  // the search box (spread out, with that setting on).
-  const placeSwitches = () => {
-    for (const row of document.querySelectorAll('[data-search-only]')) row.hidden = !(spread.checked && searchOnly.checked);
-  };
+  const toolbar = document.getElementById('toolbar');
+  const openAs = document.getElementById('open-as');
   try {
     localizeStaticText();
     const { version } = chrome.runtime.getManifest();
@@ -32,23 +26,19 @@ async function main() {
     backdrop.value = ['page', 'wallpaper'].includes(settings.backdrop) ? settings.backdrop : 'plain';
     spread.checked = settings.spread === true;
     cardSizes.value = settings.cardSizes === 'equal' ? 'equal' : 'recent';
-    searchOnly.checked = settings.searchOnly === true;
-    showAllWindows.checked = settings.showAllWindows === true;
-    showSleeping.checked = settings.showSleeping === true;
-    placeSwitches();
+    toolbar.value = ['short', 'icons'].includes(settings.toolbar) ? settings.toolbar : 'labels';
+    openAs.value = ['fullscreen', 'tab', 'page'].includes(settings.openAs) ? settings.openAs : 'window';
   } finally {
     reveal(preselect);
   }
   // Each switch saves at once; the switch shows the new state and screen
   // readers also hear "Saved."
-  for (const [input, key] of [[preselect, 'preselectPrevious'], [groupBySite, 'groupBySite'], [spread, 'spread'], [showTips, 'showTips'],
-    [searchOnly, 'searchOnly'], [showAllWindows, 'showAllWindows'], [showSleeping, 'showSleeping']]) {
+  for (const [input, key] of [[preselect, 'preselectPrevious'], [groupBySite, 'groupBySite'], [spread, 'spread'], [showTips, 'showTips']]) {
     input.addEventListener('change', async () => {
-      placeSwitches();
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
     });
   }
-  for (const [select, key] of [[appearance, 'appearance'], [backdrop, 'backdrop'], [cardSizes, 'cardSizes']]) {
+  for (const [select, key] of [[appearance, 'appearance'], [backdrop, 'backdrop'], [cardSizes, 'cardSizes'], [toolbar, 'toolbar'], [openAs, 'openAs']]) {
     select.addEventListener('change', async () => {
       if (await saveSettings({ [key]: select.value })) announce(t('optionSaved') || 'Saved.');
     });

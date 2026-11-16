@@ -239,6 +239,20 @@ html, body {
   border-color: var(--accent);
   background: var(--accent) var(--check) center / 11px no-repeat;
 }
+/* A switch's icon, shown only when the switches are icons (spread out, the
+   setting; further down). */
+.ctrl-icon {
+  display: none;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
 
 /* While a query is typed, results span every window and sleeping tab, so
    the toggles do not apply: they turn grey to say so, without the tint and
@@ -921,8 +935,53 @@ html, body {
 :root[data-spread] .toolbar-toggles { justify-content: flex-end; }
 :root[data-spread] .toolbar-actions { margin-left: 0; }
 :root[data-spread] #reset-window { display: none; }
-/* Only the search box (the setting): the switches are on the settings page. */
-:root[data-bar="search"] .toolbar-controls { display: none; }
+/* The two switches as icons (the setting): round buttons the size of the
+   settings button, which is round with them. On, a switch has a ring and a
+   tint, and its icon the accent color, so its state is not shown by color
+   alone. Its words stay for screen readers, and show as its tooltip
+   (main.js). */
+:root[data-bar="icons"] .ctrl,
+:root[data-bar="icons"] .icon-btn { border-radius: 50%; }
+:root[data-bar="icons"] .ctrl {
+  position: relative;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1.5px solid transparent;
+  color: var(--muted);
+}
+:root[data-bar="icons"] .ctrl:hover { color: var(--fg); }
+:root[data-bar="icons"] .ctrl-icon { display: block; }
+:root[data-bar="icons"] .ctrl input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  opacity: 0;
+}
+:root[data-bar="icons"] .ctrl span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+:root[data-bar="icons"] .ctrl:has(input:checked) { border-color: var(--accent); color: var(--accent); }
+:root[data-bar="icons"] .toolbar.searching .ctrl:has(input:checked) { border-color: var(--muted); color: var(--muted); }
+/* High contrast: on, a switch is filled with the system's highlight color
+   (!important: over the tints above, which the system would not show). */
+@media (forced-colors: active) {
+  :root[data-bar="icons"] .ctrl:has(input:checked) {
+    forced-color-adjust: none;
+    border-color: Highlight !important;
+    background: Highlight !important;
+    color: HighlightText !important;
+  }
+}
 :root[data-spread] .ctrl,
 :root[data-spread] .icon-btn,
 :root[data-spread] .toolbar.searching .ctrl:has(input:checked) { background: var(--control-bg); }
@@ -937,6 +996,10 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .grid.spread.entering .tile .meta { animation: none !important; }
 }
+/* In a frame on a page (a trial, src/host.js): scrolling the cards to their
+   end does not go on to scroll the page under them. */
+:root[data-host="page"],
+:root[data-host="page"] body { overscroll-behavior: none; }
 
 /* Backdrop (settings page; src/look.js, src/backdrop.js): behind the cards, a
    blurred picture of the page you were on ("page") or colors of Tab

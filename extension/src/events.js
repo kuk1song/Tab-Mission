@@ -58,7 +58,7 @@ export function initializeEventListeners(commandShortcuts = []) {
         chrome.runtime.openOptionsPage().catch(() => {});
       } finally {
         // Immediately close the overview for a smooth UX
-        closeOverview();
+        closeOverview({ back: false });
       }
     });
   }
@@ -121,6 +121,8 @@ const ready = new Promise((resolve) => {
 export { markReady };
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // A frame that was not let in (main.js) is no overview: it answers nothing.
+  if (state.host === 'refused') return;
   if (request?.action === 'closeOverview') {
     sendResponse({ ok: true });
     closeOverview();
@@ -300,7 +302,9 @@ export function activateTab(tab, tile = document.querySelector(`#grid .tile[data
   // the meantime just fails quietly.
   chrome.tabs.update(tab.id, { active: true }).catch(() => {});
   chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
-  closeOverview();
+  // As a tab, the overview's window shows the chosen tab now, or, when that
+  // tab is in another window, goes back to the tab the user was on.
+  closeOverview({ back: tab.windowId !== state.currentWindowId });
 }
 
 export async function closeTab(tab) {
@@ -440,11 +444,27 @@ function prefersReducedMotion() {
 // selected, the toolbar button, the gear), fades the whole window at once:
 // the panels and the toolbar leave with the tiles, and quicker than they
 // came in.
-function closeOverview() {
+// back (as a tab only): the browser window goes back to the tab the user was on.
+function closeOverview({ back = true } = {}) {
   if (prefersReducedMotion()) {
-    window.close();
+    leave(back);
     return;
   }
   (document.getElementById('root') || document.body).classList.add('closing');
-  setTimeout(() => window.close(), 150);
+  setTimeout(() => leave(back), 150);
+}
+
+// The overview goes: its window closes; as a tab (a trial, src/host.js),
+// its tab closes, after the tab to go back to is in front (Chrome would
+// pick a neighbor); on a page, background.js takes its frame off.
+function leave(back) {
+  if (state.host === 'page') {
+    chrome.runtime.sendMessage({ action: 'closeOverlay' }).catch(() => {});
+    return;
+  }
+  if (state.host === 'tab' && back && state.currentTabId !== null) {
+    chrome.tabs.update(state.currentTabId, { active: true }).catch(() => {}).finally(() => window.close());
+    return;
+  }
+  window.close();
 }

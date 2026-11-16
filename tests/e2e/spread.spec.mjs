@@ -194,53 +194,70 @@ test('spread out, cards all the same size (the setting): one size for every card
   expect(await page.locator('#grid .tile').evaluateAll((tiles) => tiles.map((tile) => getComputedStyle(tile).transform))).toEqual(EIGHT.map(() => 'none'));
 });
 
-test('spread out, only the search box at the top (the setting): the two switches are on the settings page and apply to the next window', async ({ ext, context }) => {
-  const { windowId } = await ext.openWindow(VISITED);
-  const page = await openWith(ext, { spread: true, searchOnly: true });
-  expect(new URL(page.url()).searchParams.get('bar')).toBe('search');
-  await expect(page.locator('.search-field')).toBeVisible();
-  await expect(page.locator('.search-field #shortcut-hint kbd')).toBeVisible();
-  for (const hidden of ['#toggle-all-windows', '#toggle-sleeping', '#open-settings', '#reset-window']) await expect(page.locator(hidden)).toBeHidden();
-  const box = (selector) => page.locator(selector).evaluate((el) => el.getBoundingClientRect().toJSON());
-  const [field, root] = [await box('.search-field'), await box('#root')];
-  expect(Math.abs((field.left + field.right) / 2 - (root.left + root.right) / 2)).toBeLessThanOrEqual(1);
-  await expect(page.locator('#search')).toBeFocused();
-  const own = await page.locator('#grid .tile').count();
-  expect(own).toBe(VISITED.length);
-  await ext.pressToClose(page, 'Escape');
-
-  // The settings page has the two switches while the window does not.
-  const options = await context.newPage();
-  await options.goto(`chrome-extension://${new URL(ext.sw.url()).host}/options.html`);
-  await expect(options.locator('#search-only')).toBeChecked();
-  await expect(options.locator('#show-all-windows')).toBeVisible();
-  await expect(options.locator('#show-all-windows')).not.toBeChecked();
-  await expect(options.locator('#show-sleeping')).toBeVisible();
-  await options.locator('label[for="show-all-windows"]').click();
+// The two switches at the top, as chosen on the settings page: their full
+// words (above), a short word each, or an icon each.
+test('spread out, the two switches with short words (the setting): each shows its short word, its full words as a tooltip, and works', async ({ ext }) => {
+  await ext.openWindow(VISITED);
+  const page = await openWith(ext, { spread: true, toolbar: 'short' });
+  expect(new URL(page.url()).searchParams.get('bar')).toBe('short');
+  const words = await page.evaluate(() => ['showAllWindowsShort', 'showSleepingShort', 'showAllWindowsLabel', 'showSleepingLabel'].map((key) => chrome.i18n.getMessage(key)));
+  await expect(page.locator('.ctrl span')).toHaveText(words.slice(0, 2));
+  expect(await page.locator('.ctrl').evaluateAll((labels) => labels.map((label) => label.title))).toEqual(words.slice(2));
+  await expect(page.locator('.ctrl-icon').first()).toBeHidden();
+  await expect(page.locator('#toggle-all-windows')).toBeVisible();
+  await page.locator('.ctrl:has(#toggle-all-windows)').click();
+  await expect(page.locator('#toggle-all-windows')).toBeChecked();
   await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('showAllWindows'))).toEqual({ showAllWindows: true });
-  // Turned off, they go back to the window.
-  await options.locator('label[for="search-only"]').click();
-  await expect(options.locator('#show-all-windows')).toBeHidden();
-  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('searchOnly'))).toEqual({ searchOnly: false });
-  await options.locator('label[for="search-only"]').click();
-  await expect(options.locator('#show-all-windows')).toBeVisible();
-  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('searchOnly'))).toEqual({ searchOnly: true });
-  await options.close();
-
-  // The next window shows the tabs of every window, still with the search box alone.
-  await ext.sw.evaluate((id) => chrome.windows.update(id, { focused: true }), windowId);
-  await expect.poll(() => ext.sw.evaluate(() => chrome.windows.getLastFocused({ windowTypes: ['normal'] }).then((w) => w.id))).toBe(windowId);
-  const next = await openWith(ext, {});
-  await expect(next.locator('#toggle-all-windows')).toBeHidden();
-  expect(await next.locator('#grid .tile').count()).toBeGreaterThan(own);
+  await expect(page.locator('#search')).toBeFocused();
 });
 
-test('the grid keeps its toolbar whatever the spread-out settings say', async ({ ext }) => {
+test('spread out, the two switches as icons (the setting): round buttons with their words for screen readers and as tooltips, a ring when on', async ({ ext }) => {
   await ext.openWindow(VISITED);
-  const page = await openWith(ext, { spread: false, searchOnly: true, cardSizes: 'equal' });
+  const page = await openWith(ext, { spread: true, toolbar: 'icons' });
+  expect(new URL(page.url()).searchParams.get('bar')).toBe('icons');
+  const words = await page.evaluate(() => ['showAllWindowsLabel', 'showSleepingLabel'].map((key) => chrome.i18n.getMessage(key)));
+  expect(await page.locator('.ctrl').evaluateAll((labels) => labels.map((label) => label.title))).toEqual(words);
+  const look = () => page.locator('.ctrl').evaluateAll((labels) => labels.map((label) => {
+    const r = label.getBoundingClientRect();
+    const text = label.querySelector('span').getBoundingClientRect();
+    const icon = label.querySelector('.ctrl-icon').getBoundingClientRect();
+    return { width: r.width, height: r.height, text: Math.max(text.width, text.height), icon: icon.width, ring: getComputedStyle(label).borderTopColor };
+  }));
+  const before = await look();
+  for (const button of before) expect(button).toMatchObject({ width: 30, height: 30, text: 1, icon: 16 });
+  // The settings button is the same size, in the same row.
+  const boxes = await page.locator('.ctrl, #open-settings').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON()));
+  expect(boxes.map((box) => [box.width, box.height])).toEqual([[30, 30], [30, 30], [30, 30]]);
+  expect(new Set(boxes.map((box) => Math.round(box.top))).size).toBe(1);
+  // Named by their words, they work with a click and with the keyboard.
+  const allWindows = page.getByRole('checkbox', { name: words[0] });
+  const sleeping = page.getByRole('checkbox', { name: words[1] });
+  await expect(allWindows).not.toBeChecked();
+  await page.locator('.ctrl:has(#toggle-all-windows)').click();
+  await expect(allWindows).toBeChecked();
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('showAllWindows'))).toEqual({ showAllWindows: true });
+  await sleeping.focus();
+  await page.keyboard.press('Space');
+  await expect(sleeping).toBeChecked();
+  // On, each has a ring it did not have.
+  await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('.ctrl')].some((el) => el.getAnimations().length))).toBe(false);
+  const after = await look();
+  for (const [i, button] of after.entries()) {
+    expect(before[i].ring).toBe('rgba(0, 0, 0, 0)');
+    expect(button.ring).not.toBe(before[i].ring);
+  }
+});
+
+test('the grid keeps its toolbar and its window whatever the spread-out settings say', async ({ ext }) => {
+  await ext.openWindow(VISITED);
+  const page = await openWith(ext, { spread: false, toolbar: 'icons', cardSizes: 'equal', openAs: 'page' });
   expect(new URL(page.url()).search).not.toContain('bar');
+  expect(new URL(page.url()).search).not.toContain('host');
   expect(await page.evaluate(() => ({ ...document.documentElement.dataset }))).toEqual({});
+  expect(await page.evaluate(() => chrome.windows.getCurrent().then((win) => win.type))).toBe('popup');
   for (const shown of ['#toggle-all-windows', '#toggle-sleeping', '#open-settings', '#reset-window']) await expect(page.locator(shown)).toBeVisible();
+  await expect(page.locator('.ctrl-icon').first()).toBeHidden();
+  expect(await page.locator('.ctrl').evaluateAll((labels) => labels.map((label) => label.title))).toEqual(['', '']);
 });
 
 test('spread out: arrows go by position, Enter switches to the selected tab', async ({ ext }) => {

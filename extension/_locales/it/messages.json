@@ -47,6 +47,14 @@
     "message": "Mostra tutte le finestre",
     "description": "Label for the 'Show all windows' checkbox."
   },
+  "showAllWindowsShort": {
+    "message": "Tutte le finestre",
+    "description": "Toggle in the Tab Mission window, short form of \"Show all windows\"."
+  },
+  "showSleepingShort": {
+    "message": "Inattive",
+    "description": "Toggle in the Tab Mission window, short form of \"Show sleeping\"."
+  },
   "changeShortcutTitle": {
     "message": "Modifica scorciatoia",
     "description": "Button that opens chrome://extensions/shortcuts."
@@ -309,13 +317,45 @@
     "message": "Tutte uguali",
     "description": "Card sizes choice: every card has the same size."
   },
-  "optionSearchOnly": {
-    "message": "Solo la casella di ricerca in alto",
-    "description": "Label of a switch on the settings page: Tab Mission shows only its search box above the cards."
+  "optionToolbar": {
+    "message": "I due interruttori in alto",
+    "description": "Label of a choice on the settings page: how the two switches at the top of the Tab Mission window look when the cards are spread out."
   },
-  "optionSearchOnlyNote": {
-    "message": "Con le schede sparpagliate. I due interruttori passano in questa pagina. Per aprirla, fai clic con il tasto destro sull'icona di Tab Mission nella barra degli strumenti e scegli Opzioni.",
-    "description": "Explanation under the search-box-only switch. \"Options\" is the item in Chrome's menu for an extension's toolbar icon."
+  "optionToolbarLabels": {
+    "message": "Parole intere",
+    "description": "Switches choice: each shows its full words."
+  },
+  "optionToolbarShort": {
+    "message": "Parole brevi",
+    "description": "Switches choice: each shows a short word."
+  },
+  "optionToolbarIcons": {
+    "message": "Solo icone",
+    "description": "Switches choice: each is an icon without words."
+  },
+  "optionOpenAs": {
+    "message": "Apri come (prova)",
+    "description": "Label of a choice on the settings page, a trial: where Tab Mission shows when the cards are spread out."
+  },
+  "optionOpenAsNote": {
+    "message": "Con le schede sparpagliate. «Sulla pagina in primo piano» funziona sulle pagine web; sulle altre pagine, e quando una pagina non risponde, si apre la finestra.",
+    "description": "Explanation under the open-as choice."
+  },
+  "optionOpenAsWindow": {
+    "message": "Una finestra sopra il browser",
+    "description": "Open-as choice: a window of its own that covers the browser window."
+  },
+  "optionOpenAsFullscreen": {
+    "message": "Una finestra a schermo intero",
+    "description": "Open-as choice: a window of its own that fills the screen."
+  },
+  "optionOpenAsTab": {
+    "message": "Una scheda nella finestra del browser",
+    "description": "Open-as choice: a tab in the browser window you are in."
+  },
+  "optionOpenAsPage": {
+    "message": "Sulla pagina in primo piano",
+    "description": "Open-as choice: a layer over the web page in front of you."
   },
   "optionHelpHeading": {
     "message": "Aiuto",

@@ -47,6 +47,14 @@
     "message": "显示所有窗口",
     "description": "Label for the 'Show all windows' checkbox."
   },
+  "showAllWindowsShort": {
+    "message": "所有窗口",
+    "description": "Toggle in the Tab Mission window, short form of \"Show all windows\"."
+  },
+  "showSleepingShort": {
+    "message": "休眠",
+    "description": "Toggle in the Tab Mission window, short form of \"Show sleeping\"."
+  },
   "changeShortcutTitle": {
     "message": "更改快捷键",
     "description": "Button that opens chrome://extensions/shortcuts."
@@ -309,13 +317,45 @@
     "message": "一样大",
     "description": "Card sizes choice: every card has the same size."
   },
-  "optionSearchOnly": {
-    "message": "顶上只留搜索框",
-    "description": "Label of a switch on the settings page: Tab Mission shows only its search box above the cards."
+  "optionToolbar": {
+    "message": "顶上的两个开关",
+    "description": "Label of a choice on the settings page: how the two switches at the top of the Tab Mission window look when the cards are spread out."
   },
-  "optionSearchOnlyNote": {
-    "message": "卡片散开时生效。两个开关挪到这一页。要打开这一页，右键点击工具栏上的 Tab Mission 图标，选“选项”。",
-    "description": "Explanation under the search-box-only switch. \"Options\" is the item in Chrome's menu for an extension's toolbar icon."
+  "optionToolbarLabels": {
+    "message": "完整文字",
+    "description": "Switches choice: each shows its full words."
+  },
+  "optionToolbarShort": {
+    "message": "短文字",
+    "description": "Switches choice: each shows a short word."
+  },
+  "optionToolbarIcons": {
+    "message": "只有图标",
+    "description": "Switches choice: each is an icon without words."
+  },
+  "optionOpenAs": {
+    "message": "打开方式（试用）",
+    "description": "Label of a choice on the settings page, a trial: where Tab Mission shows when the cards are spread out."
+  },
+  "optionOpenAsNote": {
+    "message": "卡片散开时生效。“铺在当前网页上”只在普通网页上可用；在其他页面上，或网页没有响应时，照旧打开窗口。",
+    "description": "Explanation under the open-as choice."
+  },
+  "optionOpenAsWindow": {
+    "message": "盖住浏览器的窗口",
+    "description": "Open-as choice: a window of its own that covers the browser window."
+  },
+  "optionOpenAsFullscreen": {
+    "message": "全屏窗口",
+    "description": "Open-as choice: a window of its own that fills the screen."
+  },
+  "optionOpenAsTab": {
+    "message": "浏览器窗口里的一个标签页",
+    "description": "Open-as choice: a tab in the browser window you are in."
+  },
+  "optionOpenAsPage": {
+    "message": "铺在当前网页上",
+    "description": "Open-as choice: a layer over the web page in front of you."
   },
   "optionHelpHeading": {
     "message": "帮助",
