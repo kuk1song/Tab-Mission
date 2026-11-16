@@ -71,6 +71,35 @@
             </div>
             <input id="spread" class="switch" type="checkbox" role="switch" aria-describedby="spread-note" />
           </div>
+          <div class="row">
+            <div class="text">
+              <label class="title" for="card-sizes" data-i18n="optionCardSizes">Card sizes</label>
+              <p id="card-sizes-note" class="desc" data-i18n="optionCardSizesNote">With the cards spread out.</p>
+            </div>
+            <select id="card-sizes" class="select" aria-describedby="card-sizes-note">
+              <option value="recent" data-i18n="optionCardSizesRecent">Used last, larger</option>
+              <option value="equal" data-i18n="optionCardSizesEqual">All the same size</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="text">
+              <label class="title" for="search-only" data-i18n="optionSearchOnly">Only the search box at the top</label>
+              <p id="search-only-note" class="desc" data-i18n="optionSearchOnlyNote">With the cards spread out. The two switches move to this page. To open this page, right-click Tab Mission's toolbar icon and choose Options.</p>
+            </div>
+            <input id="search-only" class="switch" type="checkbox" role="switch" aria-describedby="search-only-note" />
+          </div>
+          <div class="row" data-search-only hidden>
+            <div class="text">
+              <label class="title" for="show-all-windows" data-i18n="showAllWindowsLabel">Show all windows</label>
+            </div>
+            <input id="show-all-windows" class="switch" type="checkbox" role="switch" />
+          </div>
+          <div class="row" data-search-only hidden>
+            <div class="text">
+              <label class="title" for="show-sleeping" data-i18n="showSleepingLabel">Show sleeping</label>
+            </div>
+            <input id="show-sleeping" class="switch" type="checkbox" role="switch" />
+          </div>
         </div>
       </section>
 

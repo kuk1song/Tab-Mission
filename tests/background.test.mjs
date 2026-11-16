@@ -493,6 +493,13 @@ describe('background.js', () => {
         expect(chrome.windows.create.mock.calls.at(-1)[0].url).toBe('chrome-extension://test/overview.html?layout=spread');
       });
 
+      it('says in the address when only the search box is wanted at the top, spread out only', async () => {
+        chrome._focused = { left: 100, top: 60, width: 1300, height: 820, state: 'normal' };
+        chrome.storage.local.data.searchOnly = true;
+        await opened();
+        expect(chrome.windows.create.mock.calls.at(-1)[0].url).toBe('chrome-extension://test/overview.html?layout=spread&bar=search');
+      });
+
       it('stays inside the work area when the browser window reaches past it', async () => {
         chrome._focused = { left: -20, top: 0, width: 1700, height: 1100, state: 'normal' };
         expect(await opened()).toEqual({ left: 0, top: 0, width: 1600, height: 1000 });

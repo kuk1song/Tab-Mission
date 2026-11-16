@@ -293,6 +293,30 @@
     "message": "The tabs you used last are larger, and every tab is in view at once while they fit. With more tabs, scroll down for the rest.",
     "description": "Explanation under the spread-out switch."
   },
+  "optionCardSizes": {
+    "message": "Card sizes",
+    "description": "Label of a choice on the settings page: how large the cards are when spread out."
+  },
+  "optionCardSizesNote": {
+    "message": "With the cards spread out.",
+    "description": "Explanation under the card sizes choice."
+  },
+  "optionCardSizesRecent": {
+    "message": "Used last, larger",
+    "description": "Card sizes choice: the tabs used most recently are larger."
+  },
+  "optionCardSizesEqual": {
+    "message": "All the same size",
+    "description": "Card sizes choice: every card has the same size."
+  },
+  "optionSearchOnly": {
+    "message": "Only the search box at the top",
+    "description": "Label of a switch on the settings page: Tab Mission shows only its search box above the cards."
+  },
+  "optionSearchOnlyNote": {
+    "message": "With the cards spread out. The two switches move to this page. To open this page, right-click Tab Mission's toolbar icon and choose Options.",
+    "description": "Explanation under the search-box-only switch. \"Options\" is the item in Chrome's menu for an extension's toolbar icon."
+  },
   "optionHelpHeading": {
     "message": "Help",
     "description": "Settings page: heading of the help section."

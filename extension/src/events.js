@@ -178,7 +178,7 @@ function readUiState() {
 // fade-in (a scale) leaves alone, and do not count a scrollbar.
 function spreadArea() {
   const gridEl = document.getElementById('grid');
-  return gridEl ? { width: gridEl.offsetWidth, height: gridEl.offsetHeight } : null;
+  return gridEl ? { width: gridEl.offsetWidth, height: gridEl.offsetHeight, equal: state.spreadEqual } : null;
 }
 
 

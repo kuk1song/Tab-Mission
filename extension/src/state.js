@@ -20,6 +20,7 @@ export const state = {
   groups: null,
   columns: 0, // tiles per row the groups were made for (0: not measured)
   spreadOut: false, // mirrors the setting "spread"
+  spreadEqual: false, // the setting "cardSizes" is 'equal': spread out, one size for all
   // With spreadOut: where each of filteredTabs goes ({ boxes, height,
   // scrolls }, spread.js), else null and the grid shows them.
   spread: null,
@@ -141,7 +142,7 @@ export function applyFilters(uiState) {
   // Spread out (the setting, off by default): the cards in recent order,
   // placed for the area uiState.spread gives, every one in view while they
   // fit. It takes the place of the grid and its groups.
-  state.spread = uiState.spread ? spreadLayout(tabs.length, uiState.spread.width, uiState.spread.height) : null;
+  state.spread = uiState.spread ? spreadLayout(tabs.length, uiState.spread.width, uiState.spread.height, { equal: uiState.spread.equal === true }) : null;
   state.groups = null;
   state.columns = uiState.columns || 0;
   if (!state.spread && uiState.groupBySite && !searching && !state.siteHost) {

@@ -32,6 +32,7 @@ async function main() {
   state.preselectPrevious = settings.preselectPrevious;
   state.groupBySite = settings.groupBySite;
   state.spreadOut = settings.spread === true;
+  state.spreadEqual = settings.cardSizes === 'equal';
 
   // Opened by the "current site" shortcut: show only this site's tabs.
   if (params.get('scope') === 'site') {

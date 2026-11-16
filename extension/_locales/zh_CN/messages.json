@@ -293,6 +293,30 @@
     "message": "越近用过的标签页越大；放得下时，所有标签页一眼看全。放不下时，向下滚动看其余的。",
     "description": "Explanation under the spread-out switch."
   },
+  "optionCardSizes": {
+    "message": "卡片大小",
+    "description": "Label of a choice on the settings page: how large the cards are when spread out."
+  },
+  "optionCardSizesNote": {
+    "message": "卡片散开时生效。",
+    "description": "Explanation under the card sizes choice."
+  },
+  "optionCardSizesRecent": {
+    "message": "越近用过的越大",
+    "description": "Card sizes choice: the tabs used most recently are larger."
+  },
+  "optionCardSizesEqual": {
+    "message": "一样大",
+    "description": "Card sizes choice: every card has the same size."
+  },
+  "optionSearchOnly": {
+    "message": "顶上只留搜索框",
+    "description": "Label of a switch on the settings page: Tab Mission shows only its search box above the cards."
+  },
+  "optionSearchOnlyNote": {
+    "message": "卡片散开时生效。两个开关挪到这一页。要打开这一页，右键点击工具栏上的 Tab Mission 图标，选“选项”。",
+    "description": "Explanation under the search-box-only switch. \"Options\" is the item in Chrome's menu for an extension's toolbar icon."
+  },
   "optionHelpHeading": {
     "message": "帮助",
     "description": "Settings page: heading of the help section."

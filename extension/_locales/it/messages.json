@@ -293,6 +293,30 @@
     "message": "Le schede usate per ultime sono più grandi e, finché ci stanno, sono tutte in vista. Con più schede, scorri verso il basso per le altre.",
     "description": "Explanation under the spread-out switch."
   },
+  "optionCardSizes": {
+    "message": "Dimensione delle schede",
+    "description": "Label of a choice on the settings page: how large the cards are when spread out."
+  },
+  "optionCardSizesNote": {
+    "message": "Con le schede sparpagliate.",
+    "description": "Explanation under the card sizes choice."
+  },
+  "optionCardSizesRecent": {
+    "message": "Più grandi le ultime usate",
+    "description": "Card sizes choice: the tabs used most recently are larger."
+  },
+  "optionCardSizesEqual": {
+    "message": "Tutte uguali",
+    "description": "Card sizes choice: every card has the same size."
+  },
+  "optionSearchOnly": {
+    "message": "Solo la casella di ricerca in alto",
+    "description": "Label of a switch on the settings page: Tab Mission shows only its search box above the cards."
+  },
+  "optionSearchOnlyNote": {
+    "message": "Con le schede sparpagliate. I due interruttori passano in questa pagina. Per aprirla, fai clic con il tasto destro sull'icona di Tab Mission nella barra degli strumenti e scegli Opzioni.",
+    "description": "Explanation under the search-box-only switch. \"Options\" is the item in Chrome's menu for an extension's toolbar icon."
+  },
   "optionHelpHeading": {
     "message": "Aiuto",
     "description": "Settings page: heading of the help section."

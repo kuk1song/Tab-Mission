@@ -169,6 +169,80 @@ test('spread out: the window takes the place of the browser window, its size is 
   expect((await ext.sw.evaluate(() => chrome.storage.local.get('overviewBounds'))).overviewBounds).toEqual(SIZE);
 });
 
+test('spread out, cards all the same size (the setting): one size for every card, in straight rows in the middle', async ({ ext }) => {
+  await ext.openWindow(EIGHT);
+  const page = await openWith(ext, { spread: true, cardSizes: 'equal' });
+  const shown = await cards(page);
+  expect(shown).toHaveLength(EIGHT.length);
+  for (const card of shown) expect(card.picture.width).toBeCloseTo(shown[0].picture.width, 1);
+  // Rows: cards at one height, as much room left of each row as right of it.
+  const grid = await page.locator('#grid').evaluate((el) => el.getBoundingClientRect().toJSON());
+  const rows = new Map();
+  for (const card of shown) rows.set(Math.round(card.picture.top), [...(rows.get(Math.round(card.picture.top)) ?? []), card]);
+  expect(rows.size).toBeGreaterThan(1);
+  for (const row of rows.values()) {
+    expect(Math.abs((row[0].picture.left - grid.left) - (grid.right - row.at(-1).picture.right))).toBeLessThanOrEqual(1);
+  }
+  // In view with their labels, none on another.
+  for (const [i, card] of shown.entries()) {
+    expect(card.label.bottom).toBeLessThanOrEqual(grid.bottom + 0.5);
+    for (const other of shown.slice(i + 1)) {
+      expect(overlap(card.picture, other.picture) || overlap(card.label, other.picture) || overlap(card.picture, other.label)).toBe(false);
+    }
+  }
+  // The entrance still ends with every card in its place.
+  expect(await page.locator('#grid .tile').evaluateAll((tiles) => tiles.map((tile) => getComputedStyle(tile).transform))).toEqual(EIGHT.map(() => 'none'));
+});
+
+test('spread out, only the search box at the top (the setting): the two switches are on the settings page and apply to the next window', async ({ ext, context }) => {
+  const { windowId } = await ext.openWindow(VISITED);
+  const page = await openWith(ext, { spread: true, searchOnly: true });
+  expect(new URL(page.url()).searchParams.get('bar')).toBe('search');
+  await expect(page.locator('.search-field')).toBeVisible();
+  await expect(page.locator('.search-field #shortcut-hint kbd')).toBeVisible();
+  for (const hidden of ['#toggle-all-windows', '#toggle-sleeping', '#open-settings', '#reset-window']) await expect(page.locator(hidden)).toBeHidden();
+  const box = (selector) => page.locator(selector).evaluate((el) => el.getBoundingClientRect().toJSON());
+  const [field, root] = [await box('.search-field'), await box('#root')];
+  expect(Math.abs((field.left + field.right) / 2 - (root.left + root.right) / 2)).toBeLessThanOrEqual(1);
+  await expect(page.locator('#search')).toBeFocused();
+  const own = await page.locator('#grid .tile').count();
+  expect(own).toBe(VISITED.length);
+  await ext.pressToClose(page, 'Escape');
+
+  // The settings page has the two switches while the window does not.
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${new URL(ext.sw.url()).host}/options.html`);
+  await expect(options.locator('#search-only')).toBeChecked();
+  await expect(options.locator('#show-all-windows')).toBeVisible();
+  await expect(options.locator('#show-all-windows')).not.toBeChecked();
+  await expect(options.locator('#show-sleeping')).toBeVisible();
+  await options.locator('label[for="show-all-windows"]').click();
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('showAllWindows'))).toEqual({ showAllWindows: true });
+  // Turned off, they go back to the window.
+  await options.locator('label[for="search-only"]').click();
+  await expect(options.locator('#show-all-windows')).toBeHidden();
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('searchOnly'))).toEqual({ searchOnly: false });
+  await options.locator('label[for="search-only"]').click();
+  await expect(options.locator('#show-all-windows')).toBeVisible();
+  await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get('searchOnly'))).toEqual({ searchOnly: true });
+  await options.close();
+
+  // The next window shows the tabs of every window, still with the search box alone.
+  await ext.sw.evaluate((id) => chrome.windows.update(id, { focused: true }), windowId);
+  await expect.poll(() => ext.sw.evaluate(() => chrome.windows.getLastFocused({ windowTypes: ['normal'] }).then((w) => w.id))).toBe(windowId);
+  const next = await openWith(ext, {});
+  await expect(next.locator('#toggle-all-windows')).toBeHidden();
+  expect(await next.locator('#grid .tile').count()).toBeGreaterThan(own);
+});
+
+test('the grid keeps its toolbar whatever the spread-out settings say', async ({ ext }) => {
+  await ext.openWindow(VISITED);
+  const page = await openWith(ext, { spread: false, searchOnly: true, cardSizes: 'equal' });
+  expect(new URL(page.url()).search).not.toContain('bar');
+  expect(await page.evaluate(() => ({ ...document.documentElement.dataset }))).toEqual({});
+  for (const shown of ['#toggle-all-windows', '#toggle-sleeping', '#open-settings', '#reset-window']) await expect(page.locator(shown)).toBeVisible();
+});
+
 test('spread out: arrows go by position, Enter switches to the selected tab', async ({ ext }) => {
   const { windowId } = await ext.openWindow(VISITED);
   const page = await openWith(ext, { spread: true });

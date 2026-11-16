@@ -26,6 +26,12 @@ const DEFAULTS = {
   // Off by default: the cards spread out, the tabs used more recently
   // larger, every one in view while they fit (spread.js).
   spread: false,
+  // Spread out: 'recent', the tabs used last larger, or 'equal', all the
+  // same size in straight rows (spread.js).
+  cardSizes: 'recent',
+  // Spread out: only the search box at the top. The two switches are then
+  // on the settings page, which opens from the toolbar icon's menu.
+  searchOnly: false,
 };
 
 /**

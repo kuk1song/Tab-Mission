@@ -7,7 +7,11 @@
   if (look === 'light' || look === 'dark') document.documentElement.dataset.appearance = look;
   // The cards spread out (the setting): the toolbar is a search box alone in
   // the middle from the first paint (overview.css).
-  if (params.get('layout') === 'spread') document.documentElement.dataset.spread = '';
+  if (params.get('layout') === 'spread') {
+    document.documentElement.dataset.spread = '';
+    // And nothing else up there, when chosen.
+    if (params.get('bar') === 'search') document.documentElement.dataset.bar = 'search';
+  }
   // 'page' shows once backdrop.js has the picture (overview.css). People
   // who ask their system for less transparency or more contrast, or use
   // forced colors, keep the plain background.

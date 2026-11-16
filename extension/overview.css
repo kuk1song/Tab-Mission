@@ -921,6 +921,8 @@ html, body {
 :root[data-spread] .toolbar-toggles { justify-content: flex-end; }
 :root[data-spread] .toolbar-actions { margin-left: 0; }
 :root[data-spread] #reset-window { display: none; }
+/* Only the search box (the setting): the switches are on the settings page. */
+:root[data-bar="search"] .toolbar-controls { display: none; }
 :root[data-spread] .ctrl,
 :root[data-spread] .icon-btn,
 :root[data-spread] .toolbar.searching .ctrl:has(input:checked) { background: var(--control-bg); }

@@ -295,6 +295,7 @@ function overviewPath(scope, source, look = {}) {
 	if (look.appearance === 'light' || look.appearance === 'dark') params.set('look', look.appearance);
 	if (look.backdrop === 'page' || look.backdrop === 'wallpaper') params.set('backdrop', look.backdrop);
 	if (look.spread === true) params.set('layout', 'spread');
+	if (look.spread === true && look.searchOnly === true) params.set('bar', 'search');
 	return params.size ? `overview.html?${params}` : 'overview.html';
 }
 
@@ -307,7 +308,7 @@ async function createOverviewWindow(scope, source) {
 			throw new Error('No display information found.');
 		}
 
-		const look = await chrome.storage.local.get({ appearance: 'system', backdrop: 'plain', spread: false }).catch(() => ({}));
+		const look = await chrome.storage.local.get({ appearance: 'system', backdrop: 'plain', spread: false, searchOnly: false }).catch(() => ({}));
 		const bounds = await overviewBounds(displays, await getSavedOverviewBounds(), look.spread === true);
 
 		const win = await chrome.windows.create({
