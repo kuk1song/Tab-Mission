@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n="pageTitle">Tab Mission</title>
+    <link rel="stylesheet" href="overview.css" />
+    <script src="src/look.js"></script>
+  </head>
+  <body>
+    <div id="backdrop" aria-hidden="true"></div>
+    <div id="root">
+      <header class="toolbar">
+        <div class="search-field">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <span id="scope-token" class="scope-token" hidden>
+            <img id="scope-icon" class="scope-icon" alt="" />
+            <span id="scope-label"></span>
+            <button id="scope-clear" class="scope-clear" type="button" tabindex="-1" title="Show all sites" aria-label="Show all sites"
+                    data-i18n-title="siteScopeClear" data-i18n-aria-label="siteScopeClear">×</button>
+          </span>
+          <input id="search" type="text" autocomplete="off" spellcheck="false" autofocus
+                 role="combobox" aria-expanded="true" aria-controls="grid" aria-autocomplete="list"
+                 aria-label="Search tabs" data-i18n-aria-label="searchLabel"
+                 placeholder="Search tabs (title or URL)…" data-i18n-placeholder="searchPlaceholder" />
+          <button id="scope-hint" class="scope-hint" type="button" tabindex="-1" hidden>
+            <kbd>Tab</kbd><span id="scope-hint-label"></span>
+          </button>
+        </div>
+        <div class="toolbar-controls">
+          <div class="toolbar-toggles">
+            <label class="ctrl">
+              <input id="toggle-all-windows" type="checkbox" />
+              <svg class="ctrl-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="13" height="11" rx="2"/><path d="M8 8V7a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>
+              <span data-i18n="showAllWindowsLabel">Show all windows</span>
+            </label>
+            <label class="ctrl">
+              <input id="toggle-sleeping" type="checkbox" />
+              <svg class="ctrl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.2A8 8 0 1 1 9.8 4a6.4 6.4 0 0 0 10.2 10.2Z"/></svg>
+              <span data-i18n="showSleepingLabel">Show sleeping</span>
+            </label>
+          </div>
+          <div class="toolbar-actions">
+            <div id="shortcut-hint" class="hint"></div>
+            <button id="open-settings" class="icon-btn" title="Settings" aria-label="Settings"
+                    data-i18n-title="settingsTitle" data-i18n-aria-label="settingsTitle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.24 5.35 10.50 4.96 10.66 2.49 13.34 2.49 13.50 4.96 14.76 5.35 15.92 5.96 17.78 4.33 19.67 6.22 18.04 8.08 18.65 9.24 19.04 10.50 21.51 10.66 21.51 13.34 19.04 13.50 18.65 14.76 18.04 15.92 19.67 17.78 17.78 19.67 15.92 18.04 14.76 18.65 13.50 19.04 13.34 21.51 10.66 21.51 10.50 19.04 9.24 18.65 8.08 18.04 6.22 19.67 4.33 17.78 5.96 15.92 5.35 14.76 4.96 13.50 2.49 13.34 2.49 10.66 4.96 10.50 5.35 9.24 5.96 8.08 4.33 6.22 6.22 4.33 8.08 5.96Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <button id="reset-window" class="icon-btn" title="Reset size and position" aria-label="Reset size and position"
+                    data-i18n-title="resetWindowTitle" data-i18n-aria-label="resetWindowTitle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 8.9"/><path d="M4.5 4.5v4.4h4.4"/></svg></button>
+          </div>
+        </div>
+      </header>
+      <div id="grid" class="grid" role="listbox" aria-label="Open tabs" data-i18n-aria-label="gridLabel"></div>
+      <!-- What the window says to screen readers: no matching tabs, a tip,
+           a tab closed.
+           In the page from the start, as a live region added already
+           filled is not reliably read (tips.js announce). -->
+      <p id="status" class="visually-hidden" role="status"></p>
+    </div>
+    <script src="src/main.js" type="module"></script>
+  </body>
+</html>

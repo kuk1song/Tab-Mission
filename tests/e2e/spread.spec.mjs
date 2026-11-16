@@ -230,10 +230,12 @@ test('spread out, the two switches are icons: round buttons with their words for
   }
 });
 
-test('the grid keeps its toolbar whatever the spread-out settings say', async ({ ext }) => {
+test('the grid keeps its toolbar and its window whatever the spread-out settings say', async ({ ext }) => {
   await ext.openWindow(VISITED);
-  const page = await openWith(ext, { spread: false, cardSizes: 'equal' });
+  const page = await openWith(ext, { spread: false, cardSizes: 'equal', openAs: 'page' });
   expect(new URL(page.url()).searchParams.get('layout')).toBeNull();
+  expect(new URL(page.url()).searchParams.get('host')).toBeNull();
+  expect(await page.evaluate(() => chrome.windows.getCurrent().then((win) => win.type))).toBe('popup');
   expect(await page.evaluate(() => ({ ...document.documentElement.dataset }))).toEqual({});
   for (const shown of ['#toggle-all-windows', '#toggle-sleeping', '#open-settings', '#reset-window']) await expect(page.locator(shown)).toBeVisible();
   // Its switches show their words, and no icon or tooltip.

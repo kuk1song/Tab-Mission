@@ -1,5 +1,6 @@
 // covers.js
 import { isPicturableUrl } from './utils.js';
+import { overlaidSince } from './host.js';
 
 // Covers: a picture of a web page, taken while it was in front of you, shown
 // on its card. The service worker takes one with chrome.tabs.captureVisibleTab
@@ -177,11 +178,12 @@ function canCover(tab, loading = false) {
   return Boolean(tab?.active && ready && !tab.incognito && isPicturableUrl(tab.url, files));
 }
 
-// Resolves true when a picture was stored, and 'loading', 'blank' or
-// 'failed' when the page in front was not captured, or its picture not
-// kept, only because it has not finished loading or painting or Chrome
-// refused the capture or did not answer in time (the follow-ups try again;
-// an answer that comes later is dropped).
+// Resolves true when a picture was stored, and 'loading', 'blank',
+// 'failed' or 'covered' when the page in front was not captured, or its
+// picture not kept, only because it has not finished loading or painting,
+// Chrome refused the capture or did not answer in time, or the overview
+// lies over the page (the follow-ups try again; an answer that comes later
+// is dropped).
 async function capture(tabId, { front = false, loading = false } = {}) {
   await fileAccess();
   const tab = await chrome.tabs.get(tabId);
@@ -200,6 +202,9 @@ async function capture(tabId, { front = false, loading = false } = {}) {
     await sleep(start - now);
     if (!unchanged(await chrome.tabs.get(tabId))) return false;
   }
+  // The overview on this page (a trial, src/host.js) would be in the picture.
+  const asked = Date.now();
+  if (await overlaidSince(tabId, asked)) return 'covered';
   // Every capture takes from the budget, even if its picture is dropped below.
   const at = performance.now();
   budgets.set(tabId, { left: Math.max(0, capturesLeft(tabId, at) - 1), at });
@@ -213,6 +218,7 @@ async function capture(tabId, { front = false, loading = false } = {}) {
   // Switched away, moved to another window or on to another page meanwhile:
   // the picture may show something else.
   if (!unchanged(await chrome.tabs.get(tabId))) return false;
+  if (await overlaidSince(tabId, asked)) return 'covered';
   const img = await shrink(raw);
   if (!img) return 'blank';
   return update((index) => {

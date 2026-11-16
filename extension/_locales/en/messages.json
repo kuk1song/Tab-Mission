@@ -309,6 +309,30 @@
     "message": "All the same size",
     "description": "Card sizes choice: every card has the same size."
   },
+  "optionOpenAs": {
+    "message": "Open as (trial)",
+    "description": "Label of a choice on the settings page, a trial: where Tab Mission shows when the cards are spread out."
+  },
+  "optionOpenAsNote": {
+    "message": "With the cards spread out. \"On the page in front\" works on web pages; on other pages, and when a page does not answer, the window opens.",
+    "description": "Explanation under the open-as choice."
+  },
+  "optionOpenAsWindow": {
+    "message": "A window over the browser",
+    "description": "Open-as choice: a window of its own that covers the browser window."
+  },
+  "optionOpenAsFullscreen": {
+    "message": "A full-screen window",
+    "description": "Open-as choice: a window of its own that fills the screen."
+  },
+  "optionOpenAsTab": {
+    "message": "A tab in the browser window",
+    "description": "Open-as choice: a tab in the browser window you are in."
+  },
+  "optionOpenAsPage": {
+    "message": "On the page in front",
+    "description": "Open-as choice: a layer over the web page in front of you."
+  },
   "optionHelpHeading": {
     "message": "Help",
     "description": "Settings page: heading of the help section."

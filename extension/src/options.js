@@ -12,6 +12,7 @@ async function main() {
   const backdrop = document.getElementById('backdrop');
   const spread = document.getElementById('spread');
   const cardSizes = document.getElementById('card-sizes');
+  const openAs = document.getElementById('open-as');
   try {
     localizeStaticText();
     const { version } = chrome.runtime.getManifest();
@@ -24,6 +25,7 @@ async function main() {
     backdrop.value = ['page', 'wallpaper'].includes(settings.backdrop) ? settings.backdrop : 'plain';
     spread.checked = settings.spread === true;
     cardSizes.value = settings.cardSizes === 'equal' ? 'equal' : 'recent';
+    openAs.value = ['fullscreen', 'tab', 'page'].includes(settings.openAs) ? settings.openAs : 'window';
   } finally {
     reveal(preselect);
   }
@@ -34,7 +36,7 @@ async function main() {
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
     });
   }
-  for (const [select, key] of [[appearance, 'appearance'], [backdrop, 'backdrop'], [cardSizes, 'cardSizes']]) {
+  for (const [select, key] of [[appearance, 'appearance'], [backdrop, 'backdrop'], [cardSizes, 'cardSizes'], [openAs, 'openAs']]) {
     select.addEventListener('change', async () => {
       if (await saveSettings({ [key]: select.value })) announce(t('optionSaved') || 'Saved.');
     });

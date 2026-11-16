@@ -9,6 +9,24 @@ import { markInView, prepareSpreadEntrance } from './dom.js';
 import { showBackdrop } from './backdrop.js';
 
 async function main() {
+  const params = new URLSearchParams(location.search);
+  // In a frame, or under the name pages can frame it by (overlay.html), the
+  // overview shows only where background.js just put it (a trial, on the
+  // page in front, src/host.js): a page that frames or opens it on its own
+  // gets nothing to show or to click, and it takes no messages (events.js).
+  if (window.top !== window || location.pathname !== '/overview.html') {
+    state.host = 'refused';
+    if (!(await claimFrame(params))) {
+      document.documentElement.hidden = true;
+      chrome.runtime.sendMessage({ action: 'closeOverlay', refused: true }).catch(() => {});
+      return false;
+    }
+    state.host = 'page';
+  } else if (params.get('host') === 'tab') {
+    state.host = 'tab';
+    state.fromTabId = Number(params.get('from')) || null;
+  }
+
   // Apply localization for any static text before interacting with the UI
   localizeStaticText();
   nameToggles();
@@ -18,7 +36,6 @@ async function main() {
   // the search box instead of being lost.
   searchEl?.focus();
 
-  const params = new URLSearchParams(location.search);
   const [settings, , tryIt, shortcuts] = await Promise.all([loadSettings(), fetchAllTabs(), readTryIt(), readShortcuts()]);
   const shortcut = shortcuts['open-overview'];
   // The picture behind the cards, when chosen, comes in on its own: nothing waits for it.
@@ -71,6 +88,16 @@ async function main() {
 
   initializeEventListeners(Object.values(shortcuts));
   searchEl?.focus();
+  return true;
+}
+
+async function claimFrame(params) {
+  try {
+    const answer = await chrome.runtime.sendMessage({ action: 'claimOverlay', token: params.get('token') });
+    return params.get('host') === 'page' && answer?.ok === true;
+  } catch {
+    return false;
+  }
 }
 
 // The tiles' entrance animations (overview.css): in the grid, and spread out.
@@ -91,16 +118,6 @@ async function readShortcuts() {
   return shortcuts;
 }
 
-// Spread out, the two switches are icons (look.js, overview.css): each has
-// its words as its tooltip.
-function nameToggles() {
-  if (!('spread' in document.documentElement.dataset)) return;
-  for (const text of document.querySelectorAll('.ctrl span')) {
-    const label = text.closest('.ctrl');
-    if (label) label.title = text.textContent;
-  }
-}
-
 // The badge shows the shortcut, nothing more: the tips and the welcome page
 // teach what it does. Screen readers also hear what the keys are.
 function updateShortcutHint(rawShortcut) {
@@ -117,11 +134,27 @@ function updateShortcutHint(rawShortcut) {
   if ('spread' in document.documentElement.dataset) document.querySelector('.search-field')?.append(hintEl);
 }
 
+// Spread out, the two switches are icons (look.js, overview.css): each has
+// its words as its tooltip.
+function nameToggles() {
+  if (!('spread' in document.documentElement.dataset)) return;
+  for (const text of document.querySelectorAll('.ctrl span')) {
+    const label = text.closest('.ctrl');
+    if (label) label.title = text.textContent;
+  }
+}
+
 // Presses that came while the window was loading act once main() is done
 // (events.js), even should it fail: the shortcut then still switches or
 // closes the window.
+// A frame that was refused never acts on one.
 function start() {
-  main().finally(markReady);
+  main().then((shown) => {
+    if (shown !== false) markReady();
+  }, (error) => {
+    markReady();
+    throw error;
+  });
 }
 
 if (document.readyState === 'loading') {

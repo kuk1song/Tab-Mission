@@ -29,6 +29,11 @@ const DEFAULTS = {
   // Spread out: 'recent', the tabs used last larger, or 'equal', all the
   // same size in straight rows (spread.js).
   cardSizes: 'recent',
+  // Spread out, a trial: where the overview shows. 'window', a window of its
+  // own over the browser window; 'fullscreen', one that fills the screen;
+  // 'tab', a tab of the browser window; 'page', a layer over the page in
+  // front (background.js, src/host.js).
+  openAs: 'window',
 };
 
 /**

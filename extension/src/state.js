@@ -11,6 +11,12 @@ export const state = {
   currentWindowId: null,
   currentTabId: null,
   selfWindowId: null, // the overview popup itself; its own tab is never listed
+  // Where the overview shows: 'window', a window of its own; or, a trial
+  // (src/host.js): 'tab', a tab of the browser window; 'page', a frame over
+  // the page in front ('refused': a frame not let in, which shows nothing).
+  host: 'window',
+  selfTabId: null, // as a tab: that tab, never listed
+  fromTabId: null, // as a tab: the tab the user was on (the overview's address says)
   siteHost: '', // non-empty while showing only one site's tabs
   preselectPrevious: true, // mirrors the setting of the same name
   groupBySite: true, // mirrors the setting of the same name
@@ -44,6 +50,10 @@ export async function fetchAllTabs() {
     state.allTabs = [];
     state.currentWindowId = null;
   }
+  if (state.host !== 'window') {
+    await findHostTab();
+    return;
+  }
   try {
     const self = await chrome.windows.getCurrent();
     state.selfWindowId = self?.id ?? null;
@@ -51,6 +61,27 @@ export async function fetchAllTabs() {
     state.selfWindowId = null;
   }
   const currentTab = state.allTabs.find((tab) => tab.windowId === state.currentWindowId && tab.active);
+  state.currentTabId = currentTab?.id ?? null;
+}
+
+// As a tab or on a page (a trial, src/host.js), the overview is in the
+// user's own browser window, so no window is left out. As a tab, its own
+// tab is, and the current tab is the one the user came from; on a page, the
+// current tab is the one whose page it is on.
+async function findHostTab() {
+  state.selfWindowId = null;
+  let own = null;
+  try {
+    own = (await chrome.tabs.getCurrent()) ?? null;
+  } catch {}
+  if (own) state.currentWindowId = own.windowId;
+  if (state.host === 'tab') {
+    state.selfTabId = own?.id ?? null;
+    const from = state.allTabs.find((tab) => tab.id === state.fromTabId && tab.id !== state.selfTabId);
+    state.currentTabId = from?.id ?? null;
+    return;
+  }
+  const currentTab = own ?? state.allTabs.find((tab) => tab.windowId === state.currentWindowId && tab.active);
   state.currentTabId = currentTab?.id ?? null;
 }
 
@@ -74,7 +105,7 @@ function applyViewToggles(tabs, uiState) {
 }
 
 function listableTabs() {
-  return state.allTabs.filter((tab) => tab.windowId !== state.selfWindowId);
+  return state.allTabs.filter((tab) => tab.windowId !== state.selfWindowId && tab.id !== state.selfTabId);
 }
 
 // How many tabs the site view would show for a host under the current toggles.

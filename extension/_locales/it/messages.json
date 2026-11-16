@@ -309,6 +309,30 @@
     "message": "Tutte uguali",
     "description": "Card sizes choice: every card has the same size."
   },
+  "optionOpenAs": {
+    "message": "Apri come (prova)",
+    "description": "Label of a choice on the settings page, a trial: where Tab Mission shows when the cards are spread out."
+  },
+  "optionOpenAsNote": {
+    "message": "Con le schede sparpagliate. «Sulla pagina in primo piano» funziona sulle pagine web; sulle altre pagine, e quando una pagina non risponde, si apre la finestra.",
+    "description": "Explanation under the open-as choice."
+  },
+  "optionOpenAsWindow": {
+    "message": "Una finestra sopra il browser",
+    "description": "Open-as choice: a window of its own that covers the browser window."
+  },
+  "optionOpenAsFullscreen": {
+    "message": "Una finestra a schermo intero",
+    "description": "Open-as choice: a window of its own that fills the screen."
+  },
+  "optionOpenAsTab": {
+    "message": "Una scheda nella finestra del browser",
+    "description": "Open-as choice: a tab in the browser window you are in."
+  },
+  "optionOpenAsPage": {
+    "message": "Sulla pagina in primo piano",
+    "description": "Open-as choice: a layer over the web page in front of you."
+  },
   "optionHelpHeading": {
     "message": "Aiuto",
     "description": "Settings page: heading of the help section."

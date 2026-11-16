@@ -996,6 +996,10 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .grid.spread.entering .tile .meta { animation: none !important; }
 }
+/* In a frame on a page (a trial, src/host.js): scrolling the cards to their
+   end does not go on to scroll the page under them. */
+:root[data-host="page"],
+:root[data-host="page"] body { overscroll-behavior: none; }
 
 /* Backdrop (settings page; src/look.js, src/backdrop.js): behind the cards, a
    blurred picture of the page you were on ("page") or colors of Tab

@@ -10,6 +10,9 @@
   if (params.get('layout') === 'spread') {
     document.documentElement.dataset.spread = '';
   }
+  // A trial (src/host.js): the overview as a tab, or in a frame on a page.
+  const host = params.get('host');
+  if (host === 'tab' || host === 'page') document.documentElement.dataset.host = host;
   // 'page' shows once backdrop.js has the picture (overview.css). People
   // who ask their system for less transparency or more contrast, or use
   // forced colors, keep the plain background.
