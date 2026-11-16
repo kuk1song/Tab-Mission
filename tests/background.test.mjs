@@ -493,28 +493,6 @@ describe('background.js', () => {
         expect(chrome.windows.create.mock.calls.at(-1)[0].url).toBe('chrome-extension://test/overview.html?layout=spread');
       });
 
-      it('opens a full-screen window when chosen, without a size or spot', async () => {
-        chrome._focused = { left: 100, top: 60, width: 1300, height: 820, state: 'normal' };
-        chrome.storage.local.data.openAs = 'fullscreen';
-        await opened();
-        expect(chrome.windows.create.mock.calls.at(-1)[0]).toEqual({ url: 'chrome-extension://test/overview.html?layout=spread', type: 'popup', state: 'fullscreen' });
-        expect(chrome.storage.session.data.overviewWindowId).toBeGreaterThanOrEqual(100);
-      });
-
-      it('opens the usual window where Chrome refuses a full-screen one', async () => {
-        chrome._focused = { left: 100, top: 60, width: 1300, height: 820, state: 'normal' };
-        chrome.storage.local.data.openAs = 'fullscreen';
-        const create = chrome.windows.create.getMockImplementation();
-        chrome.windows.create.mockImplementation(async (options) => {
-          if (options.state) throw new Error('Invalid value for state');
-          return create(options);
-        });
-        chrome.listeners.onCommand('open-overview');
-        await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(2));
-        expect(chrome.windows.create.mock.calls.at(-1)[0]).toEqual({ url: 'chrome-extension://test/overview.html?layout=spread', type: 'popup', left: 100, top: 60, width: 1300, height: 820 });
-        await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeGreaterThanOrEqual(100));
-      });
-
       it('stays inside the work area when the browser window reaches past it', async () => {
         chrome._focused = { left: -20, top: 0, width: 1700, height: 1100, state: 'normal' };
         expect(await opened()).toEqual({ left: 0, top: 0, width: 1600, height: 1000 });
@@ -539,7 +517,7 @@ describe('background.js', () => {
   });
 
   // A trial (settings page, "Open as", src/host.js).
-  describe('opened as a tab or on a page, with the cards spread out', () => {
+  describe('opened on the page in front, with the cards spread out', () => {
     let front; // the tab in front in the browser window
     const press = (source = 'shortcut') => {
       if (source === 'toolbar') chrome.listeners.onClicked();
@@ -558,7 +536,7 @@ describe('background.js', () => {
     const open = async () => {
       await pressed('shortcut', () => {
         expect(host()).toBeTruthy();
-        expect(scripts().includes('mountOverlay') || chrome.tabs.create.mock.calls.length > 0).toBe(true);
+        expect(scripts()).toContain('mountOverlay');
       });
       return host();
     };
@@ -573,68 +551,7 @@ describe('background.js', () => {
       front = { id: 11, windowId: 1, index: 0, url: 'https://example.com/', status: 'complete', active: true };
       const byWindow = chrome.tabs.query.getMockImplementation();
       chrome.tabs.query.mockImplementation(async (query) => (query.lastFocusedWindow ? [front] : byWindow(query)));
-      let nextTabId = 500;
-      chrome.tabs.create.mockImplementation(async ({ url, windowId, index }) => {
-        const tab = { id: nextTabId++, url, windowId, index, status: 'complete', active: true };
-        chrome.windows._all.get(windowId).tabs.push(tab);
-        return tab;
-      });
-      chrome.tabs.remove = vi.fn(async (id) => {
-        for (const win of chrome.windows._all.values()) win.tabs = win.tabs.filter((tab) => tab.id !== id);
-      });
       chrome.scripting = { executeScript: vi.fn(async ({ func }) => [{ result: func.name === 'mountOverlay' ? true : undefined }]) };
-    });
-
-    it('as a tab: opens right after the tab in front, which its address names, and no window', async () => {
-      chrome.storage.local.data.openAs = 'tab';
-      await open();
-      expect(chrome.tabs.create).toHaveBeenCalledTimes(1);
-      expect(chrome.tabs.create.mock.calls[0][0]).toEqual({
-        url: 'chrome-extension://test/overview.html?host=tab&from=11&layout=spread', windowId: 1, index: 1, openerTabId: 11, active: true,
-      });
-      expect(host()).toMatchObject({ kind: 'tab', tabId: 500, windowId: 1 });
-      expect(chrome.windows.create).not.toHaveBeenCalled();
-      expect(chrome.scripting.executeScript).not.toHaveBeenCalled();
-    });
-
-    it('as a tab: closed when another tab of its window comes to the front, not for itself or a tab of another window', async () => {
-      chrome.storage.local.data.openAs = 'tab';
-      await open();
-      await chrome.listeners['tabs.onActivated']({ tabId: 500, windowId: 1 });
-      await chrome.listeners['tabs.onActivated']({ tabId: 77, windowId: 2 });
-      expect(chrome.tabs.remove).not.toHaveBeenCalled();
-      expect(host()).toMatchObject({ kind: 'tab', tabId: 500 });
-      await chrome.listeners['tabs.onActivated']({ tabId: 11, windowId: 1 });
-      expect(chrome.tabs.remove).toHaveBeenCalledWith(500);
-      expect(host()).toBeNull();
-    });
-
-    it('as a tab: the next press goes to it, the toolbar button closes it, and once its tab is gone a press opens a new one', async () => {
-      chrome.storage.local.data.openAs = 'tab';
-      await open();
-      front = chrome.windows._all.get(1).tabs.at(-1);
-      await pressed('shortcut', () => expect(lastMessage()).toEqual([500, { action: 'handleShortcut', scope: undefined }]));
-      await pressed('toolbar', () => expect(lastMessage()).toEqual([500, { action: 'closeOverview' }]));
-      expect(chrome.tabs.create).toHaveBeenCalledTimes(1);
-      // The page closes its own tab.
-      await chrome.tabs.remove(500);
-      await chrome.listeners['tabs.onRemoved'](500, {});
-      expect(host()).toBeNull();
-      front = chrome.windows._all.get(1).tabs[0];
-      await pressed('shortcut', () => expect(chrome.tabs.create).toHaveBeenCalledTimes(2));
-    });
-
-    it('as a tab: one left behind on another tab is closed, never a tab of the user, and a new one opens', async () => {
-      chrome.storage.local.data.openAs = 'tab';
-      await open();
-      // The user is back on their own tab; the overview's tab is still there.
-      await pressed('shortcut', () => expect(host()).toMatchObject({ tabId: 501 }));
-      expect(chrome.tabs.remove.mock.calls).toEqual([[500]]);
-      // A stale id that is one of the user's tabs by now is left alone.
-      chrome.storage.session.data.overviewHost = { kind: 'tab', tabId: 11, windowId: 1, at: 0 };
-      front = { ...front, id: 12 };
-      await pressed('shortcut', () => expect(host()).toMatchObject({ tabId: 502 }));
-      expect(chrome.tabs.remove.mock.calls).toEqual([[500]]);
     });
 
     it('on a page: puts the overview on the page in front, under the name pages may frame, with a token; no window or tab', async () => {
@@ -742,13 +659,65 @@ describe('background.js', () => {
       expect(chrome.windows.create).not.toHaveBeenCalled();
     });
 
-    it('on a page that cannot take it (a browser page), the window opens, and the token is void', async () => {
-      chrome.storage.local.data.openAs = 'page';
-      chrome.scripting.executeScript.mockRejectedValue(new Error('Cannot access a chrome:// URL'));
+    // The window that opens instead of the layer, and where.
+    const windowOpened = async () => {
       press();
       await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
+      const { left, top, width, height } = chrome.windows.create.mock.calls[0][0];
+      return { left, top, width, height };
+    };
+    // A browser window whose page begins 85 below its top edge.
+    const sized = () => {
+      chrome._focused = { id: 1, left: 100, top: 60, width: 1300, height: 820, state: 'normal' };
+      Object.assign(front, { width: 1300, height: 735 });
+    };
+
+    it('on a page that cannot take it, a window opens over the page only, the tab strip in view, and the token is void', async () => {
+      chrome.storage.local.data.openAs = 'page';
+      sized();
+      chrome.scripting.executeScript.mockRejectedValue(new Error('Cannot access contents of the page'));
+      expect(await windowOpened()).toEqual({ left: 100, top: 145, width: 1300, height: 735 });
       expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?layout=spread');
+      expect(chrome.windows.create.mock.calls[0][0].type).toBe('popup');
       expect(host()).toBeNull();
+    });
+
+    it('on a browser page, which takes no layer, none is tried: the window over the page opens at once', async () => {
+      chrome.storage.local.data.openAs = 'page';
+      sized();
+      front.url = 'chrome://settings/';
+      expect(await windowOpened()).toEqual({ left: 100, top: 145, width: 1300, height: 735 });
+      expect(chrome.scripting.executeScript).not.toHaveBeenCalled();
+      expect(host()).toBeFalsy();
+    });
+
+    it('the window over the page leaves out the unseen edges of a Windows window, and ends with the work area', async () => {
+      chrome.storage.local.data.openAs = 'page';
+      front.url = 'chrome://settings/';
+      // 8 unseen at each side and below: the page begins 85 below the top.
+      chrome._focused = { id: 1, left: 92, top: 60, width: 1316, height: 828, state: 'normal' };
+      Object.assign(front, { width: 1300, height: 735 });
+      expect(await windowOpened()).toEqual({ left: 92, top: 145, width: 1316, height: 743 });
+      // Maximized: the edges reach past the 1600 x 1000 work area.
+      chrome.windows.create.mockClear();
+      await chrome.listeners.onRemoved(chrome.storage.session.data.overviewWindowId);
+      chrome._focused = { id: 1, left: -8, top: -8, width: 1616, height: 1016, state: 'maximized' };
+      Object.assign(front, { width: 1600, height: 915 });
+      expect(await windowOpened()).toEqual({ left: 0, top: 85, width: 1600, height: 915 });
+    });
+
+    it('where the page\'s place cannot be told, the window covers the whole browser window', async () => {
+      chrome.storage.local.data.openAs = 'page';
+      front.url = 'chrome://settings/';
+      const whole = { left: 100, top: 60, width: 1300, height: 820 };
+      // No size known for the tab; a tab of another window; a page less than half the window high.
+      for (const [browserId, size] of [[1, {}], [2, { width: 1300, height: 735 }], [1, { width: 1300, height: 300 }]]) {
+        chrome._focused = { id: browserId, ...whole, state: 'normal' };
+        front = { id: 11, windowId: 1, index: 0, url: 'chrome://settings/', status: 'complete', active: true, ...size };
+        chrome.windows.create.mockClear();
+        expect(await windowOpened()).toEqual(whole);
+        await chrome.listeners.onRemoved(chrome.storage.session.data.overviewWindowId);
+      }
     });
 
     it('on a page that does not answer in time, the window opens, and that layer, should it still arrive, is taken off', async () => {
@@ -768,8 +737,9 @@ describe('background.js', () => {
       expect(chrome.scripting.executeScript.mock.calls.at(-1)[0].args).toEqual([token]);
     });
 
-    it('on a page where the frame never asks to be let in, the empty layer is taken off and the window opens', async () => {
+    it('on a page where the frame never asks to be let in, the empty layer is taken off and the window over the page opens', async () => {
       chrome.storage.local.data.openAs = 'page';
+      sized();
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
       try {
         press();
@@ -780,6 +750,7 @@ describe('background.js', () => {
         expect(scripts()).toEqual(['mountOverlay', 'unmountOverlay']);
         expect(host()).toBeNull();
         expect(chrome.windows.create).toHaveBeenCalledTimes(1);
+        expect(chrome.windows.create.mock.calls[0][0]).toMatchObject({ left: 100, top: 145, width: 1300, height: 735 });
       } finally {
         vi.useRealTimers();
       }

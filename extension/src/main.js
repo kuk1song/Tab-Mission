@@ -22,9 +22,6 @@ async function main() {
       return false;
     }
     state.host = 'page';
-  } else if (params.get('host') === 'tab') {
-    state.host = 'tab';
-    state.fromTabId = Number(params.get('from')) || null;
   }
 
   // Apply localization for any static text before interacting with the UI

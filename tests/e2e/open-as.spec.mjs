@@ -1,8 +1,8 @@
-import { test, expect, PAGES, selectedTitle } from './fixtures.mjs';
+import { test, expect, PAGES } from './fixtures.mjs';
 
 // "Open as" (settings page, a trial, with the cards spread out;
-// src/host.js): the overview as a tab of the browser window, or as a layer
-// over the page in front, instead of a window of its own.
+// src/host.js): the overview as a layer over the page in front, the tab
+// strip in view, instead of a window of its own over the whole browser.
 const VISITED = ['alpha', 'doc1', 'tube1', 'beta', 'tube2', 'gamma'];
 const PREVIOUS = PAGES.tube2.title;
 const CURRENT = PAGES.gamma.title;
@@ -17,90 +17,6 @@ async function choose(ext, settings) {
 }
 const host = (ext) => ext.sw.evaluate(() => chrome.storage.session.get({ overviewHost: null }).then((stored) => stored.overviewHost));
 const tabsOf = (ext, windowId) => ext.sw.evaluate((windowId) => chrome.tabs.query({ windowId }).then((tabs) => tabs.map((tab) => ({ id: tab.id, index: tab.index, active: tab.active, title: tab.title, url: tab.url }))), windowId);
-
-test.describe('as a tab of the browser window', () => {
-  async function openTab(ext) {
-    const page = await ext.open();
-    await page.locator('#grid:not(.entering)').waitFor();
-    return page;
-  }
-
-  test('opens right after the tab you are on, in the same window, with every other tab as a card; Esc goes back to the tab you were on', async ({ ext }) => {
-    const { windowId, tabIds } = await ext.openWindow(VISITED);
-    await choose(ext, { openAs: 'tab' });
-    const page = await openTab(ext);
-    const address = new URL(page.url());
-    expect(address.searchParams.get('host')).toBe('tab');
-    expect(Number(address.searchParams.get('from'))).toBe(tabIds.gamma);
-    expect(await page.evaluate(() => chrome.windows.getCurrent().then((win) => win.type))).toBe('normal');
-    const tabs = await tabsOf(ext, windowId);
-    const own = tabs.find((tab) => tab.url.includes('/overview.html'));
-    expect(own).toMatchObject({ active: true, index: tabs.find((tab) => tab.id === tabIds.gamma).index + 1 });
-    expect(await host(ext)).toMatchObject({ kind: 'tab', tabId: own.id });
-    // Its own tab is not a card; the tab you were on is, and the previous tab is selected.
-    await expect(page.locator('#grid .tile')).toHaveCount(VISITED.length);
-    await expect(page.locator(`#tile-${tabIds.gamma}`)).toBeVisible();
-    expect(await selectedTitle(page)).toBe(PREVIOUS);
-    await expect(page.locator('#search')).toBeFocused();
-    await expect(page.locator('#reset-window')).toBeHidden();
-
-    await ext.pressToClose(page, 'Escape');
-    await expect.poll(() => ext.activeTitle(windowId)).toBe(CURRENT);
-    expect((await tabsOf(ext, windowId)).length).toBe(VISITED.length);
-    await expect.poll(() => host(ext)).toBeNull();
-  });
-
-  test('Enter switches to the selected tab, the shortcut pressed again too, and a click on a card to that tab', async ({ ext }) => {
-    const { windowId, tabIds } = await ext.openWindow(VISITED);
-    await choose(ext, { openAs: 'tab' });
-    let page = await openTab(ext);
-    await ext.pressToClose(page, 'Enter');
-    await expect.poll(() => ext.activeTitle(windowId)).toBe(PREVIOUS);
-
-    // Now gamma is the previous tab: the shortcut pressed again goes back to it.
-    page = await openTab(ext);
-    expect(await selectedTitle(page)).toBe(CURRENT);
-    await ext.press();
-    await ext.expectClosed();
-    await expect.poll(() => ext.activeTitle(windowId)).toBe(CURRENT);
-
-    page = await openTab(ext);
-    await page.locator(`#tile-${tabIds.alpha} .preview`).click();
-    await ext.expectClosed();
-    await expect.poll(() => ext.activeTitle(windowId)).toBe(PAGES.alpha.title);
-    expect((await tabsOf(ext, windowId)).length).toBe(VISITED.length);
-  });
-
-  test('another tab chosen in the tab strip closes it, and the toolbar button closes it and goes back', async ({ ext }) => {
-    const { windowId, tabIds } = await ext.openWindow(VISITED);
-    await choose(ext, { openAs: 'tab' });
-    await openTab(ext);
-    await ext.sw.evaluate((id) => chrome.tabs.update(id, { active: true }), tabIds.beta);
-    await ext.expectClosed();
-    await expect.poll(() => ext.activeTitle(windowId)).toBe(PAGES.beta.title);
-    await expect.poll(() => host(ext)).toBeNull();
-
-    await openTab(ext);
-    await ext.clickToolbarButton();
-    await ext.expectClosed();
-    await expect.poll(() => ext.activeTitle(windowId)).toBe(PAGES.beta.title);
-    expect((await tabsOf(ext, windowId)).length).toBe(VISITED.length);
-  });
-
-  test('a tab of another window chosen: that window comes to the front, and this one goes back to the tab you were on', async ({ ext }) => {
-    const other = await ext.openWindow(['code1', 'notes1']);
-    const { windowId } = await ext.openWindow(VISITED);
-    await choose(ext, { openAs: 'tab', showAllWindows: true });
-    const page = await openTab(ext);
-    // Every window's tabs, the welcome page's too.
-    expect(await page.locator('#grid .tile').count()).toBeGreaterThanOrEqual(VISITED.length + 2);
-    await page.locator(`#tile-${other.tabIds.code1} .preview`).click();
-    await ext.expectClosed();
-    await expect.poll(() => ext.activeTitle(other.windowId)).toBe(PAGES.code1.title);
-    await expect.poll(() => ext.activeTitle(windowId)).toBe(CURRENT);
-    expect((await tabsOf(ext, windowId)).length).toBe(VISITED.length);
-  });
-});
 
 test.describe('on the page in front', () => {
   const pageOf = (context, id) => context.pages().find((page) => new URL(page.url()).pathname === `/${id}.html`);
@@ -210,14 +126,24 @@ test.describe('on the page in front', () => {
     await expect(frame.locator('#grid .tile')).toHaveCount(VISITED.length);
   });
 
-  test('on a browser page, which takes no layer, the window opens as before', async ({ ext }) => {
+  test('on a browser page, which takes no layer, a window opens over the page only: the tab strip stays in view', async ({ ext }) => {
     const { windowId } = await ext.openWindow(VISITED);
     await ext.openTab(windowId, 'chrome://version/', { active: true });
     await choose(ext, { openAs: 'page' });
     const page = await ext.open();
-    expect(await page.evaluate(() => chrome.windows.getCurrent().then((win) => win.type))).toBe('popup');
     expect(new URL(page.url()).search).not.toContain('host');
     expect(await host(ext)).toBeNull();
+    const { self, browser, tab } = await page.evaluate(async (windowId) => ({
+      self: await chrome.windows.getCurrent(),
+      browser: await chrome.windows.get(windowId),
+      tab: (await chrome.tabs.query({ windowId, active: true }))[0],
+    }), windowId);
+    expect(self.type).toBe('popup');
+    // The page begins below the browser's tab strip and toolbar, and so does the window.
+    const pageTop = browser.top + browser.height - tab.height - (browser.width - tab.width) / 2;
+    expect(pageTop).toBeGreaterThan(browser.top + 20);
+    expect({ left: self.left, top: self.top, width: self.width, bottom: self.top + self.height })
+      .toEqual({ left: browser.left, top: pageTop, width: browser.width, bottom: browser.top + browser.height });
     await expect(page.locator('#grid .tile')).toHaveCount(VISITED.length + 1);
     await ext.pressToClose(page, 'Escape');
   });

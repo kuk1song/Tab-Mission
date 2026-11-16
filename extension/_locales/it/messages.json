@@ -311,27 +311,19 @@
   },
   "optionOpenAs": {
     "message": "Apri come (prova)",
-    "description": "Label of a choice on the settings page, a trial: where Tab Mission shows when the cards are spread out."
+    "description": "Label of a choice on the settings page, a trial: how much Tab Mission covers when the cards are spread out."
   },
   "optionOpenAsNote": {
-    "message": "Con le schede sparpagliate. «Sulla pagina in primo piano» funziona sulle pagine web; sulle altre pagine, e quando una pagina non risponde, si apre la finestra.",
+    "message": "Con le schede sparpagliate. «Solo la pagina» appare sulla pagina web stessa; sulle altre pagine, e quando una pagina non risponde, si apre invece una finestra sopra la pagina.",
     "description": "Explanation under the open-as choice."
   },
   "optionOpenAsWindow": {
-    "message": "Una finestra sopra il browser",
-    "description": "Open-as choice: a window of its own that covers the browser window."
-  },
-  "optionOpenAsFullscreen": {
-    "message": "Una finestra a schermo intero",
-    "description": "Open-as choice: a window of its own that fills the screen."
-  },
-  "optionOpenAsTab": {
-    "message": "Una scheda nella finestra del browser",
-    "description": "Open-as choice: a tab in the browser window you are in."
+    "message": "Tutta la finestra del browser",
+    "description": "Open-as choice: a window of its own that covers the whole browser window."
   },
   "optionOpenAsPage": {
-    "message": "Sulla pagina in primo piano",
-    "description": "Open-as choice: a layer over the web page in front of you."
+    "message": "Solo la pagina, barra delle schede visibile",
+    "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
   "optionHelpHeading": {
     "message": "Aiuto",

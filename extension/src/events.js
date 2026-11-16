@@ -58,7 +58,7 @@ export function initializeEventListeners(commandShortcuts = []) {
         chrome.runtime.openOptionsPage().catch(() => {});
       } finally {
         // Immediately close the overview for a smooth UX
-        closeOverview({ back: false });
+        closeOverview();
       }
     });
   }
@@ -302,9 +302,7 @@ export function activateTab(tab, tile = document.querySelector(`#grid .tile[data
   // the meantime just fails quietly.
   chrome.tabs.update(tab.id, { active: true }).catch(() => {});
   chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
-  // As a tab, the overview's window shows the chosen tab now, or, when that
-  // tab is in another window, goes back to the tab the user was on.
-  closeOverview({ back: tab.windowId !== state.currentWindowId });
+  closeOverview();
 }
 
 export async function closeTab(tab) {
@@ -444,26 +442,20 @@ function prefersReducedMotion() {
 // selected, the toolbar button, the gear), fades the whole window at once:
 // the panels and the toolbar leave with the tiles, and quicker than they
 // came in.
-// back (as a tab only): the browser window goes back to the tab the user was on.
-function closeOverview({ back = true } = {}) {
+function closeOverview() {
   if (prefersReducedMotion()) {
-    leave(back);
+    leave();
     return;
   }
   (document.getElementById('root') || document.body).classList.add('closing');
-  setTimeout(() => leave(back), 150);
+  setTimeout(leave, 150);
 }
 
-// The overview goes: its window closes; as a tab (a trial, src/host.js),
-// its tab closes, after the tab to go back to is in front (Chrome would
-// pick a neighbor); on a page, background.js takes its frame off.
-function leave(back) {
+// The overview goes: its window closes; on a page (a trial, src/host.js),
+// background.js takes its frame off.
+function leave() {
   if (state.host === 'page') {
     chrome.runtime.sendMessage({ action: 'closeOverlay' }).catch(() => {});
-    return;
-  }
-  if (state.host === 'tab' && back && state.currentTabId !== null) {
-    chrome.tabs.update(state.currentTabId, { active: true }).catch(() => {}).finally(() => window.close());
     return;
   }
   window.close();

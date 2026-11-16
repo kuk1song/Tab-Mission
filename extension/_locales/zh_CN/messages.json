@@ -311,27 +311,19 @@
   },
   "optionOpenAs": {
     "message": "打开方式（试用）",
-    "description": "Label of a choice on the settings page, a trial: where Tab Mission shows when the cards are spread out."
+    "description": "Label of a choice on the settings page, a trial: how much Tab Mission covers when the cards are spread out."
   },
   "optionOpenAsNote": {
-    "message": "卡片散开时生效。“铺在当前网页上”只在普通网页上可用；在其他页面上，或网页没有响应时，照旧打开窗口。",
+    "message": "卡片散开时生效。“只盖住网页”在普通网页上直接铺在网页上；在其他页面上，或网页没有响应时，改为打开一个只盖住网页的窗口。",
     "description": "Explanation under the open-as choice."
   },
   "optionOpenAsWindow": {
-    "message": "盖住浏览器的窗口",
-    "description": "Open-as choice: a window of its own that covers the browser window."
-  },
-  "optionOpenAsFullscreen": {
-    "message": "全屏窗口",
-    "description": "Open-as choice: a window of its own that fills the screen."
-  },
-  "optionOpenAsTab": {
-    "message": "浏览器窗口里的一个标签页",
-    "description": "Open-as choice: a tab in the browser window you are in."
+    "message": "占满整个浏览器窗口",
+    "description": "Open-as choice: a window of its own that covers the whole browser window."
   },
   "optionOpenAsPage": {
-    "message": "铺在当前网页上",
-    "description": "Open-as choice: a layer over the web page in front of you."
+    "message": "只盖住网页，露出标签栏",
+    "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
   "optionHelpHeading": {
     "message": "帮助",

@@ -311,27 +311,19 @@
   },
   "optionOpenAs": {
     "message": "Open as (trial)",
-    "description": "Label of a choice on the settings page, a trial: where Tab Mission shows when the cards are spread out."
+    "description": "Label of a choice on the settings page, a trial: how much Tab Mission covers when the cards are spread out."
   },
   "optionOpenAsNote": {
-    "message": "With the cards spread out. \"On the page in front\" works on web pages; on other pages, and when a page does not answer, the window opens.",
+    "message": "With the cards spread out. \"The page only\" shows on the web page itself; on other pages, and when a page does not answer, a window over the page opens instead.",
     "description": "Explanation under the open-as choice."
   },
   "optionOpenAsWindow": {
-    "message": "A window over the browser",
-    "description": "Open-as choice: a window of its own that covers the browser window."
-  },
-  "optionOpenAsFullscreen": {
-    "message": "A full-screen window",
-    "description": "Open-as choice: a window of its own that fills the screen."
-  },
-  "optionOpenAsTab": {
-    "message": "A tab in the browser window",
-    "description": "Open-as choice: a tab in the browser window you are in."
+    "message": "The whole browser window",
+    "description": "Open-as choice: a window of its own that covers the whole browser window."
   },
   "optionOpenAsPage": {
-    "message": "On the page in front",
-    "description": "Open-as choice: a layer over the web page in front of you."
+    "message": "The page only, tab strip in view",
+    "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
   "optionHelpHeading": {
     "message": "Help",

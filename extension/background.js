@@ -3,7 +3,7 @@ import { recordTryIt, startTips } from './src/tryit.js';
 import { coverFrontTab, startCovers, tidyCovers } from './src/covers.js';
 import { trackUnseenTabs } from './src/unseen.js';
 import { movePreviewsOfReplacedTabs } from './src/thumbnail.js';
-import { readHost, frontTab, openAsTab, openOnPage, claimOverlay, closeOverlay, hostTabRemoved, hostTabLeft, tellHost, dropHost } from './src/host.js';
+import { readHost, frontTab, openOnPage, claimOverlay, closeOverlay, hostTabRemoved, hostTabLeft, tellHost, dropHost } from './src/host.js';
 
 let overviewWindowId = null; // the open overview's window id, or null
 let toggling = null; // the toggle in progress, so overlapping presses never open two windows
@@ -135,17 +135,36 @@ async function spreadOut() {
 	}
 }
 
+// How far below a browser window's top edge its page begins: the window is
+// as high as its tab strip and toolbar plus the page of its tab in front
+// (tab.height), plus, on Windows, an unseen edge below as wide as the ones
+// at its sides. 0 when that cannot be told.
+function pageInset(browser, tab) {
+	if (!tab || tab.windowId !== browser.id || !(tab.height > 0)) return 0;
+	const side = (browser.width - tab.width) / 2;
+	const inset = browser.height - tab.height - (side > 0 && side <= 16 ? side : 0);
+	return inset > 0 && inset < browser.height / 2 ? Math.round(inset) : 0;
+}
+
 // Where the overview opens: on the browser's display, at the size the user
 // last chose (else the default size), centered, or at the spot the user last
 // chose when that spot is on this display. With cover (the cards spread
 // out): right over the browser window the user is working in, as large as
 // it, so the whole browser turns into the overview; without such a window,
-// as above.
-async function overviewBounds(displays, saved, cover = false) {
+// as above. With under (the tab in front, for "tab strip in view"): over
+// that tab's page only, down to the window's lower edge or the work area's.
+async function overviewBounds(displays, saved, cover = false, under = null) {
 	const browser = await lastFocusedBrowser();
 	const display = displayFor(displays, browser);
 	if (cover && browser?.width > 0 && browser?.height > 0) {
-		return fitInto(display, { left: browser.left, top: browser.top, width: browser.width, height: browser.height });
+		const area = { left: browser.left, top: browser.top, width: browser.width, height: browser.height };
+		const inset = pageInset(browser, under);
+		const bottom = Math.min(area.top + area.height, display.workArea.top + display.workArea.height);
+		if (inset > 0 && bottom - area.top - inset >= 200) {
+			area.top += inset;
+			area.height = bottom - area.top;
+		}
+		return fitInto(display, area);
 	}
 	const bounds = displayBounds(display);
 	if (saved?.width && saved?.height) {
@@ -179,11 +198,11 @@ function toggleOverviewWindow(scope, source = 'shortcut', pictured = null) {
 }
 
 async function runToggle(scope, source, pictured) {
-	// The overview open as a tab or on a page (a trial, src/host.js). In
-	// front, it acts on the press: the toolbar button closes it, the shortcut
-	// switches to the selected tab or closes. One that does not answer (its
-	// page went elsewhere) or was left behind on another tab is closed, and
-	// the press opens a new one below.
+	// The overview open on a page (a trial, src/host.js). In front, it acts
+	// on the press: the toolbar button closes it, the shortcut switches to
+	// the selected tab or closes. One that does not answer (its page went
+	// elsewhere) or was left behind on another tab is taken off, and the
+	// press opens a new one below.
 	const host = await readHost();
 	if (host) {
 		const front = await frontTab();
@@ -305,8 +324,8 @@ function loaded(tabId) {
 // window may teach the shortcut (tips.js).
 // The look chosen on the settings page rides in the address, so the window
 // has it before its first paint (src/look.js); the defaults add nothing.
-// extra: what an overview in a tab or on a page has to know, and page: the
-// name the page has in a frame on a page (src/host.js).
+// extra: what an overview on a page has to know, and page: the name the
+// page has in a frame there (src/host.js).
 function overviewPath(scope, source, look = {}, extra = {}, page = 'overview.html') {
 	const params = new URLSearchParams(extra);
 	if (scope === 'site') params.set('scope', 'site');
@@ -317,55 +336,53 @@ function overviewPath(scope, source, look = {}, extra = {}, page = 'overview.htm
 	return params.size ? `${page}?${params}` : page;
 }
 
-// How long opening as a tab or on a page waits for the picture of the page
-// in front: either would be in a picture taken later.
+// How long opening on a page waits for the picture of the page in front:
+// the overview would be in a picture taken later.
 const PICTURE_WAIT_MS = 200;
 
-// Open the overview: in a window of its own, or, with the cards spread out
-// and the trial setting "Open as", as a tab of the browser window or on the
-// page in front (src/host.js), falling back to the window when that fails.
+// Open the overview: in a window of its own over the browser window, or,
+// with the cards spread out and the trial setting "Open as" at "tab strip in
+// view", on the page in front (src/host.js). A page that cannot take it gets
+// a window over the page only, so the tab strip stays in view there too.
 async function openOverview(scope, source, pictured) {
 	// Drop the pictures of pages no longer open (src/covers.js), meanwhile.
 	tidyCovers();
 	const look = await chrome.storage.local.get({ appearance: 'system', backdrop: 'plain', spread: false, openAs: 'window' }).catch(() => ({}));
-	const openAs = look.spread === true ? look.openAs : 'window';
-	if (openAs === 'tab' || openAs === 'page') {
+	let under = null;
+	if (look.spread === true && look.openAs === 'page') {
 		const front = await frontTab();
 		if (front && typeof front.id === 'number') {
-			if (pictured) await Promise.race([pictured, new Promise((resolve) => setTimeout(resolve, PICTURE_WAIT_MS))]);
-			const pathFor = (extra, page) => overviewPath(scope, source, look, extra, page);
-			// A layer whose frame never shows up (src/host.js) is taken off and
-			// the window opened, unless a press is being handled just then.
-			const orElse = () => {
-				toggling ??= createOverviewWindow(scope, source, look).finally(() => {
-					toggling = null;
-				});
-			};
-			if (await (openAs === 'tab' ? openAsTab : openOnPage)(front, pathFor, orElse)) return;
+			under = front;
+			// Only web pages and files take a layer: no time is lost on the rest.
+			if (/^(https?|file):/.test(front.url || '')) {
+				if (pictured) await Promise.race([pictured, new Promise((resolve) => setTimeout(resolve, PICTURE_WAIT_MS))]);
+				const pathFor = (extra, page) => overviewPath(scope, source, look, extra, page);
+				// A layer whose frame never shows up (src/host.js) is taken off and
+				// the window opened, unless a press is being handled just then.
+				const orElse = () => {
+					toggling ??= createOverviewWindow(scope, source, look, front).finally(() => {
+						toggling = null;
+					});
+				};
+				if (await openOnPage(front, pathFor, orElse)) return;
+			}
 		}
 	}
-	await createOverviewWindow(scope, source, look);
+	await createOverviewWindow(scope, source, look, under);
 }
 
-async function createOverviewWindow(scope, source, look) {
+// under: the tab whose page the window covers, instead of its whole browser
+// window (overviewBounds).
+async function createOverviewWindow(scope, source, look, under = null) {
 	try {
 		const displays = await chrome.system.display.getInfo();
 		if (!displays || displays.length === 0) {
 			throw new Error('No display information found.');
 		}
 
-		const bounds = await overviewBounds(displays, await getSavedOverviewBounds(), look.spread === true);
+		const bounds = await overviewBounds(displays, await getSavedOverviewBounds(), look.spread === true, under);
 		const url = chrome.runtime.getURL(overviewPath(scope, source, look));
-
-		// The trial setting "A full-screen window" (spread out): Chrome takes
-		// no size or spot for one; where it refuses, the window as usual.
-		let win = null;
-		if (look.spread === true && look.openAs === 'fullscreen') {
-			try {
-				win = await chrome.windows.create({ url, type: 'popup', state: 'fullscreen' });
-			} catch {}
-		}
-		win ??= await chrome.windows.create({ url, type: 'popup', ...bounds });
+		const win = await chrome.windows.create({ url, type: 'popup', ...bounds });
 		if (win?.id) {
 			overviewWindowId = win.id;
 			overviewOpenedAt = Date.now();

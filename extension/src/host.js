@@ -1,6 +1,6 @@
 // host.js: the overview shown elsewhere than in a window of its own. A trial
-// (settings page, "Open as", with the cards spread out): as a tab of the
-// browser window you are in, or as a layer over the page in front of you.
+// (settings page, "Open as", with the cards spread out): as a layer over the
+// page in front of you, so the browser's tab strip stays in view.
 // Runs in the service worker (background.js); the overview page's part is
 // in state.js, events.js and main.js (state.host).
 //
@@ -33,7 +33,7 @@ const OFF_MARGIN_MS = 1000;
 
 const after = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// { kind: 'tab' | 'page', tabId, windowId, at, token?, claimed?, frameId? }
+// { kind: 'page', tabId, windowId, at, token, claimed?, frameId? }
 // or null. Kept in chrome.storage.session: it survives a service worker
 // restart, not a browser restart (tab ids are unique only within one
 // browser session).
@@ -61,25 +61,6 @@ export async function frontTab() {
     return tab ?? null;
   } catch {
     return null;
-  }
-}
-
-// As a tab right after the one in front, which it goes back to when it
-// closes (events.js). pathFor builds the overview's address from what it
-// has to know. Resolves true once open.
-export async function openAsTab(front, pathFor) {
-  try {
-    const tab = await chrome.tabs.create({
-      url: chrome.runtime.getURL(pathFor({ host: 'tab', from: String(front.id) })),
-      windowId: front.windowId,
-      index: front.index + 1,
-      openerTabId: front.id,
-      active: true,
-    });
-    await writeHost({ kind: 'tab', tabId: tab.id, windowId: front.windowId, at: Date.now() });
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -155,7 +136,7 @@ async function forgetHost(host) {
   try {
     await chrome.storage.session.set({
       [KEY]: null,
-      ...(host?.kind === 'page' ? { [LAST_KEY]: { tabId: host.tabId, until: Date.now() + OFF_MARGIN_MS } } : {}),
+      [LAST_KEY]: { tabId: host.tabId, until: Date.now() + OFF_MARGIN_MS },
     });
   } catch {}
 }
@@ -172,7 +153,7 @@ export async function overlaidSince(tabId, since) {
   }
 }
 
-// A tab closed: the overview that was in it, or over its page, is gone.
+// A tab closed: the overview that was over its page is gone.
 export async function hostTabRemoved(tabId) {
   const host = await readHost();
   if (host?.tabId === tabId) await forgetHost(host);
@@ -201,19 +182,11 @@ export async function tellHost(host, message) {
   }
 }
 
-// An overview that does not answer, or was left behind on another tab:
-// closed, never one of the user's own tabs.
+// An overview that does not answer, or was left behind on another tab, is
+// taken off. Not waited for: a busy page takes it off when it can.
 export async function dropHost(host) {
   await forgetHost(host);
-  if (host.kind === 'page') {
-    // Not waited for: a busy page takes it off when it can.
-    removeOverlay(host.tabId);
-    return;
-  }
-  try {
-    const tab = await chrome.tabs.get(host.tabId);
-    if ((tab.url || tab.pendingUrl)?.startsWith(chrome.runtime.getURL('overview.html'))) await chrome.tabs.remove(tab.id);
-  } catch {}
+  removeOverlay(host.tabId);
 }
 
 // Runs in the page (its isolated world): a frame with the overview over the
