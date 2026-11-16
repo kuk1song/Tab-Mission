@@ -70,14 +70,16 @@ async function main() {
   handleFilterChange({ persist: false });
   if (gridEl) prepareSpreadEntrance(gridEl);
   markInView();
-  const entrance = (gridEl?.getAnimations({ subtree: true }) ?? []).filter((a) => ENTRANCES.includes(a.animationName));
   followCurrentCover();
-  // The entrance holds at its first frame (look.js, overview.css) until the
-  // cards in view have their pictures, and then plays as one.
-  firstFrame(gridEl).then(() => Promise.race([
-    Promise.all([after(700), Promise.allSettled(entrance.map((a) => a.finished))]),
-    after(2000),
-  ])).then(() => {
+  // The entrance waits (look.js, overview.css) until the cards in view have
+  // their pictures and are drawn, and then plays as one.
+  firstFrame(gridEl).then(() => {
+    const entrance = (gridEl?.getAnimations({ subtree: true }) ?? []).filter((a) => ENTRANCES.includes(a.animationName));
+    return Promise.race([
+      Promise.all([after(700), Promise.allSettled(entrance.map((a) => a.finished))]),
+      after(2000),
+    ]);
+  }).then(() => {
     gridEl?.classList.remove('entering');
     // A tip, if one is due, once the cards have settled (tips.js). Opened
     // with the site shortcut, the tip names that key: pressed again, it too
@@ -92,20 +94,30 @@ async function main() {
 }
 
 const after = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-// How long the first frame waits for the pictures of the cards in view, and,
-// on a page, for background.js to show the layer (src/host.js).
+// How long the first frame waits for the pictures of the cards in view, for
+// a frame with them on, and, on a page, for background.js to show the layer
+// (src/host.js).
 const PICTURES_WAIT_MS = 100;
+const FRAME_WAIT_MS = 50;
 const SHOW_WAIT_MS = 400;
 
 // Let the entrance go (look.js holds it): once the cards in view have their
-// pictures and, on a page, the layer shows. Late pictures fade in as ever.
+// pictures, Chrome has had a frame to draw them in (too faint to see,
+// overview.css), and, on a page, the layer shows. The entrance then starts
+// only when the cards are drawn, so it starts moving. Late pictures fade in
+// as ever. A window that draws no frames (hidden, say) is let go by the
+// clock.
 async function firstFrame(gridEl) {
   try {
     const tiles = gridEl ? [...gridEl.querySelectorAll('.tile.in-view')] : [];
     await Promise.race([preloadCovers(tiles), after(PICTURES_WAIT_MS)]);
-    if (state.host === 'page') {
-      await Promise.race([chrome.runtime.sendMessage({ action: 'showOverlay' }).catch(() => {}), after(SHOW_WAIT_MS)]);
-    }
+    await Promise.race([new Promise((resolve) => requestAnimationFrame(resolve)), after(FRAME_WAIT_MS)]);
+    // That frame's drawing comes after its callbacks: let go once it is
+    // under way. Meanwhile, on a page, ask for the layer to show.
+    const shown = state.host === 'page'
+      ? Promise.race([chrome.runtime.sendMessage({ action: 'showOverlay' }).catch(() => {}), after(SHOW_WAIT_MS)])
+      : null;
+    await Promise.all([after(0), shown]);
   } catch {}
   release();
 }

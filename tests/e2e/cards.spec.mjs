@@ -38,14 +38,52 @@ test('the cards come in with their pictures on them: the entrance waits for the 
       window.picturedAtStart = [...document.querySelectorAll('.thumbnail.cover.loaded.ready')]
         .filter((img) => img.complete && img.naturalWidth > 0)
         .map((img) => Number(img.closest('.tile').dataset.tabId));
+      window.movingAtStart = document.getAnimations().some((a) => a.animationName === 'fadeInUp');
     }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-wait'] });
+    // And while it waits, the cards in place: how faint the window's
+    // content is, and which entrances (CSS animations) there are.
+    new MutationObserver((_, observer) => {
+      const root = document.documentElement;
+      if (!root || !('wait' in root.dataset) || !document.querySelector('#grid .tile.in-view')) return;
+      observer.disconnect();
+      window.whileWaiting = [getComputedStyle(document.getElementById('root')).opacity, document.getAnimations().filter((a) => a.animationName).map((a) => a.animationName)];
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['class'] });
   });
   const page = await ext.open();
   await expect(page.locator('html')).not.toHaveAttribute('data-wait');
+  // Waiting, the content is drawn too faint to see and nothing moves, so
+  // the cards are drawn by the time they are let go; then the entrance runs.
+  expect(await page.evaluate(() => window.whileWaiting)).toEqual(['0.001', []]);
+  expect(await page.evaluate(() => window.movingAtStart)).toBe(true);
   expect(await page.evaluate(() => window.picturedAtStart)).toContain(tabIds.gamma);
   const picture = tile(page, tabIds.gamma).locator('.thumbnail');
   expect(await picture.evaluate((img) => [getComputedStyle(img).opacity, getComputedStyle(img).transitionDuration])).toEqual(['1', '0s']);
   await expect(tile(page, tabIds.gamma).locator('.preview-icon')).toBeHidden();
+});
+
+test('the card of the page you were on takes its picture once it is stored, even with none on it before', async ({ ext }) => {
+  // No picture is taken in this test: the page's card starts without one,
+  // as when the shortcut is pressed before the first is stored.
+  await ext.sw.evaluate(() => {
+    chrome.tabs.captureVisibleTab = async () => {
+      throw new Error('no pictures in this test');
+    };
+  });
+  const { tabIds } = await ext.openWindow(['beta', 'gamma']);
+  const page = await ext.open();
+  await page.locator('#grid:not(.entering)').waitFor();
+  const picture = tile(page, tabIds.gamma).locator('.thumbnail');
+  await expect(picture).not.toHaveClass(/cover/);
+  // Stored as the worker stores it (covers.js).
+  const PICTURE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  await ext.sw.evaluate(({ key, entry }) => chrome.storage.local.set({ [key]: entry }), { key: `cover:${tabIds.gamma}`, entry: { url: ext.url('gamma'), img: PICTURE } });
+  await expect(picture).toHaveAttribute('src', PICTURE);
+  await expect(picture).toHaveClass(/cover/);
+  await expect(picture).toHaveClass(/loaded/);
+  await expect(picture).toBeVisible();
+  await expect(tile(page, tabIds.gamma).locator('.thumbnail')).toHaveCount(1);
+  // The other page's card is left as it was.
+  await expect(tile(page, tabIds.beta).locator('.thumbnail')).not.toHaveClass(/cover/);
 });
 
 test('a card with a picture shows the site icon on its corner, and the selected card a ring around its picture', async ({ ext }) => {

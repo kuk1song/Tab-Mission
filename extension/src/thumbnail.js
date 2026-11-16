@@ -139,7 +139,7 @@ function showCover(img, tab, tile, cover, ready = false) {
 
 // The page you were on is pictured as the overview opens (covers.js), and
 // that picture is stored a moment after the cards show: its cards take it
-// then, without a fade.
+// then, without a fade, whatever they showed.
 export function followCurrentCover() {
   chrome.storage.onChanged.addListener(async (changes, area) => {
     const tab = state.allTabs.find((t) => t.id === state.currentTabId);
@@ -153,8 +153,21 @@ export function followCurrentCover() {
       return;
     }
     for (const tile of document.querySelectorAll(`.tile[data-tab-id="${tab.id}"]`)) {
-      const img = tile.querySelector('.thumbnail');
-      if (img?.classList.contains('cover')) showCover(img, tab, tile, entry.img, true);
+      let img = tile.querySelector('.thumbnail');
+      if (!img) continue;
+      // A card with no picture of the page yet (pressed before the first
+      // one was stored) shows its icon or the image the page names, which
+      // may still be on its way: the picture goes on an element of its
+      // own, so nothing on its way lands on it.
+      if (!img.classList.contains('cover')) {
+        const own = img.cloneNode(false);
+        own.className = 'thumbnail';
+        for (const name of ['src', 'style', 'data-from']) own.removeAttribute(name);
+        img.replaceWith(own);
+        img = own;
+        tile.dataset.thumb = 'done';
+      }
+      showCover(img, tab, tile, entry.img, true);
     }
   });
 }

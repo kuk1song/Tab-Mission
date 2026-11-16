@@ -44,11 +44,20 @@ test.describe('on the page in front', () => {
       field.focus();
       window.keysSeen = [];
       window.addEventListener('keydown', (e) => window.keysSeen.push(e.key), true);
+      // How the layer looks at the moment it is put on.
+      new MutationObserver((records, observer) => {
+        const layer = records.flatMap((record) => [...record.addedNodes]).find((node) => node.nodeType === 1);
+        if (!layer) return;
+        observer.disconnect();
+        window.layerPutOn = [layer.style.getPropertyValue('opacity'), layer.style.getPropertyValue('pointer-events')];
+      }).observe(document.documentElement, { childList: true });
     });
     const windows = await ext.sw.evaluate(() => chrome.windows.getAll().then((all) => all.length));
     const frame = await openOn(ext, page);
     expect(ext.overviewPages()).toEqual([]);
-    // Put on unseen, the layer shows by now, and takes the pointer.
+    // Put on unseen (too faint to change a pixel: the next test), letting
+    // clicks through, the layer shows by now, and takes the pointer.
+    expect(await page.evaluate(() => window.layerPutOn)).toEqual(['0.001', 'none']);
     expect(await page.evaluate(() => {
       const layer = document.documentElement.lastElementChild.style;
       return [layer.getPropertyValue('opacity'), layer.getPropertyValue('pointer-events')];
@@ -84,6 +93,68 @@ test.describe('on the page in front', () => {
     expect(await ext.activeTitle(windowId)).toBe(CURRENT);
     expect(await page.evaluate(() => document.activeElement.id)).toBe('own-field');
     expect(await page.evaluate(() => window.keysSeen)).toEqual([]);
+  });
+
+  test('a layer as faint as the unseen one changes no pixel of the page\'s picture, black or white; one that can be seen does', async ({ ext, context }) => {
+    const { windowId, tabIds } = await ext.openWindow(['alpha', 'gamma']);
+    await choose(ext, {});
+    await pageOf(context, 'gamma').bringToFront();
+    // In the worker: Chrome's picture of the page (as covers.js takes it)
+    // with no layer, then with a layer over all of it, drawn before the
+    // picture is taken. Counted: the pixels that differ from the first
+    // picture, but for the corner where every test page keeps drawing
+    // (fixtures.mjs).
+    const differing = await ext.sw.evaluate(async ({ windowId, tabId }) => {
+      const picture = async () => {
+        for (let tries = 0; ; tries++) {
+          try {
+            const bitmap = await createImageBitmap(await (await fetch(await chrome.tabs.captureVisibleTab(windowId, { format: 'png' }))).blob());
+            const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d', { willReadFrequently: true });
+            context.drawImage(bitmap, 0, 0);
+            return context.getImageData(0, 0, bitmap.width, bitmap.height);
+          } catch (error) {
+            // Chrome allows two pictures a second, and the worker takes its own.
+            if (tries === 30) throw error;
+            await new Promise((resolve) => setTimeout(resolve, 300));
+          }
+        }
+      };
+      const layer = (color, opacity) => chrome.scripting.executeScript({
+        target: { tabId },
+        args: [color, opacity],
+        func: (color, opacity) => {
+          document.getElementById('faint')?.remove();
+          const el = Object.assign(document.createElement('div'), { id: 'faint' });
+          el.style.cssText = `position:fixed;inset:0;z-index:2147483647;pointer-events:none;opacity:${opacity};background:${color}`;
+          if (color) document.documentElement.append(el);
+          return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        },
+      });
+      const differ = (a, b) => {
+        if (a.width !== b.width || a.height !== b.height) return -1;
+        let count = 0;
+        for (let y = 0; y < a.height; y++) {
+          for (let x = 0; x < a.width; x++) {
+            if (x >= a.width - 24 && y >= a.height - 24) continue;
+            const i = (y * a.width + x) * 4;
+            if (a.data[i] !== b.data[i] || a.data[i + 1] !== b.data[i + 1] || a.data[i + 2] !== b.data[i + 2]) count++;
+          }
+        }
+        return count;
+      };
+      await layer('', 0);
+      const plain = await picture();
+      const counts = {};
+      for (const [name, color, opacity] of [['black', '#000', 0.001], ['white', '#fff', 0.001], ['seen', '#000', 0.5]]) {
+        await layer(color, opacity);
+        counts[name] = differ(plain, await picture());
+      }
+      await layer('', 0);
+      return counts;
+    }, { windowId, tabId: tabIds.gamma });
+    expect(differing.black).toBe(0);
+    expect(differing.white).toBe(0);
+    expect(differing.seen).toBeGreaterThan(1000);
   });
 
   test('Enter switches to the selected tab, the shortcut pressed again too, and the toolbar button takes it off', async ({ ext, context }) => {

@@ -377,6 +377,37 @@ describe('covers', () => {
     expect(chrome.shots).toHaveLength(0);
   });
 
+  // Chrome allows two pictures a second: pressed just after the page was
+  // pictured (a switch, a load), the press's own picture has to wait.
+  it('does not keep the overview waiting for a picture that has to wait its turn: says so at once, and takes none once the layer shows', async () => {
+    const session = {};
+    chrome.storage.session = { get: vi.fn(async (defaults) => ({ ...defaults, ...session })) };
+    show(page(11));
+    await covers.coverFrontTab();
+    expect(chrome.shots).toHaveLength(1);
+    session.overviewHost = { kind: 'page', tabId: 11, windowId: 1, at: Date.now() };
+    const taken = vi.fn(() => {
+      session.overviewHost.shown ??= Date.now(); // the layer shows as soon as it is told
+    });
+    const done = covers.coverFrontTab(taken);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(taken).toHaveBeenCalledTimes(1);
+    expect(chrome.shots).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(covers.CAPTURE_GAP_MS);
+    await done;
+    // Its turn came with the overview on the page: no picture of that.
+    expect(chrome.shots).toHaveLength(1);
+
+    // With no overview on the page (a window of its own), it is taken in its turn.
+    session.overviewHost = null;
+    await vi.advanceTimersByTimeAsync(covers.CAPTURE_GAP_MS);
+    await covers.coverFrontTab();
+    const waiting = covers.coverFrontTab();
+    await vi.advanceTimersByTimeAsync(covers.CAPTURE_GAP_MS);
+    await waiting;
+    expect(chrome.shots).toHaveLength(3);
+  });
+
   it('reads the pictures of several tabs in one go: each tab\'s own, for the page it shows now', async () => {
     chrome.data['cover:11'] = { url: 'https://site.test/11', img: 'data:image/webp;base64,A' };
     chrome.data['cover:12'] = { url: 'https://site.test/elsewhere', img: 'data:image/webp;base64,B' };

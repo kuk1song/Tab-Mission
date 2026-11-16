@@ -550,11 +550,18 @@ html, body {
 /* On its card from the first frame (thumbnail.js preloadCovers): no fade. */
 .thumbnail.loaded.ready { transition: none; }
 
-/* Until the first frame is ready (look.js, main.js), every entrance holds at
-   its start: the window and its cards, pictures on them, then come in as
-   one. */
-:root[data-wait] #root,
-:root[data-wait] #root * { animation-play-state: paused !important; }
+/* Until the first frame is ready (look.js, main.js), no entrance starts, and
+   what the window holds is drawn too faint to change a pixel: so Chrome
+   draws the cards, pictures on them, before anything moves, and the window
+   and its cards then come in as one. Not opacity 0, and not the entrance
+   paused at its start: Chrome draws nothing of either until it is let go,
+   and the cards then stood still for their first frames (about 50 ms). */
+:root[data-wait] #root { animation: none !important; opacity: 0.001; }
+:root[data-wait] #root * { animation: none !important; }
+/* Each card a layer of its own while it waits, as in its entrance: what
+   Chrome drew of it is what then moves. */
+.grid.entering .tile.in-view,
+.grid.entering .group-label.in-view { will-change: transform, opacity; }
 
 /* A picture of the page (covers.js): its top, where the page says what it is. */
 .thumbnail.cover {

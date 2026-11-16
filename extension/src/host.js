@@ -243,7 +243,10 @@ function mountOverlay(path, token) {
   style(host, {
     all: 'initial', position: 'fixed', inset: '0', width: '100%', height: '100%', 'max-width': 'none', 'max-height': 'none',
     margin: '0', padding: '0', border: '0', background: 'none', overflow: 'hidden', display: 'block', 'z-index': '2147483647',
-    opacity: '0', 'pointer-events': 'none',
+    // Unseen: too faint to change a pixel of the page or of its picture. Not
+    // 0, where Chrome stops drawing the frame, so its cards would be drawn
+    // only after it shows.
+    opacity: '0.001', 'pointer-events': 'none',
   });
   const frame = document.createElement('iframe');
   frame.title = 'Tab Mission';

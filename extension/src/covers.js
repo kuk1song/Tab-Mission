@@ -163,7 +163,8 @@ function capturesLeft(tabId, now) {
 // button: the one you are leaving, and so the likeliest one to come back to.
 // Captured at once, before Tab Mission's window can cover it or take focus.
 // taken: called once the picture has been taken (it is shrunk and stored a
-// moment later), or once it is clear that none will be.
+// moment later), once it has to wait its turn, or once it is clear that
+// none will be.
 export async function coverFrontTab(taken) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true, windowType: 'normal' });
@@ -203,6 +204,10 @@ async function capture(tabId, { front = false, loading = false, taken = null } =
   const start = Math.max(now, nextSlot);
   nextSlot = start + CAPTURE_GAP_MS;
   if (start > now) {
+    // The overview is not kept waiting for this one (it shows on the page
+    // once the picture is taken, src/host.js): the page was pictured a
+    // moment ago, and once the overview shows, this picture is not taken.
+    taken?.();
     await sleep(start - now);
     if (!unchanged(await chrome.tabs.get(tabId))) return false;
   }
