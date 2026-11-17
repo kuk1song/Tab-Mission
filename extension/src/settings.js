@@ -32,8 +32,7 @@ const DEFAULTS = {
   // Spread out, a trial: how much the overview covers. 'window', the whole
   // browser window (a window of its own over it); 'page', the page only, the
   // tab strip in view: a layer over the page in front, or where a page takes
-  // none, a window over the page (background.js, src/host.js); 'fade', as
-  // 'page', the layer fading in over the page.
+  // none, a window over the page (background.js, src/host.js).
   openAs: 'window',
 };
 

@@ -325,10 +325,6 @@
     "message": "Solo la pagina, barra delle schede visibile",
     "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
-  "optionOpenAsFade": {
-    "message": "Solo la pagina, in dissolvenza",
-    "description": "Open-as choice, a trial: as the page-only choice, and the overview fades in over the page."
-  },
   "optionHelpHeading": {
     "message": "Aiuto",
     "description": "Settings page: heading of the help section."

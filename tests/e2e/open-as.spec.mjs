@@ -65,8 +65,8 @@ test.describe('on the page in front', () => {
     expect(await page.evaluate(() => window.layerPutOn)).toEqual(['0.001', 'none']);
     expect(await page.evaluate(() => {
       const layer = document.documentElement.lastElementChild.style;
-      return [layer.getPropertyValue('opacity'), layer.getPropertyValue('pointer-events'), layer.getPropertyValue('transition')];
-    })).toEqual(['1', 'auto', 'initial']);
+      return [layer.getPropertyValue('opacity'), layer.getPropertyValue('pointer-events')];
+    })).toEqual(['1', 'auto']);
     expect((await host(ext)).shown).toBeGreaterThan(0);
     await expect(frame.locator('html')).not.toHaveAttribute('data-wait');
     expect(await ext.sw.evaluate(() => chrome.windows.getAll().then((all) => all.length))).toBe(windows);
@@ -99,35 +99,6 @@ test.describe('on the page in front', () => {
     expect(await ext.activeTitle(windowId)).toBe(CURRENT);
     expect(await page.evaluate(() => document.activeElement.id)).toBe('own-field');
     expect(await page.evaluate(() => window.keysSeen)).toEqual([]);
-  });
-
-  test('with the trial choice for it, the layer fades in over the page, and shows at once for people who ask for less motion', async ({ ext, context }) => {
-    await ext.openWindow(VISITED);
-    await choose(ext, { openAs: 'fade' });
-    const page = pageOf(context, 'gamma');
-    // The layer's opacity as it shows: its transition, and where it ends.
-    const shown = () => page.evaluate(() => {
-      const layer = document.documentElement.lastElementChild;
-      return [layer.style.getPropertyValue('transition'), layer.style.getPropertyValue('opacity'), layer.style.getPropertyValue('pointer-events')];
-    });
-    // The fades that ran to their end on the page: what faded, for how long.
-    await page.evaluate(() => {
-      window.faded = [];
-      document.documentElement.addEventListener('transitionend', (e) => window.faded.push([e.target === document.documentElement.lastElementChild, e.propertyName, e.elapsedTime]));
-    });
-    const frame = await openOn(ext, page);
-    expect(await shown()).toEqual(['opacity 180ms ease-out', '1', 'auto']);
-    await expect.poll(() => page.evaluate(() => window.faded)).toEqual([[true, 'opacity', 0.18]]);
-    expect(await page.evaluate(() => getComputedStyle(document.documentElement.lastElementChild).opacity)).toBe('1');
-    await expect(frame.locator('#search')).toBeFocused();
-    await page.keyboard.press('Escape');
-    await gone(page);
-
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await openOn(ext, page);
-    expect(await shown()).toEqual(['initial', '1', 'auto']);
-    expect(await page.evaluate(() => getComputedStyle(document.documentElement.lastElementChild).opacity)).toBe('1');
-    expect(await page.evaluate(() => window.faded.length)).toBe(1);
   });
 
   test('a layer as faint as the unseen one changes no pixel of the page\'s picture, black or white; one that can be seen does', async ({ ext, context }) => {
