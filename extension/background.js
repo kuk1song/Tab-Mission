@@ -350,14 +350,14 @@ function pictureFront() {
 
 // Open the overview: in a window of its own over the browser window, or,
 // with the cards spread out and the trial setting "Open as" at "tab strip in
-// view", on the page in front (src/host.js). A page that cannot take it gets
+// view", on the page in front (src/host.js; 'fade': the layer fades in). A page that cannot take it gets
 // a window over the page only, so the tab strip stays in view there too.
 async function openOverview(scope, source, pictured) {
 	// Drop the pictures of pages no longer open (src/covers.js), meanwhile.
 	tidyCovers();
 	const look = await chrome.storage.local.get({ appearance: 'system', backdrop: 'plain', spread: false, openAs: 'window' }).catch(() => ({}));
 	let under = null;
-	if (look.spread === true && look.openAs === 'page') {
+	if (look.spread === true && (look.openAs === 'page' || look.openAs === 'fade')) {
 		const front = await frontTab();
 		if (front && typeof front.id === 'number') {
 			under = front;
@@ -374,7 +374,7 @@ async function openOverview(scope, source, pictured) {
 						toggling = null;
 					});
 				};
-				if (await openOnPage(front, pathFor, orElse, clear)) return;
+				if (await openOnPage(front, pathFor, orElse, clear, look.openAs === 'fade')) return;
 			}
 		}
 	}

@@ -25,7 +25,7 @@ async function main() {
     backdrop.value = ['page', 'wallpaper'].includes(settings.backdrop) ? settings.backdrop : 'plain';
     spread.checked = settings.spread === true;
     cardSizes.value = settings.cardSizes === 'equal' ? 'equal' : 'recent';
-    openAs.value = settings.openAs === 'page' ? 'page' : 'window';
+    openAs.value = ['page', 'fade'].includes(settings.openAs) ? settings.openAs : 'window';
   } finally {
     reveal(preselect);
   }

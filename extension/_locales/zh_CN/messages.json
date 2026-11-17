@@ -325,6 +325,10 @@
     "message": "只盖住网页，露出标签栏",
     "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
+  "optionOpenAsFade": {
+    "message": "只盖住网页，淡入",
+    "description": "Open-as choice, a trial: as the page-only choice, and the overview fades in over the page."
+  },
   "optionHelpHeading": {
     "message": "帮助",
     "description": "Settings page: heading of the help section."

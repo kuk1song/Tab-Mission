@@ -325,6 +325,10 @@
     "message": "The page only, tab strip in view",
     "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
+  "optionOpenAsFade": {
+    "message": "The page only, fading in",
+    "description": "Open-as choice, a trial: as the page-only choice, and the overview fades in over the page."
+  },
   "optionHelpHeading": {
     "message": "Help",
     "description": "Settings page: heading of the help section."

@@ -596,6 +596,23 @@ describe('background.js', () => {
       expect(chrome.storage.session.data.overlayLast.until).toBeGreaterThan(Date.now());
     });
 
+    it('on a page: the layer shows as it is, and fading in with the trial choice for it', async () => {
+      const shownWith = async (openAs) => {
+        chrome.storage.local.data.openAs = openAs;
+        chrome.scripting.executeScript.mockClear();
+        const { token } = await open();
+        await message({ action: 'claimOverlay', token }, frame);
+        expect(await message({ action: 'showOverlay' }, frame)).toEqual({ ok: true });
+        const reveal = chrome.scripting.executeScript.mock.calls.find(([{ func }]) => func.name === 'revealOverlay');
+        expect(reveal[0].args[0]).toBe(token);
+        tell({ action: 'closeOverlay' }, frame);
+        await vi.waitFor(() => expect(host()).toBeNull());
+        return reveal[0].args[1];
+      };
+      expect(await shownWith('page')).toBe(false);
+      expect(await shownWith('fade')).toBe(true);
+    });
+
     it('on a page: a frame the page made cannot take the overview off; the overview\'s own frame, loaded again and refused, is taken off', async () => {
       chrome.storage.local.data.openAs = 'page';
       const { token } = await open();
@@ -785,7 +802,7 @@ describe('background.js', () => {
       taken();
       expect(await shown).toEqual({ ok: true });
       expect(scripts()).toEqual(['mountOverlay', 'revealOverlay']);
-      expect(chrome.scripting.executeScript.mock.calls.at(-1)[0]).toMatchObject({ target: { tabId: 11 }, args: [token] });
+      expect(chrome.scripting.executeScript.mock.calls.at(-1)[0]).toMatchObject({ target: { tabId: 11 }, args: [token, false] });
       expect(host().shown).toBeGreaterThan(0);
       // Asked again, it shows already: nothing more is done.
       expect(await message({ action: 'showOverlay' }, frame)).toEqual({ ok: true });

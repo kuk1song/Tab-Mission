@@ -41,8 +41,9 @@ const OFF_MARGIN_MS = 1000;
 
 const after = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// { kind: 'page', tabId, windowId, at, token, claimed?, frameId?, shown? }
-// (shown: when the layer was let show, Date.now())
+// { kind: 'page', tabId, windowId, at, token, fade?, claimed?, frameId?, shown? }
+// (shown: when the layer was let show, Date.now(); fade: it fades in, a
+// trial)
 // or null. Kept in chrome.storage.session: it survives a service worker
 // restart, not a browser restart (tab ids are unique only within one
 // browser session).
@@ -79,12 +80,13 @@ export async function frontTab() {
 // frame never shows up.
 // clear: resolves once the layer may show (the picture of the page has been
 // taken, or none is being taken).
+// fade: the layer fades in over the page when it shows (a trial).
 let showing = null; // { token, clear }: the layer put on last, by this worker
 
-export async function openOnPage(front, pathFor, orElse, clear = null) {
+export async function openOnPage(front, pathFor, orElse, clear = null, fade = false) {
   const token = crypto.randomUUID();
   showing = { token, clear };
-  await writeHost({ kind: 'page', tabId: front.id, windowId: front.windowId, at: Date.now(), token });
+  await writeHost({ kind: 'page', tabId: front.id, windowId: front.windowId, at: Date.now(), token, ...(fade ? { fade: true } : {}) });
   const mounting = chrome.scripting.executeScript({
     target: { tabId: front.id },
     injectImmediately: true,
@@ -136,7 +138,7 @@ async function reveal(token) {
   // Noted first: a picture taken from now on could show the overview.
   await writeHost({ ...host, shown: Date.now() });
   try {
-    await chrome.scripting.executeScript({ target: { tabId: host.tabId }, injectImmediately: true, func: revealOverlay, args: [token] });
+    await chrome.scripting.executeScript({ target: { tabId: host.tabId }, injectImmediately: true, func: revealOverlay, args: [token, host.fade === true] });
   } catch {}
   return true;
 }
@@ -265,9 +267,14 @@ function mountOverlay(path, token) {
   return true;
 }
 
-function revealOverlay(token) {
+// fade: over the page in 180 ms (a trial), unless the system asks for less
+// motion.
+function revealOverlay(token, fade) {
   const overlay = globalThis.__tabMissionOverlay;
   if (!overlay || overlay.token !== token) return;
+  if (fade && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    overlay.host.style.setProperty('transition', 'opacity 180ms ease-out', 'important');
+  }
   overlay.host.style.setProperty('opacity', '1', 'important');
   overlay.host.style.setProperty('pointer-events', 'auto', 'important');
 }
