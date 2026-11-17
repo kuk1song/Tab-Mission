@@ -415,12 +415,13 @@ for (const appearance of ['light', 'dark']) {
     // In the grid, titles and addresses stand on the backdrop itself.
     const texts = { title: '.tile .title', address: '.tile .url', group: '.group-name', count: '.group-count', toggle: '.ctrl span', hint: '#shortcut-hint kbd', placeholder: '#search' };
     const grid = await worstContrast(page, texts);
-    // A kind with none in view is measured where it is: on Windows the
-    // toolbar takes two rows in this window, and the first site group's
-    // heading, with its count, starts below the fold.
+    // A kind with none wholly in view is measured where it is: on Windows
+    // the toolbar takes two rows in this window, and the first site group's
+    // heading, with its count, is cut by the fold (so Playwright's own
+    // scrollIntoViewIfNeeded leaves it there: it is in view in part).
     for (const [kind, selector] of Object.entries(texts)) {
       if (kind in grid) continue;
-      await page.locator(selector).first().scrollIntoViewIfNeeded();
+      await page.locator(selector).first().evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
       Object.assign(grid, await worstContrast(page, { [kind]: selector }));
     }
     expect(Object.keys(grid).sort()).toEqual(Object.keys(texts).sort());
