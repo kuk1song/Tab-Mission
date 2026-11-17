@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { test, expect } from './fixtures.mjs';
 // When a picture comes after a switch: the settle delay, then at most the gap
 // between captures (covers.js; the module only defines things on import).
@@ -32,6 +34,25 @@ test('the card of a page you looked at shows a picture of it; others keep their 
   await expect(alpha).toHaveAttribute('data-from', /\/img\/alpha\.svg$/);
   await expect(alpha).toHaveClass(/\bloaded\b/);
   await expect(alpha).not.toHaveClass(/\bcover\b/);
+});
+
+test('a local file is pictured when Chrome allows access to file addresses, and its card shows the picture', async ({ ext }, testInfo) => {
+  // The switch "Allow access to file URLs" on Chrome's extensions page; no
+  // API turns it on.
+  const allowed = await ext.sw.evaluate(() => chrome.extension.isAllowedFileSchemeAccess());
+  test.skip(!allowed, 'this browser gives the extension no access to file addresses');
+  const file = testInfo.outputPath('local.html');
+  fs.writeFileSync(file, '<!doctype html><title>Local notes</title><body style="background: #246; color: #fff"><h1>Local notes</h1><p>On this computer.</p>');
+  const address = pathToFileURL(file).href;
+  const { windowId } = await ext.openWindow(['beta']);
+  const id = await ext.openTab(windowId, address, { active: true });
+  await expect.poll(() => coverOf(ext, id).then((c) => c?.url), { timeout: 10_000 }).toBe(address);
+
+  const page = await ext.open();
+  const picture = page.locator(`.tile[data-tab-id="${id}"] img.thumbnail`);
+  await expect(picture).toHaveClass(/\bcover\b/);
+  await expect(picture).toHaveClass(/\bloaded\b/);
+  expect(await picture.getAttribute('src')).toMatch(/^data:image\/webp;base64,/);
 });
 
 test('a tab that moves to another page gets a new picture, and an old one is never shown', async ({ ext }) => {

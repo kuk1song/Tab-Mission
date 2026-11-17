@@ -1,6 +1,7 @@
 // state.js
 import { getHostname, isSleeping, isCapturableUrl, withPendingAddress } from './utils.js';
 import { unseenTabIds } from './unseen.js';
+import { spreadLayout } from './spread.js';
 
 export const state = {
   allTabs: [],
@@ -10,6 +11,10 @@ export const state = {
   currentWindowId: null,
   currentTabId: null,
   selfWindowId: null, // the overview popup itself; its own tab is never listed
+  // Where the overview shows: 'window', a window of its own; or 'page', a
+  // frame over the page in front (src/host.js; 'refused': a frame not let
+  // in, which shows nothing).
+  host: 'window',
   siteHost: '', // non-empty while showing only one site's tabs
   preselectPrevious: true, // mirrors the setting of the same name
   groupBySite: true, // mirrors the setting of the same name
@@ -18,6 +23,10 @@ export const state = {
   // { other } when there is one), else null.
   groups: null,
   columns: 0, // tiles per row the groups were made for (0: not measured)
+  spreadOut: false, // mirrors the setting "spread"
+  // With spreadOut: where each of filteredTabs goes ({ boxes, height,
+  // scrolls }, spread.js), else null and the grid shows them.
+  spread: null,
   unseen: new Set(), // ids of tabs opened in the background and not shown yet (unseen.js)
 };
 
@@ -38,6 +47,10 @@ export async function fetchAllTabs() {
     state.allTabs = [];
     state.currentWindowId = null;
   }
+  if (state.host !== 'window') {
+    await findHostTab();
+    return;
+  }
   try {
     const self = await chrome.windows.getCurrent();
     state.selfWindowId = self?.id ?? null;
@@ -45,6 +58,20 @@ export async function fetchAllTabs() {
     state.selfWindowId = null;
   }
   const currentTab = state.allTabs.find((tab) => tab.windowId === state.currentWindowId && tab.active);
+  state.currentTabId = currentTab?.id ?? null;
+}
+
+// On a page (src/host.js), the overview is in the user's own
+// browser window, so no window is left out, and the current tab is the one
+// whose page it is on.
+async function findHostTab() {
+  state.selfWindowId = null;
+  let own = null;
+  try {
+    own = (await chrome.tabs.getCurrent()) ?? null;
+  } catch {}
+  if (own) state.currentWindowId = own.windowId;
+  const currentTab = own ?? state.allTabs.find((tab) => tab.windowId === state.currentWindowId && tab.active);
   state.currentTabId = currentTab?.id ?? null;
 }
 
@@ -133,9 +160,13 @@ export function applyFilters(uiState) {
   // changes how many tiles a row holds. Nothing is stored. uiState.columns
   // is how many tiles fit in a row: each site's panel spans as many columns
   // as it has tiles (overview.css), and the panels are packed row by row.
+  // Spread out (the setting, off by default): the cards in recent order,
+  // placed for the area uiState.spread gives, every one in view while they
+  // fit. It takes the place of the grid and its groups.
+  state.spread = uiState.spread ? spreadLayout(tabs.length, uiState.spread.width, uiState.spread.height) : null;
   state.groups = null;
   state.columns = uiState.columns || 0;
-  if (uiState.groupBySite && !searching && !state.siteHost) {
+  if (!state.spread && uiState.groupBySite && !searching && !state.siteHost) {
     const { entries, groups } = groupBySite(tabs, RECENT_MAX, uiState.columns || DEFAULT_COLUMNS);
     tabs = entries;
     state.groups = groups;

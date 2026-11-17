@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title data-i18n="pageTitle">Tab Mission</title>
     <link rel="stylesheet" href="overview.css" />
+    <script src="src/look.js"></script>
   </head>
   <body>
+    <div id="backdrop" aria-hidden="true"></div>
     <div id="root">
       <header class="toolbar">
         <div class="search-field">
@@ -17,7 +19,7 @@
             <button id="scope-clear" class="scope-clear" type="button" tabindex="-1" title="Show all sites" aria-label="Show all sites"
                     data-i18n-title="siteScopeClear" data-i18n-aria-label="siteScopeClear">×</button>
           </span>
-          <input id="search" type="text" autocomplete="off" spellcheck="false" autofocus
+          <input id="search" type="text" autocomplete="off" spellcheck="false"
                  role="combobox" aria-expanded="true" aria-controls="grid" aria-autocomplete="list"
                  aria-label="Search tabs" data-i18n-aria-label="searchLabel"
                  placeholder="Search tabs (title or URL)…" data-i18n-placeholder="searchPlaceholder" />
@@ -29,10 +31,12 @@
           <div class="toolbar-toggles">
             <label class="ctrl">
               <input id="toggle-all-windows" type="checkbox" />
+              <svg class="ctrl-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="13" height="11" rx="2"/><path d="M8 8V7a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>
               <span data-i18n="showAllWindowsLabel">Show all windows</span>
             </label>
             <label class="ctrl">
               <input id="toggle-sleeping" type="checkbox" />
+              <svg class="ctrl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.2A8 8 0 1 1 9.8 4a6.4 6.4 0 0 0 10.2 10.2Z"/></svg>
               <span data-i18n="showSleepingLabel">Show sleeping</span>
             </label>
           </div>
@@ -46,7 +50,8 @@
         </div>
       </header>
       <div id="grid" class="grid" role="listbox" aria-label="Open tabs" data-i18n-aria-label="gridLabel"></div>
-      <!-- What the window says to screen readers: no matching tabs, a tip.
+      <!-- What the window says to screen readers: no matching tabs, a tip,
+           a tab closed.
            In the page from the start, as a live region added already
            filled is not reliably read (tips.js announce). -->
       <p id="status" class="visually-hidden" role="status"></p>

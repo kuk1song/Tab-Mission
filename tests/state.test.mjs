@@ -561,3 +561,49 @@ describe('moveSelectionByRects', () => {
     expect(move(-1, 'ArrowUp')).toBe(5);
   });
 });
+
+// "Spread the cards out" (the setting; events.js passes the grid's size).
+describe('applyFilters: spread out', () => {
+  const area = { width: 1280, height: 668 };
+  const tabsOf = (count) => Array.from({ length: count }, (_, i) => makeTab(i + 1, { lastAccessed: 1000 - i, url: `https://site${i % 3}.example/${i}` }));
+
+  beforeEach(() => {
+    state.currentTabId = 1;
+  });
+
+  it('places every card, in recent order, and makes no groups', () => {
+    state.allTabs = tabsOf(8);
+    applyFilters(ui({ groupBySite: true, columns: 5, preselectPrevious: true, spread: area }));
+    expect(state.groups).toBeNull();
+    expect(state.spread.boxes).toHaveLength(8);
+    // The previous tab first, the current one beside it, then by last use.
+    expect(state.filteredTabs.map((tab) => tab.id)).toEqual([2, 1, 3, 4, 5, 6, 7, 8]);
+    expect(state.selectedIndex).toBe(0);
+  });
+
+  it('places the matches of a search', () => {
+    state.allTabs = tabsOf(8);
+    applyFilters(ui({ searchTerm: 'site1', spread: area }));
+    expect(state.filteredTabs).toHaveLength(3);
+    expect(state.spread.boxes).toHaveLength(3);
+  });
+
+  it('with more cards than fit in view, keeps them spread out, to scroll through, and still makes no groups', () => {
+    state.allTabs = tabsOf(60);
+    applyFilters(ui({ groupBySite: true, columns: 5, spread: area }));
+    expect(state.spread.boxes).toHaveLength(60);
+    expect(state.spread.scrolls).toBe(true);
+    expect(state.spread.height).toBeGreaterThan(area.height);
+    expect(state.groups).toBeNull();
+    expect(state.filteredTabs.slice(0, 3).map((tab) => tab.id)).toEqual([2, 1, 3]);
+  });
+
+  it('is off without the setting, and with nothing to show', () => {
+    state.allTabs = tabsOf(8);
+    applyFilters(ui({ groupBySite: true, columns: 5 }));
+    expect(state.spread).toBeNull();
+    expect(state.groups).not.toBeNull();
+    applyFilters(ui({ searchTerm: 'no such tab', spread: area }));
+    expect(state.spread).toBeNull();
+  });
+});

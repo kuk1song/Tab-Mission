@@ -1,7 +1,7 @@
 // thumbnail.js
 import { state } from './state.js';
-import { isCapturableUrl, isSleeping, faviconUrl, dominantColor } from './utils.js';
-import { readCover } from './covers.js';
+import { getHostname, isCapturableUrl, isPicturableUrl, isLocalHost, isSleeping, faviconUrl, dominantColor } from './utils.js';
+import { readCover, readCovers, coverKey } from './covers.js';
 
 // Preview image URLs are cached in chrome.storage.session (kept in memory and
 // cleared when the browser quits), so reopening the overview shows previews
@@ -86,7 +86,7 @@ export function observeTiles(tiles) {
 // once answered.
 const coverReads = new Map(); // tab id -> its cover (readCover), in flight
 const imageLookups = new Map(); // tab id -> the image its page names, in flight
-const imageFetches = new Map(); // address -> fetchImage's answer, in flight
+const imageFetches = new Map(); // the page's host and the address -> fetchImage's answer, in flight
 
 function shared(map, key, start) {
   if (!map.has(key)) {
@@ -97,26 +97,97 @@ function shared(map, key, start) {
   return map.get(key);
 }
 
+// The first draw (main.js): the pictures of these tiles' pages (covers.js),
+// read in one go and decoded before the cards show, so each is on its card
+// from the first frame instead of fading in after it. A tile whose tab has
+// no picture of its own goes the usual way (loadThumbnail). Resolves once
+// the pictures can be drawn.
+export async function preloadCovers(tiles) {
+  const wanted = [];
+  for (const tile of tiles) {
+    const tabId = parseInt(tile.getAttribute('data-tab-id'), 10);
+    const tab = state.allTabs.find((t) => t.id === tabId);
+    const img = tile.querySelector('.thumbnail');
+    if (!tab || !img || tile.dataset.thumb !== 'pending' || !isPicturableUrl(tab.url, true)) continue;
+    // This tile is seen to here: the observer leaves it alone.
+    tile.dataset.thumb = 'done';
+    thumbnailObserver?.unobserve(tile);
+    wanted.push({ tab, tile, img });
+  }
+  const covers = await readCovers(wanted.map(({ tab }) => tab));
+  await Promise.all(wanted.map(({ tab, tile, img }) => {
+    const cover = covers.get(tab.id);
+    if (!cover) return loadThumbnail(tab, tile);
+    showCover(img, tab, tile, cover, true);
+    return img.decode().catch(() => {});
+  }));
+}
+
+// A picture of the page on its card. ready: there before the card shows, so
+// without the fade.
+function showCover(img, tab, tile, cover, ready = false) {
+  img.classList.add('cover');
+  img.onload = ready ? null : () => requestAnimationFrame(() => img.classList.add('loaded'));
+  img.onerror = () => {
+    img.classList.remove('loaded', 'ready');
+    img.style.display = 'none';
+    tintIcon(tab, tile.querySelector('.preview')); // the icon card shows after all
+  };
+  if (ready) img.classList.add('loaded', 'ready');
+  img.src = cover;
+}
+
+// The page you were on is pictured as the overview opens (covers.js), and
+// that picture is stored a moment after the cards show: its cards take it
+// then, without a fade, whatever they showed.
+export function followCurrentCover() {
+  chrome.storage.onChanged.addListener(async (changes, area) => {
+    const tab = state.allTabs.find((t) => t.id === state.currentTabId);
+    const entry = area === 'local' && tab ? changes[coverKey(tab.id)]?.newValue : null;
+    if (typeof entry?.img !== 'string' || entry.url !== tab.url || tab.incognito) return;
+    const fresh = new Image();
+    fresh.src = entry.img;
+    try {
+      await fresh.decode();
+    } catch {
+      return;
+    }
+    for (const tile of document.querySelectorAll(`.tile[data-tab-id="${tab.id}"]`)) {
+      let img = tile.querySelector('.thumbnail');
+      if (!img) continue;
+      // A card with no picture of the page yet (pressed before the first
+      // one was stored) shows its icon or the image the page names, which
+      // may still be on its way: the picture goes on an element of its
+      // own, so nothing on its way lands on it.
+      if (!img.classList.contains('cover')) {
+        const own = img.cloneNode(false);
+        own.className = 'thumbnail';
+        for (const name of ['src', 'style', 'data-from']) own.removeAttribute(name);
+        img.replaceWith(own);
+        img = own;
+        tile.dataset.thumb = 'done';
+      }
+      showCover(img, tab, tile, entry.img, true);
+    }
+  });
+}
+
 async function loadThumbnail(tab, tile) {
   tile.dataset.thumb = 'done';
   const img = tile.querySelector('.thumbnail');
   // Pages we cannot read keep their icon card (a letter on a color).
-  if (!img || !isCapturableUrl(tab.url)) return;
+  if (!img || !isPicturableUrl(tab.url, true)) return;
 
   // A picture of the page as you last saw it (covers.js) says more than the
   // image the page declares for itself, and needs nothing from the tab, so
   // it also serves sleeping tabs.
   const cover = await shared(coverReads, tab.id, () => readCover(tab));
   if (cover) {
-    img.classList.add('cover');
-    img.onload = () => requestAnimationFrame(() => img.classList.add('loaded'));
-    img.onerror = () => {
-      img.style.display = 'none';
-      tintIcon(tab, tile.querySelector('.preview')); // the icon card shows after all
-    };
-    img.src = cover;
+    showCover(img, tab, tile, cover);
     return;
   }
+  // A local file has only the picture taken of it, if any (covers.js).
+  if (!isCapturableUrl(tab.url)) return;
   tintIcon(tab, tile.querySelector('.preview'));
   // An incognito tab's page is never read and its images never loaded from
   // here (this window belongs to the normal profile, with its cache and
@@ -184,7 +255,8 @@ const SQUARE = [0.8, 1.25]; // width to height
 
 async function showImage(img, tab, src) {
   img.dataset.from = src; // the address the page named
-  const { blob, lasting } = await shared(imageFetches, src, () => fetchImage(src));
+  const pageHost = getHostname(tab.url);
+  const { blob, lasting } = await shared(imageFetches, `${pageHost} ${src}`, () => fetchImage(src, pageHost));
   const local = blob && URL.createObjectURL(blob);
   // A dead or refused address, or an image that is not one or is a logo:
   // hide it and remember the miss, so it is not tried again for
@@ -217,8 +289,8 @@ async function showImage(img, tab, src) {
 // chooses the address, which could be one that acts on the user's account
 // elsewhere. It is then shown from memory. Images over MAX_IMAGE_BYTES, or
 // slower than IMAGE_TIMEOUT_MS, are skipped. Resolves { blob }, or
-// { lasting } telling whether the failure will not pass (an error status, a
-// page instead of an image, an image too big).
+// { lasting } telling whether the failure will not pass (a 4xx status, a
+// page instead of an image, an image too big, a local address refused).
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const IMAGE_TIMEOUT_MS = 10_000;
 
@@ -226,7 +298,24 @@ const IMAGE_TIMEOUT_MS = 10_000;
 // so they pass too, and a decoding failure counts as a miss (onerror).
 const NOT_AN_IMAGE = /^(text\/|application\/(json|javascript|xml|xhtml))/i;
 
-async function fetchImage(src) {
+// A page must not make Tab Mission send requests into the user's own
+// computer or network either: Chrome asks the user before a web page
+// reaches a local address (Local Network Access), but lets an extension
+// with host access do it unasked. So an image on a local host (isLocalHost)
+// is fetched only for a page on that same host (a page you develop
+// locally, with its own preview image), and an image that a redirect
+// brought from a local host other than the page's is dropped (the request
+// to it has been sent by then). Redirects are still followed: refusing them
+// would lose every image served through one. This stops addresses that are
+// local as written, not a public name that resolves to a local address.
+function localElsewhere(address, pageHost) {
+  const host = getHostname(address);
+  return isLocalHost(host) && host !== pageHost;
+}
+
+// Exported for its unit tests only; the page calls it through showImage.
+export async function fetchImage(src, pageHost) {
+  if (localElsewhere(src, pageHost)) return { lasting: true };
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), IMAGE_TIMEOUT_MS);
   try {
@@ -237,6 +326,10 @@ async function fetchImage(src) {
       headers: { accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8' },
       signal: abort.signal,
     });
+    if (localElsewhere(response.url || src, pageHost)) {
+      abort.abort();
+      return { lasting: true };
+    }
     const type = response.headers.get('content-type') || '';
     if (!response.ok || NOT_AN_IMAGE.test(type) || Number(response.headers.get('content-length')) > MAX_IMAGE_BYTES) {
       abort.abort();

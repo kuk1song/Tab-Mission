@@ -32,9 +32,54 @@
           <div class="row">
             <div class="text">
               <label class="title" for="group-by-site" data-i18n="optionGroupBySite">Group tabs by site</label>
-              <p id="group-by-site-note" class="desc" data-i18n="optionGroupBySiteNote">Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest. The panels stay where they are as you switch tabs.</p>
+              <p id="group-by-site-note" class="desc" data-i18n="optionGroupBySiteNote">In the grid, when the cards are not spread out. Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest. The panels stay where they are as you switch tabs.</p>
             </div>
             <input id="group-by-site" class="switch" type="checkbox" role="switch" aria-describedby="group-by-site-note" />
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="look-heading">
+        <h2 id="look-heading" data-i18n="optionLookHeading">Appearance</h2>
+        <div class="group">
+          <div class="row">
+            <div class="text">
+              <label class="title" for="appearance" data-i18n="optionAppearance">Light or dark</label>
+              <p id="appearance-note" class="desc" data-i18n="optionAppearanceNote">For the Tab Mission window. It follows your system unless you choose one here.</p>
+            </div>
+            <select id="appearance" class="select" aria-describedby="appearance-note">
+              <option value="system" data-i18n="optionAppearanceSystem">Follow the system</option>
+              <option value="light" data-i18n="optionAppearanceLight">Light</option>
+              <option value="dark" data-i18n="optionAppearanceDark">Dark</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="text">
+              <label class="title" for="backdrop" data-i18n="optionBackdrop">Backdrop</label>
+              <p id="backdrop-note" class="desc" data-i18n="optionBackdropNote">Behind the cards. In the grid it stays faint, so titles remain readable; with the cards spread out it shows clearly.</p>
+            </div>
+            <select id="backdrop" class="select" aria-describedby="backdrop-note">
+              <option value="plain" data-i18n="optionBackdropPlain">Plain</option>
+              <option value="page" data-i18n="optionBackdropPage">The page you were on, blurred</option>
+              <option value="wallpaper" data-i18n="optionBackdropWallpaper">Wallpaper colors</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="text">
+              <label class="title" for="spread" data-i18n="optionSpread">Spread the cards out</label>
+              <p id="spread-note" class="desc" data-i18n="optionSpreadNote">The tabs you used last are larger, and every tab is in view at once while they fit. With more tabs, scroll down for the rest. Turn this off for the grid.</p>
+            </div>
+            <input id="spread" class="switch" type="checkbox" role="switch" aria-describedby="spread-note" />
+          </div>
+          <div class="row">
+            <div class="text">
+              <label class="title" for="open-as" data-i18n="optionOpenAs">Open as</label>
+              <p id="open-as-note" class="desc" data-i18n="optionOpenAsNote">With the cards spread out. "The page only" shows on the web page itself; on other pages, and when a page does not answer, a window over the page opens instead.</p>
+            </div>
+            <select id="open-as" class="select" aria-describedby="open-as-note">
+              <option value="page" data-i18n="optionOpenAsPage">The page only, tab strip in view</option>
+              <option value="window" data-i18n="optionOpenAsWindow">The whole browser window</option>
+            </select>
           </div>
         </div>
       </section>

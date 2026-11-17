@@ -1,6 +1,11 @@
 // src/settings.js
 
-const DEFAULTS = {
+// Set by an update from 1.x (background.js) until the overview has said,
+// once, that the cards are now spread out and where the grid is (tips.js).
+export const LOOK_NOTICE_KEY = 'lookNotice';
+
+// Also read by background.js, which opens the overview by them.
+export const DEFAULTS = {
   showSleeping: false,
   showAllWindows: false,
   // On by default: the previous tab is pre-selected, so pressing the
@@ -16,6 +21,22 @@ const DEFAULTS = {
   // at any window size and number of tabs. Not "artMode":
   // updates delete that old key (background.js).
   groupBySite: true,
+  // 'system' follows the system's light or dark appearance; 'light' or
+  // 'dark' fixes it for the Tab Mission window (settings page).
+  appearance: 'system',
+  // What is behind the cards (backdrop.js): 'plain'; 'page', a blurred
+  // picture of the page you were on; or 'wallpaper', colors of Tab Mission's
+  // own.
+  backdrop: 'plain',
+  // On by default (2.0): the cards spread out, the tabs used more recently
+  // larger, every one in view while they fit (spread.js). Off (settings
+  // page): the grid.
+  spread: true,
+  // Spread out: how much the overview covers. 'page', the page only, the tab
+  // strip in view: a layer over the page in front, or where a page takes
+  // none, a window over the page (background.js, src/host.js); 'window', the
+  // whole browser window (a window of its own over it).
+  openAs: 'page',
   // On by default (off on the settings page): the service worker takes
   // pictures of the pages you look at for their cards (covers.js). Off, it
   // takes none and deletes the ones it kept.

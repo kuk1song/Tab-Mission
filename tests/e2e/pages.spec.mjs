@@ -277,7 +277,7 @@ test('options page: Privacy is one Page pictures switch, on by default, that sav
   const { page } = await openOptions(ext, context);
   const message = (key) => page.evaluate((k) => chrome.i18n.getMessage(k), key);
   expect(await page.locator('main > section').evaluateAll((sections) => sections.map((s) => s.getAttribute('aria-labelledby'))))
-    .toEqual(['shortcuts-heading', 'open-heading', 'privacy-heading', 'help-heading']);
+    .toEqual(['shortcuts-heading', 'open-heading', 'look-heading', 'privacy-heading', 'help-heading']);
   await expect(page.locator('#privacy-heading')).toHaveText(await message('optionPrivacyHeading'));
   await expect(page.locator('section[aria-labelledby="privacy-heading"] .row')).toHaveCount(1);
   const pictures = page.locator('#page-pictures');

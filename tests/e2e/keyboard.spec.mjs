@@ -1,4 +1,4 @@
-import { test, expect, PAGES, pointAt } from './fixtures.mjs';
+import { test, expect, PAGES, pointAt, tileTitles, selectedTitle } from './fixtures.mjs';
 
 test('typing never writes to storage; changing a toggle does', async ({ ext }) => {
   await ext.openWindow(['alpha', 'beta', 'gamma']);
@@ -70,6 +70,166 @@ test('× on a tab closed elsewhere drops its tile and gives focus back to the se
   await page.locator(`.tile[data-tab-id="${tabIds.alpha}"] .tile-close`).click();
   await expect(page.locator(`.tile[data-tab-id="${tabIds.alpha}"]`)).toHaveCount(0);
   await expect(page.locator('#search')).toBeFocused();
+});
+
+// What the window asks Chrome to close (chrome.tabs.remove, called in the
+// key's own handler), and each Delete and Backspace it saw: whether it was a
+// repeat, and whether Tab Mission kept it from the search box. Watched after
+// Tab Mission's own listener, so it sees what that did.
+async function watchCloses(page) {
+  await page.evaluate(() => {
+    window.removed_ = [];
+    const remove = chrome.tabs.remove.bind(chrome.tabs);
+    chrome.tabs.remove = (id) => {
+      window.removed_.push(id);
+      return remove(id);
+    };
+    window.keys_ = [];
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') window.keys_.push({ key: e.key, repeat: e.repeat, prevented: e.defaultPrevented });
+    });
+  });
+}
+const watched = (page) => page.evaluate(() => ({ removed: window.removed_, keys: window.keys_ }));
+const openTabIds = (ext) => ext.sw.evaluate(() => chrome.tabs.query({}).then((tabs) => tabs.map((t) => t.id)));
+
+// Shift+Delete removes a highlighted suggestion in Chrome's address bar.
+test('Shift+Delete closes the selected card, and the selection goes where a click on × leaves it', async ({ ext }) => {
+  const { tube1, tube2, code1, gamma, beta, alpha } = PAGES;
+  const { tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma', 'code1', 'tube1', 'tube2']);
+  const page = await ext.open();
+  await watchCloses(page);
+  expect(await tileTitles(page)).toEqual([tube1.title, tube2.title, code1.title, gamma.title, beta.title, alpha.title]);
+  const message = (key, substitutions) => page.evaluate(([k, s]) => chrome.i18n.getMessage(k, s), [key, substitutions]);
+
+  // The pre-selected previous tab: the tab you were on before it takes its
+  // place, pre-selected in turn.
+  await page.keyboard.press('Shift+Delete');
+  await expect(page.locator(`.tile[data-tab-id="${tabIds.tube1}"]`)).toHaveCount(0);
+  expect(await tileTitles(page)).toEqual([code1.title, tube2.title, gamma.title, beta.title, alpha.title]);
+  expect(await selectedTitle(page)).toBe(code1.title);
+  await expect(page.locator('#search')).toBeFocused();
+  await expect(page.locator('#status')).toHaveText(await message('tabClosed', [tube1.title]));
+  expect(await openTabIds(ext)).not.toContain(tabIds.tube1);
+
+  // A card picked with the arrows: the card that takes its place.
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  expect(await selectedTitle(page)).toBe(gamma.title);
+  await page.keyboard.press('Shift+Delete');
+  await expect(page.locator(`.tile[data-tab-id="${tabIds.gamma}"]`)).toHaveCount(0);
+  expect(await selectedTitle(page)).toBe(beta.title);
+  await expect(page.locator('#status')).toHaveText(await message('tabClosed', [gamma.title]));
+
+  // The same as × clicked on a card in that place.
+  await pointAt(page, page.locator(`.tile[data-tab-id="${tabIds.beta}"]`));
+  await page.locator(`.tile[data-tab-id="${tabIds.beta}"] .tile-close`).click();
+  await expect(page.locator(`.tile[data-tab-id="${tabIds.beta}"]`)).toHaveCount(0);
+  expect(await selectedTitle(page)).toBe(alpha.title);
+  await expect(page.locator('#status')).toHaveText(await message('tabClosed', [beta.title]));
+
+  expect((await watched(page)).removed).toEqual([tabIds.tube1, tabIds.gamma, tabIds.beta]);
+  expect(await openTabIds(ext)).toEqual(expect.arrayContaining([tabIds.code1, tabIds.tube2, tabIds.alpha]));
+});
+
+// Windows cuts text selected in a text box with Shift+Delete.
+test('Shift+Delete leaves text selected in the search box to the box; with the caret in it, it closes', async ({ ext }) => {
+  const { tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  await watchCloses(page);
+  const search = page.locator('#search');
+  await page.keyboard.type('page');
+  await expect.poll(() => selectedTitle(page)).toBe(PAGES.beta.title);
+  await search.evaluate((el) => el.select());
+  await page.keyboard.press('Shift+Delete');
+  expect(await watched(page)).toEqual({ removed: [], keys: [{ key: 'Delete', repeat: false, prevented: false }] });
+  await expect(page.locator('.tile')).toHaveCount(3);
+
+  await search.fill('page');
+  await expect.poll(() => selectedTitle(page)).toBe(PAGES.beta.title);
+  await search.evaluate((el) => el.setSelectionRange(1, 1)); // a character after the caret
+  await page.keyboard.press('Shift+Delete');
+  await expect(page.locator(`.tile[data-tab-id="${tabIds.beta}"]`)).toHaveCount(0);
+  await expect(search).toHaveValue('page'); // no character went with it
+  expect(await selectedTitle(page)).toBe(PAGES.alpha.title); // the best match now
+  expect((await watched(page)).removed).toEqual([tabIds.beta]);
+});
+
+// Shift+Backspace, which a Mac laptop types without fn, closes only while
+// the box is empty, so it never takes the place of deleting a character.
+test('Shift+Backspace deletes a character while the box has text, and closes the selected card once it is empty', async ({ ext }) => {
+  const { tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  await watchCloses(page);
+  const search = page.locator('#search');
+  await page.keyboard.type('page');
+  await page.keyboard.press('Shift+Backspace');
+  await expect(search).toHaveValue('pag');
+  await expect(page.locator('.tile')).toHaveCount(3);
+  expect((await watched(page)).removed).toEqual([]);
+
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Backspace');
+  await expect(search).toHaveValue('');
+  await expect.poll(() => selectedTitle(page)).toBe(PAGES.beta.title);
+  await page.keyboard.press('Shift+Backspace');
+  await expect(page.locator(`.tile[data-tab-id="${tabIds.beta}"]`)).toHaveCount(0);
+  expect(await selectedTitle(page)).toBe(PAGES.alpha.title);
+  await expect(search).toBeFocused();
+  expect((await watched(page)).removed).toEqual([tabIds.beta]);
+});
+
+test('Shift+Delete held down closes one card, not the next one too', async ({ ext }) => {
+  const { tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma']);
+  const page = await ext.open();
+  await watchCloses(page);
+  await page.keyboard.down('Shift');
+  await page.keyboard.down('Delete');
+  await expect(page.locator(`.tile[data-tab-id="${tabIds.beta}"]`)).toHaveCount(0);
+  expect(await selectedTitle(page)).toBe(PAGES.alpha.title);
+  // The key's repeats, now that another card is selected.
+  await page.keyboard.down('Delete');
+  await page.keyboard.down('Delete');
+  await page.keyboard.up('Delete');
+  await page.keyboard.up('Shift');
+  const { removed, keys } = await watched(page);
+  expect(keys).toEqual([
+    { key: 'Delete', repeat: false, prevented: true },
+    { key: 'Delete', repeat: true, prevented: true },
+    { key: 'Delete', repeat: true, prevented: true },
+  ]);
+  expect(removed).toEqual([tabIds.beta]);
+  await expect(page.locator('.tile')).toHaveCount(2);
+  expect(await selectedTitle(page)).toBe(PAGES.alpha.title);
+});
+
+// In the site view with the box empty, Backspace leaves the view; with
+// Shift it closes the selected card, held down or not.
+test('in the site view, Shift+Backspace closes the selected card and Backspace still leaves the view', async ({ ext }) => {
+  // Current tab tube2, previous tube1, both on www.tube.test, as tube3.
+  const { tabIds } = await ext.openWindow(['notes1', 'tube3', 'code1', 'tube1', 'tube2']);
+  const page = await ext.open();
+  await watchCloses(page);
+  const token = page.locator('#scope-token');
+  await page.keyboard.press('Tab');
+  await expect(token).toBeVisible();
+  expect(await tileTitles(page)).toEqual([PAGES.tube1.title, PAGES.tube2.title, PAGES.tube3.title]);
+  await page.keyboard.down('Shift');
+  await page.keyboard.down('Backspace');
+  await expect(page.locator(`.tile[data-tab-id="${tabIds.tube1}"]`)).toHaveCount(0);
+  await page.keyboard.down('Backspace'); // a repeat
+  await page.keyboard.up('Backspace');
+  await page.keyboard.up('Shift');
+  await expect(token).toBeVisible();
+  expect(await tileTitles(page)).toEqual([PAGES.tube3.title, PAGES.tube2.title]);
+  expect(await selectedTitle(page)).toBe(PAGES.tube3.title);
+  expect((await watched(page)).removed).toEqual([tabIds.tube1]);
+
+  await page.keyboard.press('Backspace');
+  await expect(token).toBeHidden();
+  expect((await watched(page)).removed).toEqual([tabIds.tube1]);
+  await expect(page.locator('.tile')).toHaveCount(4);
 });
 
 test('accessibility: listbox semantics, aria-expanded, and lang matching the text', async ({ ext }) => {

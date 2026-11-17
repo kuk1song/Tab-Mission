@@ -8,6 +8,10 @@ async function main() {
   const preselect = document.getElementById('preselect-previous');
   const showTips = document.getElementById('show-tips');
   const groupBySite = document.getElementById('group-by-site');
+  const appearance = document.getElementById('appearance');
+  const backdrop = document.getElementById('backdrop');
+  const spread = document.getElementById('spread');
+  const openAs = document.getElementById('open-as');
   const pagePictures = document.getElementById('page-pictures');
   try {
     localizeStaticText();
@@ -17,6 +21,10 @@ async function main() {
     preselect.checked = settings.preselectPrevious;
     showTips.checked = settings.showTips;
     groupBySite.checked = settings.groupBySite;
+    appearance.value = ['light', 'dark'].includes(settings.appearance) ? settings.appearance : 'system';
+    backdrop.value = ['page', 'wallpaper'].includes(settings.backdrop) ? settings.backdrop : 'plain';
+    spread.checked = settings.spread === true;
+    openAs.value = settings.openAs === 'window' ? 'window' : 'page';
     pagePictures.checked = settings.pagePictures;
   } finally {
     reveal(preselect);
@@ -24,9 +32,14 @@ async function main() {
   // Each switch saves at once; the switch shows the new state and screen
   // readers also hear "Saved." (Page pictures turned off: the service worker
   // deletes the pictures, covers.js.)
-  for (const [input, key] of [[preselect, 'preselectPrevious'], [groupBySite, 'groupBySite'], [pagePictures, 'pagePictures'], [showTips, 'showTips']]) {
+  for (const [input, key] of [[preselect, 'preselectPrevious'], [groupBySite, 'groupBySite'], [spread, 'spread'], [pagePictures, 'pagePictures'], [showTips, 'showTips']]) {
     input.addEventListener('change', async () => {
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
+    });
+  }
+  for (const [select, key] of [[appearance, 'appearance'], [backdrop, 'backdrop'], [openAs, 'openAs']]) {
+    select.addEventListener('change', async () => {
+      if (await saveSettings({ [key]: select.value })) announce(t('optionSaved') || 'Saved.');
     });
   }
   // Refresh after the user changes a shortcut in the tab opened from here
