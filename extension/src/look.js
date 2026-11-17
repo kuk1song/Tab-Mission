@@ -22,4 +22,15 @@
   const plain = ['(prefers-reduced-transparency: reduce)', '(prefers-contrast: more)', '(forced-colors: active)']
     .some((query) => matchMedia(query).matches);
   if ((backdrop === 'page' || backdrop === 'wallpaper') && !plain) document.documentElement.dataset.backdrop = backdrop;
+  // The keyboard goes to the search box as soon as the page is read, before
+  // its scripts have loaded: what is typed meanwhile lands in it. Not in a
+  // frame (the overview on a page): Chrome lets no frame from elsewhere take
+  // the keyboard by itself, and logs an error for an autofocus attribute.
+  // There the page hands the keyboard over (src/host.js) and main.js puts
+  // it in the search box.
+  if (window.top === window) {
+    document.addEventListener('readystatechange', () => {
+      if (document.readyState === 'interactive') document.getElementById('search')?.focus({ preventScroll: true });
+    });
+  }
 })();

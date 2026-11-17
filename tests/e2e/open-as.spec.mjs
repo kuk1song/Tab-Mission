@@ -37,6 +37,11 @@ test.describe('on the page in front', () => {
     const { windowId, tabIds } = await ext.openWindow(VISITED);
     await choose(ext, { openAs: 'page' });
     const page = pageOf(context, 'gamma');
+    // What the overview's frame writes to the console as errors: nothing.
+    const errors = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error' && message.location().url.startsWith('chrome-extension://')) errors.push(message.text());
+    });
     // The page has the keyboard in a field of its own, and listens for keys.
     await page.evaluate(() => {
       const field = Object.assign(document.createElement('input'), { id: 'own-field' });
@@ -81,6 +86,7 @@ test.describe('on the page in front', () => {
     await expect(frame.locator(`#tile-${tabIds.gamma}`)).toBeVisible();
     expect(await frame.locator('#grid .tile.selected .title').textContent()).toBe(PREVIOUS);
     await expect(frame.locator('#search')).toBeFocused();
+    expect(errors).toEqual([]);
     await page.keyboard.type('docs');
     await expect(frame.locator('#search')).toHaveValue('docs');
     expect(await page.evaluate(() => window.keysSeen)).toEqual([]);
