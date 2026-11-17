@@ -205,6 +205,43 @@ test('a page\'s image is requested without the site\'s cookies or a referrer', a
   for (const request of seen) expect(request).toEqual({ cookie: null, referer: null });
 });
 
+// A page cannot make Tab Mission send requests into the user's computer or
+// network: an image it names on a local host is not fetched unless the page
+// is on that host (alpha, on localhost, names its own image in the tests
+// above).
+test('a page\'s image on a local address is not fetched for a page on another host', async ({ ext }) => {
+  // code1 and code2 (on code.test) are passed over, so they get no picture.
+  const { tabIds } = await ext.openWindow(['beta', 'code1', 'code2', 'gamma']);
+  const { port } = new URL(ext.url('beta'));
+  const local = `http://localhost:${port}/img/lan-wide.svg`;
+  // The same image under a public name, which this browser also resolves to
+  // the test server: the check reads the address as written, not where it
+  // leads.
+  const named = `http://img.test:${port}/img/lan-wide.svg`;
+  for (const [tabId, src] of [[tabIds.code1, local], [tabIds.code2, named]]) {
+    await ext.sw.evaluate(({ tabId, src }) => chrome.scripting.executeScript({
+      target: { tabId },
+      func: (content) => {
+        const meta = document.createElement('meta');
+        meta.setAttribute('property', 'og:image');
+        meta.content = content;
+        document.head.append(meta);
+      },
+      args: [src],
+    }), { tabId, src });
+  }
+  const page = await ext.open();
+  const img = (tabId) => page.locator(`.tile[data-tab-id="${tabId}"] img.thumbnail`);
+  await expect(img(tabIds.code2)).toHaveAttribute('data-from', named);
+  await expect(img(tabIds.code2)).toHaveClass(/\bloaded\b/);
+  await expect(img(tabIds.code1)).toHaveAttribute('data-from', local);
+  // Remembered as a miss: its card keeps the icon card.
+  await expect.poll(() => ext.sw.evaluate((id) => chrome.storage.session.get('previewCache')
+    .then((r) => r.previewCache?.[id]?.img), String(tabIds.code1))).toBe(null);
+  await expect(img(tabIds.code1)).toBeHidden();
+  await expect(img(tabIds.code1)).not.toHaveClass(/\bloaded\b/);
+});
+
 test('clicking × again where it was closes the next tab too, as on Chrome\'s tab strip', async ({ ext }) => {
   const { tabIds } = await ext.openWindow(['alpha', 'beta', 'gamma', 'tube1']);
   const page = await ext.open();

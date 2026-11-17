@@ -81,4 +81,13 @@ try {
   // A parse failure was already reported above.
 }
 
+// overlay.html is overview.html under the name web pages may frame it by
+// (manifest.json, src/host.js): the two stay the same file.
+if (readFileSync('extension/overlay.html', 'utf8') === readFileSync('extension/overview.html', 'utf8')) {
+  console.log('ok   overlay.html is overview.html');
+} else {
+  failed = true;
+  console.error('FAIL extension/overlay.html differs from extension/overview.html: copy overview.html over it');
+}
+
 process.exit(failed ? 1 : 0);

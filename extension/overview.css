@@ -29,12 +29,13 @@
   --danger: #e5484d;
   --shadow-elevated: 0 8px 40px rgba(20, 30, 50, 0.18);
   --group-bg: #ffffff; /* a site's panel, grouped by site */
+  --caption-bg: rgba(255, 255, 255, 0.9); /* a title's label, spread out */
   /* The check mark of a ticked view toggle, in --accent-fg. */
   --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-appearance="light"]) {
     --bg: #161618;
     --fg: #f0f0f0;
     --muted: #a0a0aa;
@@ -59,8 +60,43 @@
     --overlay-fg: #f0f0f0;
     --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.4);
     --group-bg: rgba(255, 255, 255, 0.035);
+    --caption-bg: rgba(0, 0, 0, 0.55);
     --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%230b1020' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
+}
+
+/* The settings page can fix the appearance (src/look.js sets the attribute
+   before the first paint). The dark colors are repeated here: a rule cannot
+   be shared between a media query and a selector. */
+:root[data-appearance="light"] { color-scheme: light; }
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+  --bg: #161618;
+  --fg: #f0f0f0;
+  --muted: #a0a0aa;
+  --accent: #00d4ff;
+  --accent-fg: #0b1020;
+  --accent-soft: rgba(0, 212, 255, 0.14);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-focus: rgba(255, 255, 255, 0.08);
+  --toolbar-bg: rgba(255, 255, 255, 0.02);
+  --hover: rgba(255, 255, 255, 0.08);
+  --preview-bg: #232327;
+  --preview-line: rgba(255, 255, 255, 0.08);
+  --preview-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --plate-base: #1d1d21;
+  --plate-base-2: #141417;
+  --plate-mix-1: 42%;
+  --plate-mix-2: 16%;
+  --plate-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --overlay-fg: #f0f0f0;
+  --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.4);
+  --group-bg: rgba(255, 255, 255, 0.035);
+  --caption-bg: rgba(0, 0, 0, 0.55);
+  --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%230b1020' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 html, body {
@@ -202,6 +238,20 @@ html, body {
 .ctrl input:checked {
   border-color: var(--accent);
   background: var(--accent) var(--check) center / 11px no-repeat;
+}
+/* A switch's icon, shown only with the cards spread out, where the switches
+   are icons (further down). */
+.ctrl-icon {
+  display: none;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 
 /* While a query is typed, results span every window and sleeping tab, so
@@ -497,6 +547,21 @@ html, body {
 .thumbnail.loaded {
   opacity: 1;
 }
+/* On its card from the first frame (thumbnail.js preloadCovers): no fade. */
+.thumbnail.loaded.ready { transition: none; }
+
+/* Until the first frame is ready (look.js, main.js), no entrance starts, and
+   what the window holds is drawn too faint to change a pixel: so Chrome
+   draws the cards, pictures on them, before anything moves, and the window
+   and its cards then come in as one. Not opacity 0, and not the entrance
+   paused at its start: Chrome draws nothing of either until it is let go,
+   and the cards then stood still for their first frames (about 50 ms). */
+:root[data-wait] #root { animation: none !important; opacity: 0.001; }
+:root[data-wait] #root * { animation: none !important; }
+/* Each card a layer of its own while it waits, as in its entrance: what
+   Chrome drew of it is what then moves. */
+.grid.entering .tile.in-view,
+.grid.entering .group-label.in-view { will-change: transform, opacity; }
 
 /* A picture of the page (covers.js): its top, where the page says what it is. */
 .thumbnail.cover {
@@ -762,3 +827,281 @@ html, body {
   #scope-label { max-width: 96px; }
 }
 
+/* Spread out (settings page, off by default; src/spread.js, dom.js): the
+   cards as windows in Mission Control, each where dom.js puts it (--x, --y,
+   --w), the tabs used more recently larger, every one in view while they
+   fit. A title is a label under its picture, on a backing of its own, so it
+   reads over any backdrop; the site's icon moves from the picture's corner
+   into the label. With more cards than fit, the rows go on below and the
+   grid scrolls (down to --spread-height: the cards are out of the flow, so
+   a mark there gives the grid its length). */
+.grid.spread {
+  display: block;
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+.grid.spread.scrolls { overflow-y: auto; }
+.grid.spread.scrolls::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(var(--spread-height) - 1px);
+  width: 1px;
+  height: 1px;
+}
+.grid.spread .tile {
+  position: absolute;
+  display: block;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+  /* The arrows bring a card into view with its label and its ring. */
+  scroll-margin: 12px 0 36px;
+}
+.grid.spread .preview { border-radius: 9px; }
+.grid.spread .meta {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 7px);
+  translate: -50% 0;
+  box-sizing: border-box;
+  /* 10 px past the picture on each side at most: labels of neighbours,
+     26 px apart (spread.js), never touch. */
+  max-width: calc(100% + 20px);
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 9px;
+  background: var(--caption-bg);
+}
+.grid.spread .meta:has(.meta-icon:not([data-icon="missing"])) { padding-left: 4px; }
+.grid.spread .title {
+  display: block;
+  font-size: 0.71875rem;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
+.grid.spread .url { display: none; }
+.meta-icon { display: none; }
+.grid.spread .meta-icon { display: block; flex: none; width: 15px; height: 15px; }
+.grid.spread .meta-icon img { display: block; width: 15px; height: 15px; border-radius: 4px; }
+.grid.spread .meta-icon[data-icon="missing"] { display: none; }
+.grid.spread .preview:has(.thumbnail.loaded) .site-badge { display: none; }
+
+/* Their entrance, on the first draw: the cards come out of the middle of
+   the area (--cx, --cy: dom.js prepareSpreadEntrance), all at once, and the
+   page you were on shrinks from the whole area (--zoom) into its card, its
+   label showing once it is nearly there. Transform and opacity only. */
+.grid.spread.entering .tile.in-view {
+  animation: spreadOut 440ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  animation-delay: 0ms;
+}
+.grid.spread.entering .tile.in-view.from-page { animation-name: pageIn; z-index: 2; }
+.grid.spread.entering .tile.in-view.from-page .meta { animation: labelIn 440ms ease both; }
+@keyframes spreadOut {
+  from {
+    transform: translate(calc(var(--cx) - var(--x) - var(--w) / 2), calc(var(--cy) - var(--y) - var(--w) / 3.2)) scale(0.3);
+    opacity: 0;
+  }
+  40% { opacity: 1; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes pageIn {
+  from { transform: translate(calc(var(--cx) - var(--x) - var(--w) / 2), calc(var(--cy) - var(--y) - var(--w) / 3.2)) scale(var(--zoom, 1)); }
+  to { transform: none; }
+}
+@keyframes labelIn {
+  from, 60% { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Spread out (look.js sets data-spread before the first paint), the toolbar
+   is a search box alone in the middle, the shortcut's badge at its end
+   (main.js), with the view toggles and the settings button at the right, or
+   under it in a narrower window. No strip behind them: each has a backing
+   of its own (--control-bg), strong enough on a backdrop for its text. The
+   window follows the browser window (background.js), so the reset button
+   has nothing to put back. */
+:root[data-spread] { --control-bg: var(--surface); }
+:root[data-spread] .toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 34rem) minmax(0, 1fr);
+  gap: 8px 12px;
+  padding: 14px 20px 4px;
+  background: none;
+  border-bottom: none;
+}
+:root[data-spread] .search-field {
+  grid-column: 2;
+  padding: 0 10px 0 14px;
+  border-radius: 999px;
+  background: var(--control-bg);
+}
+:root[data-spread] #search { padding: 9px 4px; }
+:root[data-spread] .search-field #shortcut-hint { flex: none; margin-right: 0; }
+:root[data-spread] .toolbar-controls { grid-column: 3; flex-wrap: wrap; justify-content: flex-end; gap: 6px 8px; }
+:root[data-spread] .toolbar-toggles { justify-content: flex-end; }
+:root[data-spread] .toolbar-actions { margin-left: 0; }
+:root[data-spread] #reset-window { display: none; }
+/* The two switches are icons: round buttons the size of the settings
+   button, which is round with them. On, a switch has a ring and a
+   tint, and its icon the accent color, so its state is not shown by color
+   alone. Its words stay for screen readers, and show as its tooltip
+   (main.js). */
+:root[data-spread] .ctrl,
+:root[data-spread] .icon-btn { border-radius: 50%; }
+:root[data-spread] .ctrl {
+  position: relative;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1.5px solid transparent;
+  color: var(--muted);
+}
+:root[data-spread] .ctrl:hover { color: var(--fg); }
+:root[data-spread] .ctrl-icon { display: block; }
+:root[data-spread] .ctrl input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  opacity: 0;
+}
+:root[data-spread] .ctrl span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+:root[data-spread] .ctrl:has(input:checked) { border-color: var(--accent); color: var(--accent); }
+:root[data-spread] .toolbar.searching .ctrl:has(input:checked) { border-color: var(--muted); color: var(--muted); }
+/* High contrast: on, a switch is filled with the system's highlight color
+   (!important: over the tints above, which the system would not show). */
+@media (forced-colors: active) {
+  :root[data-spread] .ctrl:has(input:checked) {
+    forced-color-adjust: none;
+    border-color: Highlight !important;
+    background: Highlight !important;
+    color: HighlightText !important;
+  }
+}
+:root[data-spread] .ctrl,
+:root[data-spread] .icon-btn,
+:root[data-spread] .toolbar.searching .ctrl:has(input:checked) { background: var(--control-bg); }
+:root[data-spread] .ctrl:hover,
+:root[data-spread] .icon-btn:hover { background: linear-gradient(var(--hover), var(--hover)), var(--control-bg); }
+:root[data-spread] .toolbar:not(.searching) .ctrl:has(input:checked) { background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--control-bg); }
+@container overview (width < 80rem) {
+  :root[data-spread] .toolbar { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  :root[data-spread] .search-field { grid-column: 1; box-sizing: border-box; width: min(100%, 34rem); }
+  :root[data-spread] .toolbar-controls { grid-column: 1; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grid.spread.entering .tile .meta { animation: none !important; }
+}
+/* In a frame on a page (src/host.js): scrolling the cards to their
+   end does not go on to scroll the page under them. */
+:root[data-host="page"],
+:root[data-host="page"] body { overscroll-behavior: none; }
+
+/* Backdrop (settings page; src/look.js, src/backdrop.js): behind the cards, a
+   blurred picture of the page you were on ("page") or colors of Tab
+   Mission's own ("wallpaper"), under a tint of the window's background
+   color. One still layer and no filter: a live backdrop-filter slowed the
+   window with many tabs (1.5.0). Not shown to people who ask their system
+   for less transparency or more contrast (look.js).
+   How strong the tint is depends on what stands on the backdrop. In the
+   grid, titles and addresses stand on it directly, so the tint is as strong
+   as their contrast needs (4.5:1 for each of --fg, --muted and --accent):
+   a fixed strength for the wallpaper, one worked out from the picture for a
+   page (--backdrop-safe, backdrop.js; opaque until then). Spread out, every
+   title has its label and the toolbar a backing, both strong enough for the
+   lightest and darkest picture, so the tint is light and the backdrop
+   shows. */
+#backdrop { display: none; }
+:root[data-backdrop] #backdrop {
+  display: block;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+:root[data-backdrop] #backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+:root[data-backdrop="wallpaper"] #backdrop::before { background: var(--wallpaper); }
+:root[data-backdrop="page"] #backdrop::before {
+  /* Blurred already (backdrop.js): a small image, stretched. */
+  background: var(--backdrop-image, none) center / cover no-repeat;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+:root[data-backdrop="page"] #backdrop[data-picture]::before { opacity: 1; }
+:root[data-backdrop] #backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: var(--backdrop-strength);
+  transition: opacity 0.2s ease-out;
+}
+:root[data-backdrop] body,
+:root[data-backdrop] #root { background: transparent; }
+/* In the grid, the selected title stands on the backdrop: the accent color,
+   4.8:1 on the plain light background, would fall under 4.5:1 on anything
+   darker. The ring around the picture still marks the card. */
+:root[data-backdrop] .grid:not(.spread) .tile.selected .title { color: var(--fg); }
+/* The search box's hint text: Chrome's own grey would not keep its contrast
+   on a backdrop. */
+:root[data-backdrop] #search::placeholder { color: var(--muted); }
+:root[data-backdrop] {
+  --wallpaper: radial-gradient(120% 90% at 20% 10%, #dfe9ff 0%, #c4d6fb 40%, #a9c0f2 75%, #93aeea 100%);
+  --backdrop-strength: var(--backdrop-safe, 1);
+  --group-bg: rgba(255, 255, 255, 0.5);
+  --surface: rgba(255, 255, 255, 0.66);
+  --surface-focus: rgba(255, 255, 255, 0.88);
+  --toolbar-bg: rgba(255, 255, 255, 0.3);
+}
+:root[data-backdrop="wallpaper"] { --backdrop-strength: 0.66; }
+:root[data-backdrop][data-layout="spread"] { --backdrop-strength: 0.5; }
+:root[data-backdrop][data-spread] { --control-bg: rgba(255, 255, 255, 0.8); }
+@media (prefers-color-scheme: dark) {
+  :root[data-backdrop]:not([data-appearance="light"]) {
+    --wallpaper: radial-gradient(120% 90% at 20% 10%, #3b6fd6 0%, #1d3f9a 38%, #0c1f5c 70%, #071238 100%);
+    --group-bg: rgba(0, 0, 0, 0.18);
+    --surface: rgba(0, 0, 0, 0.22); /* darker, not lighter: the hint text in it keeps its contrast */
+    --surface-focus: rgba(0, 0, 0, 0.34);
+    --toolbar-bg: rgba(0, 0, 0, 0.14);
+  }
+  :root[data-backdrop="wallpaper"]:not([data-appearance="light"]) { --backdrop-strength: 0.68; }
+  :root[data-backdrop][data-layout="spread"]:not([data-appearance="light"]) { --backdrop-strength: 0.42; }
+  :root[data-backdrop][data-spread]:not([data-appearance="light"]) { --control-bg: rgba(18, 18, 22, 0.82); }
+}
+:root[data-backdrop][data-appearance="dark"] {
+  --wallpaper: radial-gradient(120% 90% at 20% 10%, #3b6fd6 0%, #1d3f9a 38%, #0c1f5c 70%, #071238 100%);
+  --group-bg: rgba(0, 0, 0, 0.18);
+  --surface: rgba(0, 0, 0, 0.22);
+  --surface-focus: rgba(0, 0, 0, 0.34);
+  --toolbar-bg: rgba(0, 0, 0, 0.14);
+}
+:root[data-backdrop="wallpaper"][data-appearance="dark"] { --backdrop-strength: 0.68; }
+:root[data-backdrop][data-layout="spread"][data-appearance="dark"] { --backdrop-strength: 0.42; }
+:root[data-backdrop][data-spread][data-appearance="dark"] { --control-bg: rgba(18, 18, 22, 0.82); }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-backdrop] #backdrop::before,
+  :root[data-backdrop] #backdrop::after { transition: none; }
+}

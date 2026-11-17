@@ -76,8 +76,18 @@
     "description": "Badge on tabs Chrome has put to sleep."
   },
   "closeTabTitle": {
-    "message": "Chiudi scheda (o clic centrale)",
-    "description": "Tooltip of the close control on a tile."
+    "message": "Chiudi scheda (Maiusc+Canc o clic centrale)",
+    "description": "Tooltip of the close control on a tile. Shift+Delete closes the selected card from the keyboard; name the keys as keyboards label them in this language."
+  },
+  "tabClosed": {
+    "message": "Scheda chiusa: $title$",
+    "description": "Tab Mission window: said to screen readers once a card's tab is closed (×, middle-click or Shift+Delete).",
+    "placeholders": {
+      "title": {
+        "content": "$1",
+        "example": "Pull requests"
+      }
+    }
   },
   "siteScopeClear": {
     "message": "Mostra tutti i siti",
@@ -228,8 +238,88 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Prima le cinque schede più recenti, poi un pannello per ogni sito con almeno due schede, poi le altre. Quando cambi scheda, i pannelli restano dove sono.",
+    "message": "Nella griglia, quando i riquadri non sono sparpagliati. Prima le cinque schede più recenti, poi un pannello per ogni sito con almeno due schede, poi le altre. Quando cambi scheda, i pannelli restano dove sono.",
     "description": "Settings page: one line under the group-by-site switch."
+  },
+  "optionLookHeading": {
+    "message": "Aspetto",
+    "description": "Settings page: heading of the appearance section."
+  },
+  "optionAppearance": {
+    "message": "Chiaro o scuro",
+    "description": "Settings page: label of the light or dark choice."
+  },
+  "optionAppearanceNote": {
+    "message": "Per la finestra di Tab Mission. Segue il sistema, a meno che tu non ne scelga uno qui.",
+    "description": "Settings page: one line under the light or dark choice."
+  },
+  "optionAppearanceSystem": {
+    "message": "Segui il sistema",
+    "description": "Settings page: choice that follows the system appearance."
+  },
+  "optionAppearanceLight": {
+    "message": "Chiaro",
+    "description": "Settings page: choice for the light appearance."
+  },
+  "optionAppearanceDark": {
+    "message": "Scuro",
+    "description": "Settings page: choice for the dark appearance."
+  },
+  "optionBackdrop": {
+    "message": "Sfondo",
+    "description": "Label of a setting on the settings page: what is shown behind the cards in the Tab Mission window."
+  },
+  "optionBackdropNote": {
+    "message": "Dietro i riquadri. Nella griglia resta tenue, così i titoli si leggono; con i riquadri sparpagliati si vede bene.",
+    "description": "Explanation under the backdrop setting."
+  },
+  "optionBackdropPlain": {
+    "message": "Tinta unita",
+    "description": "Backdrop choice: a plain background, as before."
+  },
+  "optionBackdropPage": {
+    "message": "La pagina in cui eri, sfocata",
+    "description": "Backdrop choice: a blurred picture of the page the user was on. Plain when there is no picture of it."
+  },
+  "optionBackdropWallpaper": {
+    "message": "Colori di sfondo",
+    "description": "Backdrop choice: a soft gradient of colors that come with Tab Mission."
+  },
+  "optionSpread": {
+    "message": "Sparpaglia i riquadri",
+    "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
+  },
+  "optionSpreadNote": {
+    "message": "Le schede usate per ultime sono più grandi e, finché ci stanno, sono tutte in vista. Con più schede, scorri verso il basso per le altre. Disattiva per la griglia.",
+    "description": "Explanation under the spread-out switch."
+  },
+  "optionOpenAs": {
+    "message": "Apri come",
+    "description": "Label of a choice on the settings page: how much Tab Mission covers when the cards are spread out."
+  },
+  "optionOpenAsNote": {
+    "message": "Con i riquadri sparpagliati. «Solo la pagina» appare sulla pagina web stessa; sulle altre pagine, e quando una pagina non risponde, si apre invece una finestra sopra la pagina.",
+    "description": "Explanation under the open-as choice."
+  },
+  "optionOpenAsWindow": {
+    "message": "Tutta la finestra del browser",
+    "description": "Open-as choice: a window of its own that covers the whole browser window."
+  },
+  "optionOpenAsPage": {
+    "message": "Solo la pagina, barra delle schede visibile",
+    "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
+  },
+  "optionPrivacyHeading": {
+    "message": "Privacy",
+    "description": "Settings page: heading of the section with the page pictures switch."
+  },
+  "optionPagePictures": {
+    "message": "Immagini delle pagine",
+    "description": "Settings page: label of the switch for the pictures of pages shown on the cards (on by default)."
+  },
+  "optionPagePicturesNote": {
+    "message": "I riquadri mostrano ogni pagina com'era l'ultima volta che l'hai vista. Le immagini restano su questo computer. Se disattivata, Tab Mission non ne acquisisce e cancella quelle che ha; i riquadri mostrano l'immagine di anteprima della pagina o l'icona del sito.",
+    "description": "Settings page: what the page pictures switch does."
   },
   "optionHelpHeading": {
     "message": "Aiuto",
@@ -306,6 +396,10 @@
         "example": "youtube.com"
       }
     }
+  },
+  "lookNotice": {
+    "message": "Nuovo aspetto: ora le schede sono sparpagliate. La griglia c'è ancora, nelle Impostazioni.",
+    "description": "Tab Mission window: shown once after the update from version 1 to version 2, pointing at the settings button. \"The grid\" is the layout of version 1."
   },
   "tipBack": {
     "message": "Premi di nuovo $shortcut$ per tornare qui",

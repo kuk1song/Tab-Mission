@@ -98,6 +98,7 @@ export function render() {
   if (!gridEl) return;
 
   document.getElementById('search')?.setAttribute('aria-expanded', String(state.filteredTabs.length > 0));
+  showLayout(gridEl);
   if (state.filteredTabs.length === 0) {
     shown = null;
     gridEl.classList.remove('grouped');
@@ -125,7 +126,7 @@ export function render() {
   // moves the selection: putting hundreds of tiles back costs a layout.
   // Panels span columns, so a change in their number redraws them too.
   const columns = state.groups ? state.columns || DEFAULT_COLUMNS : 0;
-  const now = JSON.stringify([state.groups, state.filteredTabs.map((tab) => tab.id), columns]);
+  const now = JSON.stringify([state.groups, state.filteredTabs.map((tab) => tab.id), columns, Boolean(state.spread)]);
   if (now !== shown) {
     shown = now;
     gridEl.classList.toggle('grouped', Boolean(state.groups));
@@ -133,8 +134,60 @@ export function render() {
     gridEl.replaceChildren(...(state.groups ? state.groups.map((group) => createGroup(group, nodes, columns)) : nodes));
   }
 
+  if (state.spread) placeTiles(nodes, state.filteredTabs, state.spread.boxes);
+
   updateSelection();
   observeTiles(nodes);
+}
+
+// Which layout the grid shows (state.spread): the styles of the cards
+// spread out and of the backdrop under them hang on these (overview.css).
+// With more cards than fit in view, the grid scrolls down to --spread-height.
+function showLayout(gridEl) {
+  gridEl.classList.toggle('spread', Boolean(state.spread));
+  gridEl.classList.toggle('scrolls', Boolean(state.spread?.scrolls));
+  if (state.spread) {
+    document.documentElement.dataset.layout = 'spread';
+    gridEl.style.setProperty('--spread-height', `${Math.ceil(state.spread.height)}px`);
+  } else {
+    delete document.documentElement.dataset.layout;
+  }
+}
+
+// Spread out, each card goes where spread.js put it. Left on a card that
+// the grid shows later, the places do nothing (overview.css reads them only
+// while spread out). The label under a picture starts with the site's icon,
+// added the first time a card is spread out.
+function placeTiles(nodes, tabs, boxes) {
+  nodes.forEach((tile, index) => {
+    const { x, y, w } = boxes[index];
+    tile.style.setProperty('--x', `${x.toFixed(1)}px`);
+    tile.style.setProperty('--y', `${y.toFixed(1)}px`);
+    tile.style.setProperty('--w', `${w.toFixed(1)}px`);
+    if (tile.dataset.labelIcon || !isCapturableUrl(tabs[index].url)) return;
+    tile.dataset.labelIcon = '1';
+    const icon = document.createElement('span');
+    icon.className = 'meta-icon';
+    icon.appendChild(siteIcon(tabs[index].url));
+    tile.querySelector('.meta')?.prepend(icon);
+  });
+}
+
+// The first draw of the cards spread out (main.js, before the entrance
+// plays): they come out of the middle of the area, and the page you were on
+// shrinks from the whole area into its card, as windows do in Mission
+// Control (overview.css: spreadOut, pageIn).
+export function prepareSpreadEntrance(gridEl) {
+  if (!state.spread) return;
+  const width = gridEl.offsetWidth;
+  const height = gridEl.offsetHeight;
+  gridEl.style.setProperty('--cx', `${width / 2}px`);
+  gridEl.style.setProperty('--cy', `${height / 2}px`);
+  const box = state.spread.boxes[state.filteredTabs.findIndex((tab) => tab.id === state.currentTabId)];
+  const tile = box && document.getElementById(`tile-${state.currentTabId}`);
+  if (!tile) return;
+  tile.classList.add('from-page');
+  tile.style.setProperty('--zoom', Math.min(width / box.w, height / box.h).toFixed(3));
 }
 
 // Mark the tiles and group labels in the grid's view, the only ones worth
@@ -219,7 +272,7 @@ function createTile(tab, index) {
   const close = document.createElement('span');
   close.className = 'tile-close';
   close.textContent = '×';
-  close.title = t('closeTabTitle') || 'Close tab (or middle-click)';
+  close.title = t('closeTabTitle') || 'Close tab (Shift+Delete or middle-click)';
   close.setAttribute('aria-hidden', 'true');
   tile.appendChild(close);
 
@@ -300,13 +353,19 @@ function addressOf(url) {
   return addressLabel(url, addressNames);
 }
 
+// A card's title: the page's, or its address until it has one (events.js
+// also names a closed tab by it).
+export function cardTitle(tab) {
+  return tab.title || pageAddress(tab.url) || t('untitled') || 'Untitled';
+}
+
 function createMetaElement(tab) {
   const meta = document.createElement('div');
   meta.className = 'meta';
 
   const title = document.createElement('div');
   title.className = 'title';
-  title.textContent = tab.title || pageAddress(tab.url) || t('untitled') || 'Untitled';
+  title.textContent = cardTitle(tab);
   meta.appendChild(title);
 
   const url = document.createElement('div');
