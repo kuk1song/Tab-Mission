@@ -238,7 +238,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest. The panels stay where they are as you switch tabs.",
+    "message": "In the grid, when the cards are not spread out. Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest. The panels stay where they are as you switch tabs.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionLookHeading": {
@@ -290,28 +290,12 @@
     "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
   },
   "optionSpreadNote": {
-    "message": "The tabs you used last are larger, and every tab is in view at once while they fit. With more tabs, scroll down for the rest.",
+    "message": "The tabs you used last are larger, and every tab is in view at once while they fit. With more tabs, scroll down for the rest. Turn this off for the grid.",
     "description": "Explanation under the spread-out switch."
   },
-  "optionCardSizes": {
-    "message": "Card sizes",
-    "description": "Label of a choice on the settings page: how large the cards are when spread out."
-  },
-  "optionCardSizesNote": {
-    "message": "With the cards spread out.",
-    "description": "Explanation under the card sizes choice."
-  },
-  "optionCardSizesRecent": {
-    "message": "Used last, larger",
-    "description": "Card sizes choice: the tabs used most recently are larger."
-  },
-  "optionCardSizesEqual": {
-    "message": "All the same size",
-    "description": "Card sizes choice: every card has the same size."
-  },
   "optionOpenAs": {
-    "message": "Open as (trial)",
-    "description": "Label of a choice on the settings page, a trial: how much Tab Mission covers when the cards are spread out."
+    "message": "Open as",
+    "description": "Label of a choice on the settings page: how much Tab Mission covers when the cards are spread out."
   },
   "optionOpenAsNote": {
     "message": "With the cards spread out. \"The page only\" shows on the web page itself; on other pages, and when a page does not answer, a window over the page opens instead.",
@@ -400,6 +384,10 @@
         "example": "youtube.com"
       }
     }
+  },
+  "lookNotice": {
+    "message": "New look: your tabs are now spread out. The grid is still here, in Settings.",
+    "description": "Tab Mission window: shown once after the update from version 1 to version 2, pointing at the settings button. \"The grid\" is the layout of version 1."
   },
   "tipBack": {
     "message": "Press $shortcut$ again to come back here",

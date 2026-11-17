@@ -11,7 +11,6 @@ async function main() {
   const appearance = document.getElementById('appearance');
   const backdrop = document.getElementById('backdrop');
   const spread = document.getElementById('spread');
-  const cardSizes = document.getElementById('card-sizes');
   const openAs = document.getElementById('open-as');
   try {
     localizeStaticText();
@@ -24,8 +23,7 @@ async function main() {
     appearance.value = ['light', 'dark'].includes(settings.appearance) ? settings.appearance : 'system';
     backdrop.value = ['page', 'wallpaper'].includes(settings.backdrop) ? settings.backdrop : 'plain';
     spread.checked = settings.spread === true;
-    cardSizes.value = settings.cardSizes === 'equal' ? 'equal' : 'recent';
-    openAs.value = settings.openAs === 'page' ? 'page' : 'window';
+    openAs.value = settings.openAs === 'window' ? 'window' : 'page';
   } finally {
     reveal(preselect);
   }
@@ -36,7 +34,7 @@ async function main() {
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
     });
   }
-  for (const [select, key] of [[appearance, 'appearance'], [backdrop, 'backdrop'], [cardSizes, 'cardSizes'], [openAs, 'openAs']]) {
+  for (const [select, key] of [[appearance, 'appearance'], [backdrop, 'backdrop'], [openAs, 'openAs']]) {
     select.addEventListener('change', async () => {
       if (await saveSettings({ [key]: select.value })) announce(t('optionSaved') || 'Saved.');
     });

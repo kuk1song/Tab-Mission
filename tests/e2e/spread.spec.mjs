@@ -1,7 +1,8 @@
 import { test, expect, PAGES, selectedTitle, pointAt } from './fixtures.mjs';
 
-// "Spread the cards out" and "Backdrop" (settings page, both off by
-// default; src/spread.js, src/backdrop.js): the tabs used more recently
+// "Spread the cards out" (on by default; these tests show it in a window of
+// its own, fixtures.mjs) and "Backdrop" (off by default), both on the
+// settings page (src/spread.js, src/backdrop.js): the tabs used more recently
 // larger, a label under each picture, every card in view while they fit;
 // behind them a wallpaper or a blurred picture of the page you were on.
 const VISITED = ['alpha', 'doc1', 'tube1', 'beta', 'tube2', 'gamma'];
@@ -169,31 +170,6 @@ test('spread out: the window takes the place of the browser window, its size is 
   expect((await ext.sw.evaluate(() => chrome.storage.local.get('overviewBounds'))).overviewBounds).toEqual(SIZE);
 });
 
-test('spread out, cards all the same size (the setting): one size for every card, in straight rows in the middle', async ({ ext }) => {
-  await ext.openWindow(EIGHT);
-  const page = await openWith(ext, { spread: true, cardSizes: 'equal' });
-  const shown = await cards(page);
-  expect(shown).toHaveLength(EIGHT.length);
-  for (const card of shown) expect(card.picture.width).toBeCloseTo(shown[0].picture.width, 1);
-  // Rows: cards at one height, as much room left of each row as right of it.
-  const grid = await page.locator('#grid').evaluate((el) => el.getBoundingClientRect().toJSON());
-  const rows = new Map();
-  for (const card of shown) rows.set(Math.round(card.picture.top), [...(rows.get(Math.round(card.picture.top)) ?? []), card]);
-  expect(rows.size).toBeGreaterThan(1);
-  for (const row of rows.values()) {
-    expect(Math.abs((row[0].picture.left - grid.left) - (grid.right - row.at(-1).picture.right))).toBeLessThanOrEqual(1);
-  }
-  // In view with their labels, none on another.
-  for (const [i, card] of shown.entries()) {
-    expect(card.label.bottom).toBeLessThanOrEqual(grid.bottom + 0.5);
-    for (const other of shown.slice(i + 1)) {
-      expect(overlap(card.picture, other.picture) || overlap(card.label, other.picture) || overlap(card.picture, other.label)).toBe(false);
-    }
-  }
-  // The entrance still ends with every card in its place.
-  expect(await page.locator('#grid .tile').evaluateAll((tiles) => tiles.map((tile) => getComputedStyle(tile).transform))).toEqual(EIGHT.map(() => 'none'));
-});
-
 test('spread out, the two switches are icons: round buttons with their words for screen readers and as tooltips, a ring when on', async ({ ext }) => {
   await ext.openWindow(VISITED);
   const page = await openWith(ext, { spread: true });
@@ -232,7 +208,7 @@ test('spread out, the two switches are icons: round buttons with their words for
 
 test('the grid keeps its toolbar and its window whatever the spread-out settings say', async ({ ext }) => {
   await ext.openWindow(VISITED);
-  const page = await openWith(ext, { spread: false, cardSizes: 'equal', openAs: 'page' });
+  const page = await openWith(ext, { spread: false, openAs: 'page' });
   expect(new URL(page.url()).searchParams.get('layout')).toBeNull();
   expect(new URL(page.url()).searchParams.get('host')).toBeNull();
   expect(await page.evaluate(() => chrome.windows.getCurrent().then((win) => win.type))).toBe('popup');

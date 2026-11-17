@@ -11,9 +11,9 @@ export const state = {
   currentWindowId: null,
   currentTabId: null,
   selfWindowId: null, // the overview popup itself; its own tab is never listed
-  // Where the overview shows: 'window', a window of its own; or, a trial
-  // (src/host.js): 'page', a frame over the page in front ('refused': a
-  // frame not let in, which shows nothing).
+  // Where the overview shows: 'window', a window of its own; or 'page', a
+  // frame over the page in front (src/host.js; 'refused': a frame not let
+  // in, which shows nothing).
   host: 'window',
   siteHost: '', // non-empty while showing only one site's tabs
   preselectPrevious: true, // mirrors the setting of the same name
@@ -24,7 +24,6 @@ export const state = {
   groups: null,
   columns: 0, // tiles per row the groups were made for (0: not measured)
   spreadOut: false, // mirrors the setting "spread"
-  spreadEqual: false, // the setting "cardSizes" is 'equal': spread out, one size for all
   // With spreadOut: where each of filteredTabs goes ({ boxes, height,
   // scrolls }, spread.js), else null and the grid shows them.
   spread: null,
@@ -62,7 +61,7 @@ export async function fetchAllTabs() {
   state.currentTabId = currentTab?.id ?? null;
 }
 
-// On a page (a trial, src/host.js), the overview is in the user's own
+// On a page (src/host.js), the overview is in the user's own
 // browser window, so no window is left out, and the current tab is the one
 // whose page it is on.
 async function findHostTab() {
@@ -164,7 +163,7 @@ export function applyFilters(uiState) {
   // Spread out (the setting, off by default): the cards in recent order,
   // placed for the area uiState.spread gives, every one in view while they
   // fit. It takes the place of the grid and its groups.
-  state.spread = uiState.spread ? spreadLayout(tabs.length, uiState.spread.width, uiState.spread.height, { equal: uiState.spread.equal === true }) : null;
+  state.spread = uiState.spread ? spreadLayout(tabs.length, uiState.spread.width, uiState.spread.height) : null;
   state.groups = null;
   state.columns = uiState.columns || 0;
   if (!state.spread && uiState.groupBySite && !searching && !state.siteHost) {

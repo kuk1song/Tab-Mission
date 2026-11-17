@@ -13,7 +13,7 @@
   // The entrance waits, at its first frame, until the cards in view have
   // their pictures (main.js lets it go; overview.css).
   document.documentElement.dataset.wait = '';
-  // A trial (src/host.js): the overview in a frame on a page.
+  // The overview in a frame on a page (src/host.js).
   if (params.get('host') === 'page') document.documentElement.dataset.host = 'page';
   // 'page' shows once backdrop.js has the picture (overview.css). People
   // who ask their system for less transparency or more contrast, or use

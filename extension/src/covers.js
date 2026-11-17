@@ -211,7 +211,7 @@ async function capture(tabId, { front = false, loading = false, taken = null } =
     await sleep(start - now);
     if (!unchanged(await chrome.tabs.get(tabId))) return false;
   }
-  // The overview on this page (a trial, src/host.js) would be in the picture.
+  // The overview on this page (src/host.js) would be in the picture.
   const asked = Date.now();
   if (await overlaidSince(tabId, asked)) return 'covered';
   // Every capture takes from the budget, even if its picture is dropped below.

@@ -1,6 +1,6 @@
-// host.js: the overview shown elsewhere than in a window of its own. A trial
-// (settings page, "Open as", with the cards spread out): as a layer over the
-// page in front of you, so the browser's tab strip stays in view.
+// host.js: the overview shown elsewhere than in a window of its own (settings
+// page, "Open as", with the cards spread out; the default): as a layer over
+// the page in front of you, so the browser's tab strip stays in view.
 // Runs in the service worker (background.js); the overview page's part is
 // in state.js, events.js and main.js (state.host).
 //

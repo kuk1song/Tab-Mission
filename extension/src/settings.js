@@ -1,6 +1,11 @@
 // src/settings.js
 
-const DEFAULTS = {
+// Set by an update from 1.x (background.js) until the overview has said,
+// once, that the cards are now spread out and where the grid is (tips.js).
+export const LOOK_NOTICE_KEY = 'lookNotice';
+
+// Also read by background.js, which opens the overview by them.
+export const DEFAULTS = {
   showSleeping: false,
   showAllWindows: false,
   // On by default: the previous tab is pre-selected, so pressing the
@@ -23,17 +28,15 @@ const DEFAULTS = {
   // picture of the page you were on; or 'wallpaper', colors of Tab Mission's
   // own.
   backdrop: 'plain',
-  // Off by default: the cards spread out, the tabs used more recently
-  // larger, every one in view while they fit (spread.js).
-  spread: false,
-  // Spread out: 'recent', the tabs used last larger, or 'equal', all the
-  // same size in straight rows (spread.js).
-  cardSizes: 'recent',
-  // Spread out, a trial: how much the overview covers. 'window', the whole
-  // browser window (a window of its own over it); 'page', the page only, the
-  // tab strip in view: a layer over the page in front, or where a page takes
-  // none, a window over the page (background.js, src/host.js).
-  openAs: 'window',
+  // On by default (2.0): the cards spread out, the tabs used more recently
+  // larger, every one in view while they fit (spread.js). Off (settings
+  // page): the grid.
+  spread: true,
+  // Spread out: how much the overview covers. 'page', the page only, the tab
+  // strip in view: a layer over the page in front, or where a page takes
+  // none, a window over the page (background.js, src/host.js); 'window', the
+  // whole browser window (a window of its own over it).
+  openAs: 'page',
 };
 
 /**

@@ -13,6 +13,7 @@
 import { t } from './i18n.js';
 import { state } from './state.js';
 import { noteTipShown } from './tryit.js';
+import { LOOK_NOTICE_KEY } from './settings.js';
 
 // Say this to screen readers, through the window's one live region (#status
 // in overview.html; '' clears it). A tip, the empty grid and a closed tab
@@ -136,19 +137,54 @@ export function showTip(options) {
 
 // Show a step's tip at its anchor; whether it showed.
 function show(step, anchor) {
+  const { showTips, tryIt, shortcut } = due;
+  if (!put(() => message(TEXTS[step][0], shortcut, TEXTS[step][1]), step === 'open' ? 'badge' : 'card', anchor)) return false;
+  if (!showTips) tryIt.tipsLeft = noteTipShown(step, tryIt.tipsLeft);
+  return true;
+}
+
+// Put a tip (made by make) at its anchor; whether there was room for it.
+function put(make, kind, anchor) {
   const root = document.getElementById('root');
   // In a small window the tip would cover the cards.
   if (!root || root.clientWidth < 480 || root.clientHeight < 320) return false;
   if (!anchor?.getClientRects().length) return false;
 
-  const { showTips, tryIt, shortcut } = due;
-  tip = message(TEXTS[step][0], shortcut, TEXTS[step][1]);
-  tip.dataset.anchor = step === 'open' ? 'badge' : 'card';
+  tip = make();
+  tip.dataset.anchor = kind;
   root.append(tip);
   place(tip, anchor, root);
   announce(tip.textContent);
-  if (!showTips) tryIt.tipsLeft = noteTipShown(step, tryIt.tipsLeft);
   document.getElementById('grid')?.addEventListener('scroll', hideTip, { once: true });
   window.addEventListener('resize', hideTip, { once: true });
   return true;
+}
+
+// Version 2 spreads the cards out where version 1 had the grid. After that
+// update (background.js notes it), the first overview that has the room says
+// so once, at the settings button, where the grid still is. It comes instead
+// of that opening's tip and goes as a tip does.
+export async function lookNoticeDue() {
+  try {
+    return (await chrome.storage.local.get(LOOK_NOTICE_KEY))[LOOK_NOTICE_KEY] === true;
+  } catch {
+    return false;
+  }
+}
+
+// Called once the cards have settled, when the notice is due; whether it
+// showed. With the grid chosen meanwhile there is nothing to say.
+export function showLookNotice(spreadOut) {
+  const shown = spreadOut && !blocked && !tip && put(() => {
+    const el = document.createElement('div');
+    el.className = 'tip';
+    el.textContent = t('lookNotice') || 'New look: your tabs are now spread out. The grid is still here, in Settings.';
+    return el;
+  }, 'settings', document.getElementById('open-settings'));
+  if (shown || !spreadOut) {
+    try {
+      chrome.storage.local.remove(LOOK_NOTICE_KEY).catch(() => {});
+    } catch {}
+  }
+  return shown;
 }

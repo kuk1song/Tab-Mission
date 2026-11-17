@@ -263,7 +263,12 @@ export const test = base.extend({
     // of tabs, so each recent tab would have a second tile. Most tests are
     // about the plain grid; group-by-site.spec, a test in cards.spec and the
     // tests of many tabs (layout, smooth, visual) turn it back on.
-    await sw.evaluate(() => chrome.storage.local.set({ groupBySite: false }));
+    // The same goes for the cards spread out on the page in front, the
+    // default since 2.0: most tests are about the grid in its own window, as
+    // a user has it with "Spread the cards out" off. spread.spec turns the
+    // setting on (in a window), open-as.spec chooses where it opens, and
+    // defaults.spec gives a new user's settings back.
+    await sw.evaluate(() => chrome.storage.local.set({ groupBySite: false, spread: false, openAs: 'window' }));
     const url = (id, query = '') => `http://${HOSTS[id] ?? 'localhost'}:${site.port}/${id}.html${query}`;
 
     const ext = {

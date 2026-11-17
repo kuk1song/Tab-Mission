@@ -1011,7 +1011,7 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .grid.spread.entering .tile .meta { animation: none !important; }
 }
-/* In a frame on a page (a trial, src/host.js): scrolling the cards to their
+/* In a frame on a page (src/host.js): scrolling the cards to their
    end does not go on to scroll the page under them. */
 :root[data-host="page"],
 :root[data-host="page"] body { overscroll-behavior: none; }

@@ -180,7 +180,7 @@ function readUiState() {
 // fade-in (a scale) leaves alone, and do not count a scrollbar.
 function spreadArea() {
   const gridEl = document.getElementById('grid');
-  return gridEl ? { width: gridEl.offsetWidth, height: gridEl.offsetHeight, equal: state.spreadEqual } : null;
+  return gridEl ? { width: gridEl.offsetWidth, height: gridEl.offsetHeight } : null;
 }
 
 
@@ -451,7 +451,7 @@ function closeOverview() {
   setTimeout(leave, 150);
 }
 
-// The overview goes: its window closes; on a page (a trial, src/host.js),
+// The overview goes: its window closes; on a page (src/host.js),
 // background.js takes its frame off.
 function leave() {
   if (state.host === 'page') {

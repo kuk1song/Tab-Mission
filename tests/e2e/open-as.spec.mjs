@@ -1,8 +1,8 @@
 import { test, expect, PAGES } from './fixtures.mjs';
 
-// "Open as" (settings page, a trial, with the cards spread out;
-// src/host.js): the overview as a layer over the page in front, the tab
-// strip in view, instead of a window of its own over the whole browser.
+// "Open as" (settings page, with the cards spread out; src/host.js): the
+// overview as a layer over the page in front, the tab strip in view (the
+// default), or a window of its own over the whole browser.
 const VISITED = ['alpha', 'doc1', 'tube1', 'beta', 'tube2', 'gamma'];
 const PREVIOUS = PAGES.tube2.title;
 const CURRENT = PAGES.gamma.title;

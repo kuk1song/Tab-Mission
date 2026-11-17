@@ -238,7 +238,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Prima le cinque schede più recenti, poi un pannello per ogni sito con almeno due schede, poi le altre. Quando cambi scheda, i pannelli restano dove sono.",
+    "message": "Nella griglia, quando le schede non sono sparpagliate. Prima le cinque schede più recenti, poi un pannello per ogni sito con almeno due schede, poi le altre. Quando cambi scheda, i pannelli restano dove sono.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionLookHeading": {
@@ -290,28 +290,12 @@
     "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
   },
   "optionSpreadNote": {
-    "message": "Le schede usate per ultime sono più grandi e, finché ci stanno, sono tutte in vista. Con più schede, scorri verso il basso per le altre.",
+    "message": "Le schede usate per ultime sono più grandi e, finché ci stanno, sono tutte in vista. Con più schede, scorri verso il basso per le altre. Disattiva per la griglia.",
     "description": "Explanation under the spread-out switch."
   },
-  "optionCardSizes": {
-    "message": "Dimensione delle schede",
-    "description": "Label of a choice on the settings page: how large the cards are when spread out."
-  },
-  "optionCardSizesNote": {
-    "message": "Con le schede sparpagliate.",
-    "description": "Explanation under the card sizes choice."
-  },
-  "optionCardSizesRecent": {
-    "message": "Più grandi le ultime usate",
-    "description": "Card sizes choice: the tabs used most recently are larger."
-  },
-  "optionCardSizesEqual": {
-    "message": "Tutte uguali",
-    "description": "Card sizes choice: every card has the same size."
-  },
   "optionOpenAs": {
-    "message": "Apri come (prova)",
-    "description": "Label of a choice on the settings page, a trial: how much Tab Mission covers when the cards are spread out."
+    "message": "Apri come",
+    "description": "Label of a choice on the settings page: how much Tab Mission covers when the cards are spread out."
   },
   "optionOpenAsNote": {
     "message": "Con le schede sparpagliate. «Solo la pagina» appare sulla pagina web stessa; sulle altre pagine, e quando una pagina non risponde, si apre invece una finestra sopra la pagina.",
@@ -400,6 +384,10 @@
         "example": "youtube.com"
       }
     }
+  },
+  "lookNotice": {
+    "message": "Nuovo aspetto: ora le schede sono sparpagliate. La griglia c'è ancora, nelle Impostazioni.",
+    "description": "Tab Mission window: shown once after the update from version 1 to version 2, pointing at the settings button. \"The grid\" is the layout of version 1."
   },
   "tipBack": {
     "message": "Premi di nuovo $shortcut$ per tornare qui",

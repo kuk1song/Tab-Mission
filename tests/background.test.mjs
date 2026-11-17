@@ -91,6 +91,7 @@ function fakeChrome() {
 }
 
 let chrome;
+const CLASSIC = { spread: false, openAs: 'window' };
 
 // A fresh module instance stands in for a restarted service worker.
 async function restartWorker() {
@@ -102,6 +103,10 @@ async function restartWorker() {
 beforeEach(async () => {
   vi.resetModules();
   chrome = fakeChrome();
+  // The grid in its own window, as with "Spread the cards out" off, and a
+  // window when they are spread out: what most tests here are about. A new
+  // user's settings have tests of their own (below, "with nothing chosen").
+  Object.assign(chrome.storage.local.data, { ...CLASSIC });
   vi.stubGlobal('chrome', chrome);
   await import('../extension/background.js');
 });
@@ -405,10 +410,22 @@ describe('background.js', () => {
   });
 
   it('on update, deletes the keys older versions saved, keeps the settings and leaves the first-use tips off', async () => {
-    Object.assign(chrome.storage.local.data, { searchTerm: 'old', overviewWindowId: 7, artMode: false, showSleeping: true });
-    chrome.listeners.onInstalled({ reason: 'update' });
-    await vi.waitFor(() => expect(Object.keys(chrome.storage.local.data)).toEqual(['showSleeping']));
+    Object.assign(chrome.storage.local.data, { searchTerm: 'old', overviewWindowId: 7, artMode: false, cardSizes: 'equal', showSleeping: true });
+    chrome.listeners.onInstalled({ reason: 'update', previousVersion: '2.0.0' });
+    await vi.waitFor(() => expect(chrome.storage.local.data).toEqual({ ...CLASSIC, showSleeping: true }));
     expect(chrome.tabs.create).not.toHaveBeenCalled();
+  });
+
+  it('on the update from version 1, notes that the new look is to be told once; not on a new install or a later update', async () => {
+    const settled = () => new Promise((r) => setImmediate(r));
+    chrome.listeners.onInstalled({ reason: 'install' });
+    chrome.listeners.onInstalled({ reason: 'update', previousVersion: '2.0.0' });
+    chrome.listeners.onInstalled({ reason: 'update', previousVersion: '10.1.0' });
+    chrome.listeners.onInstalled({ reason: 'update' });
+    await settled();
+    expect(chrome.storage.local.data.lookNotice).toBeUndefined();
+    chrome.listeners.onInstalled({ reason: 'update', previousVersion: '1.6.0' });
+    await vi.waitFor(() => expect(chrome.storage.local.data.lookNotice).toBe(true));
   });
 
   it('saves the overview bounds, and ignores other windows', async () => {
@@ -552,6 +569,21 @@ describe('background.js', () => {
       const byWindow = chrome.tabs.query.getMockImplementation();
       chrome.tabs.query.mockImplementation(async (query) => (query.lastFocusedWindow ? [front] : byWindow(query)));
       chrome.scripting = { executeScript: vi.fn(async ({ func }) => [{ result: func.name === 'mountOverlay' ? true : undefined }]) };
+    });
+
+    it('with nothing chosen (a new user): the cards spread out, on the page in front', async () => {
+      delete chrome.storage.local.data.spread;
+      delete chrome.storage.local.data.openAs;
+      const { token } = await open();
+      expect(chrome.scripting.executeScript.mock.calls[0][0].args).toEqual([`overlay.html?host=page&token=${token}&layout=spread`, token]);
+      expect(chrome.windows.create).not.toHaveBeenCalled();
+    });
+
+    it('with nothing chosen and settings that cannot be read: the same', async () => {
+      chrome.storage.local.data = {};
+      chrome.storage.local.get.mockImplementation(async () => { throw new Error('storage is gone'); });
+      await pressed('shortcut', () => expect(scripts()).toContain('mountOverlay'));
+      expect(chrome.scripting.executeScript.mock.calls[0][0].args[0]).toContain('layout=spread');
     });
 
     it('on a page: puts the overview on the page in front, under the name pages may frame, with a token; no window or tab', async () => {

@@ -1,11 +1,9 @@
-// spread.js: where the cards go when they are spread out (settings page, off
+// spread.js: where the cards go when they are spread out (settings page, on
 // by default), as windows in Mission Control: in rows, none in a column,
 // every card in view at once while they fit. Tabs of one window are all the
 // same shape, so the sizes come from how recently each was used: the first
 // cards (state.js puts the previous tab first) are larger. Same number of
 // cards and same area, same places: nothing here is random between two draws.
-// With `equal` (the setting "Card sizes", all the same size) every card has
-// one size, and each row sits in the middle on a straight line.
 
 export const RATIO = 16 / 10; // a card's picture, as in the grid
 const GAP = 26; // between pictures in a row
@@ -39,14 +37,13 @@ const EVEN_WORTH = 0.95;
 // `count` cards in an area of width by height px; `height`, how far down
 // they and their labels reach; and `scrolls` when that is further than the
 // area. null when there is nothing to lay out or no room at all.
-export function spreadLayout(count, width, height, { equal = false } = {}) {
+export function spreadLayout(count, width, height) {
   if (!(count > 0) || !(width > 0) || !(height > 0)) return null;
   const areaW = width - 2 * SIDE;
   const areaH = height - TOP - BOTTOM;
   if (areaW <= 0 || areaH <= 0) return null;
 
-  const weights = Array.from({ length: count }, (_, rank) => (equal ? 1 : weightOf(rank)));
-  const least = equal ? 1 : LEAST; // the weight of the smallest kind of card
+  const weights = Array.from({ length: count }, (_, rank) => weightOf(rank));
   const before = [0]; // before[i]: the weights of the cards before card i, summed
   for (const w of weights) before.push(before.at(-1) + w);
   // What a row of the cards i to j - 1 asks of the width: 1 / the unit (the
@@ -112,7 +109,7 @@ export function spreadLayout(count, width, height, { equal = false } = {}) {
   // The cards at their smallest: the height of a picture of weight 1 when
   // the smallest kind is MIN_WIDTH wide (in a window narrower than the first
   // card at that size: as wide as the window lets it be).
-  const floorUnit = Math.min(MIN_WIDTH / (RATIO * least), 1 / need(0, 1));
+  const floorUnit = Math.min(MIN_WIDTH / (RATIO * LEAST), 1 / need(0, 1));
   const floorRows = filled(floorUnit);
   const scrolls = tall(floorRows, floorUnit) > areaH + 0.5;
 
@@ -138,7 +135,7 @@ export function spreadLayout(count, width, height, { equal = false } = {}) {
         const size = Math.min(1 / tightest[count], byHeight, cap);
         if (!best || size > best.unit + 1e-6) best = { unit: size, rows: split };
         // More rows only make the pictures smaller from here on.
-        if ((areaH - CAPTION * (r + 1)) / ((r + 1) * least) <= best.unit) break;
+        if ((areaH - CAPTION * (r + 1)) / ((r + 1) * LEAST) <= best.unit) break;
       }
     }
     // The largest unit at which the cards fit at all, with rows filled one
@@ -177,9 +174,8 @@ export function spreadLayout(count, width, height, { equal = false } = {}) {
     const rowH = weights[row.start] * unit;
     const rowW = (before[row.end] - before[row.start]) * unit * RATIO + GAP * (row.end - row.start - 1);
     const slack = Math.max(0, areaW - rowW);
-    // Rows lean left and right in turn, within the room they have; cards of
-    // one size stay in the middle.
-    let x = SIDE + slack / 2 + (equal ? 0 : (rowIndex % 2 ? 1 : -1) * Math.min(slack / 2, 22));
+    // Rows lean left and right in turn, within the room they have.
+    let x = SIDE + slack / 2 + (rowIndex % 2 ? 1 : -1) * Math.min(slack / 2, 22);
     for (let rank = row.start; rank < row.end; rank++) {
       const h = weights[rank] * unit;
       const w = h * RATIO;

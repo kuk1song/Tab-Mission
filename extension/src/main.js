@@ -4,7 +4,7 @@ import { initializeEventListeners, handleFilterChange, markReady } from './event
 import { loadSettings } from './settings.js';
 import { localizeStaticText, t } from './i18n.js';
 import { readTryIt } from './tryit.js';
-import { showTip } from './tips.js';
+import { showTip, lookNoticeDue, showLookNotice } from './tips.js';
 import { markInView, prepareSpreadEntrance } from './dom.js';
 import { showBackdrop } from './backdrop.js';
 import { preloadCovers, followCurrentCover } from './thumbnail.js';
@@ -12,7 +12,7 @@ import { preloadCovers, followCurrentCover } from './thumbnail.js';
 async function main() {
   const params = new URLSearchParams(location.search);
   // In a frame, or under the name pages can frame it by (overlay.html), the
-  // overview shows only where background.js just put it (a trial, on the
+  // overview shows only where background.js just put it (on the
   // page in front, src/host.js): a page that frames or opens it on its own
   // gets nothing to show or to click, and it takes no messages (events.js).
   if (window.top !== window || location.pathname !== '/overview.html') {
@@ -34,7 +34,7 @@ async function main() {
   // the search box instead of being lost.
   searchEl?.focus();
 
-  const [settings, , tryIt, shortcuts] = await Promise.all([loadSettings(), fetchAllTabs(), readTryIt(), readShortcuts()]);
+  const [settings, , tryIt, shortcuts, lookNotice] = await Promise.all([loadSettings(), fetchAllTabs(), readTryIt(), readShortcuts(), lookNoticeDue()]);
   const shortcut = shortcuts['open-overview'];
   // The picture behind the cards, when chosen, comes in on its own: nothing waits for it.
   showBackdrop();
@@ -48,7 +48,6 @@ async function main() {
   state.preselectPrevious = settings.preselectPrevious;
   state.groupBySite = settings.groupBySite;
   state.spreadOut = settings.spread === true;
-  state.spreadEqual = settings.cardSizes === 'equal';
 
   // Opened by the "current site" shortcut: show only this site's tabs.
   if (params.get('scope') === 'site') {
@@ -85,6 +84,8 @@ async function main() {
     // with the site shortcut, the tip names that key: pressed again, it too
     // goes to the selection.
     const pressed = params.get('scope') === 'site' ? shortcuts['open-overview-site'] || shortcut : shortcut;
+    // After the update to version 2, once: the notice of the new look instead.
+    if (lookNotice && showLookNotice(state.spreadOut)) return;
     showTip({ showTips: settings.showTips, tryIt, shortcut: pressed, viaClick: params.get('via') === 'click' });
   });
 

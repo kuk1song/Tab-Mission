@@ -1,5 +1,6 @@
 // background.js
 import { recordTryIt, startTips } from './src/tryit.js';
+import { DEFAULTS, LOOK_NOTICE_KEY } from './src/settings.js';
 import { coverFrontTab, startCovers, tidyCovers } from './src/covers.js';
 import { trackUnseenTabs } from './src/unseen.js';
 import { movePreviewsOfReplacedTabs } from './src/thumbnail.js';
@@ -124,14 +125,14 @@ function fitInto(display, b) {
 	};
 }
 
-// Whether the cards are spread out (the setting, off by default). The
+// Whether the cards are spread out (the setting, on by default). The
 // overview then takes the place of the browser window instead of a size and
 // spot of its own.
 async function spreadOut() {
 	try {
-		return (await chrome.storage.local.get({ spread: false })).spread === true;
+		return (await chrome.storage.local.get({ spread: DEFAULTS.spread })).spread === true;
 	} catch {
-		return false;
+		return DEFAULTS.spread;
 	}
 }
 
@@ -198,7 +199,7 @@ function toggleOverviewWindow(scope, source = 'shortcut', pictured = null) {
 }
 
 async function runToggle(scope, source, pictured) {
-	// The overview open on a page (a trial, src/host.js). In front, it acts
+	// The overview open on a page (src/host.js). In front, it acts
 	// on the press: the toolbar button closes it, the shortcut switches to
 	// the selected tab or closes. One that does not answer (its page went
 	// elsewhere) or was left behind on another tab is taken off, and the
@@ -348,14 +349,17 @@ function pictureFront() {
 	});
 }
 
-// Open the overview: in a window of its own over the browser window, or,
-// with the cards spread out and the trial setting "Open as" at "tab strip in
-// view", on the page in front (src/host.js). A page that cannot take it gets
-// a window over the page only, so the tab strip stays in view there too.
+// Open the overview. With the cards spread out and the setting "Open as" at
+// "the page only" (both the defaults): on the page in front (src/host.js); a
+// page that cannot take it gets a window over the page only, so the tab strip
+// stays in view there too. Else in a window of its own: over the whole
+// browser window with the cards spread out, at its own size and spot with
+// the grid.
 async function openOverview(scope, source, pictured) {
 	// Drop the pictures of pages no longer open (src/covers.js), meanwhile.
 	tidyCovers();
-	const look = await chrome.storage.local.get({ appearance: 'system', backdrop: 'plain', spread: false, openAs: 'window' }).catch(() => ({}));
+	const { appearance, backdrop, spread, openAs } = DEFAULTS;
+	const look = await chrome.storage.local.get({ appearance, backdrop, spread, openAs }).catch(() => ({ appearance, backdrop, spread, openAs }));
 	let under = null;
 	if (look.spread === true && look.openAs === 'page') {
 		const front = await frontTab();
@@ -435,7 +439,7 @@ chrome.action.onClicked.addListener(() => {
 
 // First install: open a short welcome page that shows the shortcut (or says
 // that none could be assigned) so new users are not left guessing.
-chrome.runtime.onInstalled.addListener(({ reason }) => {
+chrome.runtime.onInstalled.addListener(({ reason, previousVersion }) => {
 	if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
 		// A new user: the Tab Mission window shows its tips until learned.
 		startTips();
@@ -444,7 +448,11 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 	if (reason === chrome.runtime.OnInstalledReason.UPDATE) {
 		// Drop keys that older versions saved: the last search text, the window
 		// id (now kept in session storage) and the unused art mode switch.
-		chrome.storage.local.remove(['searchTerm', 'overviewWindowId', 'artMode']).catch(() => {});
+		// "cardSizes" was a choice in builds before 2.0 was released.
+		chrome.storage.local.remove(['searchTerm', 'overviewWindowId', 'artMode', 'cardSizes']).catch(() => {});
+		// 2.0 spreads the cards out where 1.x had the grid: the overview says
+		// so once, and where the grid is (src/tips.js).
+		if (Number.parseInt(previousVersion, 10) < 2) chrome.storage.local.set({ [LOOK_NOTICE_KEY]: true }).catch(() => {});
 	}
 });
 

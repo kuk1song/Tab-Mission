@@ -32,7 +32,7 @@
           <div class="row">
             <div class="text">
               <label class="title" for="group-by-site" data-i18n="optionGroupBySite">Group tabs by site</label>
-              <p id="group-by-site-note" class="desc" data-i18n="optionGroupBySiteNote">Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest. The panels stay where they are as you switch tabs.</p>
+              <p id="group-by-site-note" class="desc" data-i18n="optionGroupBySiteNote">In the grid, when the cards are not spread out. Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest. The panels stay where they are as you switch tabs.</p>
             </div>
             <input id="group-by-site" class="switch" type="checkbox" role="switch" aria-describedby="group-by-site-note" />
           </div>
@@ -67,28 +67,18 @@
           <div class="row">
             <div class="text">
               <label class="title" for="spread" data-i18n="optionSpread">Spread the cards out</label>
-              <p id="spread-note" class="desc" data-i18n="optionSpreadNote">The tabs you used last are larger, and every tab is in view at once while they fit. With more tabs, scroll down for the rest.</p>
+              <p id="spread-note" class="desc" data-i18n="optionSpreadNote">The tabs you used last are larger, and every tab is in view at once while they fit. With more tabs, scroll down for the rest. Turn this off for the grid.</p>
             </div>
             <input id="spread" class="switch" type="checkbox" role="switch" aria-describedby="spread-note" />
           </div>
           <div class="row">
             <div class="text">
-              <label class="title" for="card-sizes" data-i18n="optionCardSizes">Card sizes</label>
-              <p id="card-sizes-note" class="desc" data-i18n="optionCardSizesNote">With the cards spread out.</p>
-            </div>
-            <select id="card-sizes" class="select" aria-describedby="card-sizes-note">
-              <option value="recent" data-i18n="optionCardSizesRecent">Used last, larger</option>
-              <option value="equal" data-i18n="optionCardSizesEqual">All the same size</option>
-            </select>
-          </div>
-          <div class="row">
-            <div class="text">
-              <label class="title" for="open-as" data-i18n="optionOpenAs">Open as (trial)</label>
+              <label class="title" for="open-as" data-i18n="optionOpenAs">Open as</label>
               <p id="open-as-note" class="desc" data-i18n="optionOpenAsNote">With the cards spread out. "The page only" shows on the web page itself; on other pages, and when a page does not answer, a window over the page opens instead.</p>
             </div>
             <select id="open-as" class="select" aria-describedby="open-as-note">
-              <option value="window" data-i18n="optionOpenAsWindow">The whole browser window</option>
               <option value="page" data-i18n="optionOpenAsPage">The page only, tab strip in view</option>
+              <option value="window" data-i18n="optionOpenAsWindow">The whole browser window</option>
             </select>
           </div>
         </div>
