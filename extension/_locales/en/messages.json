@@ -309,6 +309,18 @@
     "message": "The page only, tab strip in view",
     "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
+  "optionPrivacyHeading": {
+    "message": "Privacy",
+    "description": "Settings page: heading of the section with the page pictures switch."
+  },
+  "optionPagePictures": {
+    "message": "Page pictures",
+    "description": "Settings page: label of the switch for the pictures of pages shown on the cards (on by default)."
+  },
+  "optionPagePicturesNote": {
+    "message": "Cards show each page as you last saw it. The pictures stay on this computer. When off, Tab Mission takes none and deletes the ones it has; cards show the page's preview image or the site's icon.",
+    "description": "Settings page: what the page pictures switch does."
+  },
   "optionHelpHeading": {
     "message": "Help",
     "description": "Settings page: heading of the help section."

@@ -12,6 +12,7 @@ async function main() {
   const backdrop = document.getElementById('backdrop');
   const spread = document.getElementById('spread');
   const openAs = document.getElementById('open-as');
+  const pagePictures = document.getElementById('page-pictures');
   try {
     localizeStaticText();
     const { version } = chrome.runtime.getManifest();
@@ -24,12 +25,14 @@ async function main() {
     backdrop.value = ['page', 'wallpaper'].includes(settings.backdrop) ? settings.backdrop : 'plain';
     spread.checked = settings.spread === true;
     openAs.value = settings.openAs === 'window' ? 'window' : 'page';
+    pagePictures.checked = settings.pagePictures;
   } finally {
     reveal(preselect);
   }
   // Each switch saves at once; the switch shows the new state and screen
-  // readers also hear "Saved."
-  for (const [input, key] of [[preselect, 'preselectPrevious'], [groupBySite, 'groupBySite'], [spread, 'spread'], [showTips, 'showTips']]) {
+  // readers also hear "Saved." (Page pictures turned off: the service worker
+  // deletes the pictures, covers.js.)
+  for (const [input, key] of [[preselect, 'preselectPrevious'], [groupBySite, 'groupBySite'], [spread, 'spread'], [pagePictures, 'pagePictures'], [showTips, 'showTips']]) {
     input.addEventListener('change', async () => {
       if (await saveSettings({ [key]: input.checked })) announce(t('optionSaved') || 'Saved.');
     });

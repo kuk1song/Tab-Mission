@@ -37,6 +37,10 @@ export const DEFAULTS = {
   // none, a window over the page (background.js, src/host.js); 'window', the
   // whole browser window (a window of its own over it).
   openAs: 'page',
+  // On by default (off on the settings page): the service worker takes
+  // pictures of the pages you look at for their cards (covers.js). Off, it
+  // takes none and deletes the ones it kept.
+  pagePictures: true,
 };
 
 /**

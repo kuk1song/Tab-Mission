@@ -309,6 +309,18 @@
     "message": "只盖住网页，露出标签栏",
     "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
+  "optionPrivacyHeading": {
+    "message": "隐私",
+    "description": "Settings page: heading of the section with the page pictures switch."
+  },
+  "optionPagePictures": {
+    "message": "网页截图",
+    "description": "Settings page: label of the switch for the pictures of pages shown on the cards (on by default)."
+  },
+  "optionPagePicturesNote": {
+    "message": "卡片显示每个网页你上次看到时的样子，截图只保存在这台电脑上。关闭后，Tab Mission 不再截图，并删除已有的截图；卡片改为显示网页的预览图或网站图标。",
+    "description": "Settings page: what the page pictures switch does."
+  },
   "optionHelpHeading": {
     "message": "帮助",
     "description": "Settings page: heading of the help section."

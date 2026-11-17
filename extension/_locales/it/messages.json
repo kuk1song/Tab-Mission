@@ -309,6 +309,18 @@
     "message": "Solo la pagina, barra delle schede visibile",
     "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
+  "optionPrivacyHeading": {
+    "message": "Privacy",
+    "description": "Settings page: heading of the section with the page pictures switch."
+  },
+  "optionPagePictures": {
+    "message": "Immagini delle pagine",
+    "description": "Settings page: label of the switch for the pictures of pages shown on the cards (on by default)."
+  },
+  "optionPagePicturesNote": {
+    "message": "I riquadri mostrano ogni pagina com'era l'ultima volta che l'hai vista. Le immagini restano su questo computer. Se disattivata, Tab Mission non ne acquisisce e cancella quelle che ha; i riquadri mostrano l'immagine di anteprima della pagina o l'icona del sito.",
+    "description": "Settings page: what the page pictures switch does."
+  },
   "optionHelpHeading": {
     "message": "Aiuto",
     "description": "Settings page: heading of the help section."
