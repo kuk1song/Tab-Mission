@@ -41,6 +41,11 @@ for (const scale of [1, 1.25, 1.5]) {
         overview: (await chrome.windows.getAll({ windowTypes: ['popup'] })).map(({ left, top, width, height }) => ({ left, top, width, height })),
         shortcut: (await chrome.commands.getAll()).find((c) => c.name === 'open-overview')?.shortcut,
       }));
+      // What this machine asks for, of what Tab Mission follows and
+      // Playwright does not set (the backdrop is not for people who ask for
+      // less transparency, look.js).
+      info.asks = await page.evaluate(() => Object.fromEntries(['(prefers-reduced-transparency: reduce)', '(prefers-contrast: more)', '(forced-colors: active)']
+        .map((query) => [query, matchMedia(query).matches])));
       writeFileSync(`${OUT}/${process.platform}-${scale * 100}-info.json`, JSON.stringify(info, null, 2));
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 

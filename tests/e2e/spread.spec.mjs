@@ -28,6 +28,29 @@ async function openWith(ext, settings) {
   return page;
 }
 
+// The backdrop is for people who have not asked their system for less
+// transparency or more contrast (look.js). A machine may ask: GitHub's
+// macOS runners showed the plain background in every backdrop test
+// (2026-11-17), and Playwright has no setting for transparency. So the
+// backdrop tests say which preferences they are about, and load the window
+// again under them. The list is whole each time (Chrome keeps only the last
+// one sent): Playwright's own defaults, and transparency. The session stays
+// with the page: Chrome drops what a session asked for when it leaves.
+const sessions = new WeakMap();
+async function prefer(page, asked = {}) {
+  const features = { 'prefers-color-scheme': 'light', 'prefers-reduced-motion': 'no-preference', 'forced-colors': 'none', 'prefers-contrast': 'no-preference', 'prefers-reduced-transparency': 'no-preference', ...asked };
+  if (!sessions.has(page)) sessions.set(page, await page.context().newCDPSession(page));
+  await sessions.get(page).send('Emulation.setEmulatedMedia', { features: Object.entries(features).map(([name, value]) => ({ name, value })) });
+  await page.reload();
+  await page.locator('#grid .tile, #grid .empty').first().waitFor();
+  await page.locator('#grid:not(.entering)').waitFor();
+}
+async function openWithBackdrop(ext, settings) {
+  const page = await openWith(ext, settings);
+  await prefer(page);
+  return page;
+}
+
 // Each card's picture and, when shown, its label, in the window's coordinates.
 const cards = (page) => page.locator('#grid .tile').evaluateAll((tiles) => tiles.map((tile) => {
   const box = (el) => {
@@ -48,9 +71,18 @@ async function worstContrast(page, selectors) {
     for (const [kind, selector] of Object.entries(selectors)) {
       for (const el of document.querySelectorAll(selector)) {
         const r = el.getBoundingClientRect();
-        if (r.width < 6 || r.height < 6 || r.bottom > innerHeight || r.top < 0 || !el.checkVisibility()) continue;
-        const color = el.matches('input') ? getComputedStyle(el, '::placeholder').color : getComputedStyle(el).color;
-        found.push({ kind, color, x: r.x, y: r.y, w: r.width, h: r.height });
+        if (r.bottom > innerHeight || r.top < 0 || !el.checkVisibility()) continue;
+        // Where the text is drawn: inside the element's border and padding
+        // (a keycap's rounded border is not behind its letter), and one CSS
+        // pixel in at least.
+        const style = getComputedStyle(el);
+        const [left, top, right, bottom] = ['Left', 'Top', 'Right', 'Bottom']
+          .map((side) => Math.max(1, Number.parseFloat(style[`border${side}Width`]) + Number.parseFloat(style[`padding${side}`])));
+        const box = { x: r.x + left, y: r.y + top, w: r.width - left - right, h: r.height - top - bottom };
+        // Nothing to measure in less than two pixels (an empty element).
+        if (box.w < 2 || box.h < 2) continue;
+        const color = el.matches('input') ? getComputedStyle(el, '::placeholder').color : style.color;
+        found.push({ kind, color, ...box });
       }
     }
     return found;
@@ -71,9 +103,11 @@ async function worstContrast(page, selectors) {
     for (const item of items) {
       const [r, g, b] = item.color.match(/[\d.]+/g).map(Number);
       const text = luminance(r, g, b);
-      // One CSS pixel in from the box's edges (a keycap's border is not behind its letter).
-      const data = context.getImageData(Math.ceil((item.x + 1) * scale), Math.ceil((item.y + 1) * scale),
-        Math.floor((item.w - 2) * scale), Math.floor((item.h - 2) * scale)).data;
+      // The whole pixels inside the box.
+      const [x, y] = [Math.ceil(item.x * scale), Math.ceil(item.y * scale)];
+      const [w, h] = [Math.floor((item.x + item.w) * scale) - x, Math.floor((item.y + item.h) * scale) - y];
+      if (w < 1 || h < 1) throw new Error(`no pixel to measure behind ${item.kind}`);
+      const data = context.getImageData(x, y, w, h).data;
       let least = Infinity;
       for (let i = 0; i < data.length; i += 4) {
         const behind = luminance(data[i], data[i + 1], data[i + 2]);
@@ -373,7 +407,7 @@ for (const appearance of ['light', 'dark']) {
   test(`wallpaper backdrop, ${appearance}: shown behind the cards, and every text keeps 4.5:1 on it`, async ({ ext }) => {
     await ext.sw.evaluate(() => chrome.storage.local.remove('groupBySite')); // panels and group names, as users have them
     await ext.openWindow(VISITED);
-    let page = await openWith(ext, { backdrop: 'wallpaper', appearance });
+    let page = await openWithBackdrop(ext, { backdrop: 'wallpaper', appearance });
     expect(await page.evaluate(() => document.documentElement.dataset.backdrop)).toBe('wallpaper');
     expect(await page.evaluate(() => getComputedStyle(document.getElementById('backdrop'), '::before').backgroundImage)).toContain('radial-gradient');
     // In the grid, titles and addresses stand on the backdrop itself.
@@ -384,7 +418,7 @@ for (const appearance of ['light', 'dark']) {
     await ext.pressToClose(page, 'Escape');
 
     // Spread out, titles are on their labels and the backdrop shows more.
-    page = await openWith(ext, { backdrop: 'wallpaper', appearance, spread: true });
+    page = await openWithBackdrop(ext, { backdrop: 'wallpaper', appearance, spread: true });
     const tint = () => page.evaluate(() => Number(getComputedStyle(document.getElementById('backdrop'), '::after').opacity));
     await expect.poll(tint).toBeLessThanOrEqual(0.5);
     const spread = await worstContrast(page, { title: '.tile:not(.selected) .title', selected: '.tile.selected .title', toggle: '.ctrl-icon', hint: '#shortcut-hint kbd', placeholder: '#search' });
@@ -398,7 +432,7 @@ test('page backdrop: a blurred picture of the page you were on, tinted as much a
   const cover = (tabId) => ext.sw.evaluate((key) => chrome.storage.local.get(key).then((r) => Boolean(r[key])), `cover:${tabId}`);
   await expect.poll(() => cover(tabIds.gamma), { timeout: 10_000 }).toBe(true);
   // Dark, over a white page: the hardest case for light text.
-  let page = await openWith(ext, { backdrop: 'page', appearance: 'dark' });
+  let page = await openWithBackdrop(ext, { backdrop: 'page', appearance: 'dark' });
   await expect(page.locator('#backdrop')).toHaveAttribute('data-picture', '');
   expect(await page.evaluate(() => document.documentElement.dataset.backdrop)).toBe('page');
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('backdrop'), '::before').backgroundImage)).toMatch(/^url\("blob:/);
@@ -413,7 +447,7 @@ test('page backdrop: a blurred picture of the page you were on, tinted as much a
 
   // From a browser page, which is never pictured: the page you were on before it.
   await ext.openTab(windowId, 'chrome://version/', { active: true });
-  page = await openWith(ext, { backdrop: 'page', appearance: 'dark' });
+  page = await openWithBackdrop(ext, { backdrop: 'page', appearance: 'dark' });
   await expect(page.locator('#backdrop')).toHaveAttribute('data-picture', '');
   expect(await page.evaluate(() => document.documentElement.dataset.backdrop)).toBe('page');
   await ext.pressToClose(page, 'Escape');
@@ -428,24 +462,24 @@ test('page backdrop: a blurred picture of the page you were on, tinted as much a
       await new Promise((r) => setTimeout(r, 50));
     }
   });
-  page = await openWith(ext, { backdrop: 'page', appearance: 'dark' });
+  page = await openWithBackdrop(ext, { backdrop: 'page', appearance: 'dark' });
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.backdrop)).toBeUndefined();
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('backdrop')).display)).toBe('none');
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('root')).backgroundColor)).toBe('rgb(22, 22, 24)');
 });
 
-test('backdrop: people who ask their system for more contrast keep the plain background', async ({ ext }) => {
-  await ext.openWindow(VISITED);
-  const page = await openWith(ext, { backdrop: 'wallpaper', spread: true });
-  expect(await page.evaluate(() => document.documentElement.dataset.backdrop)).toBe('wallpaper');
-  await page.emulateMedia({ contrast: 'more' });
-  await page.reload();
-  await page.locator('#grid .tile').first().waitFor();
-  expect(await page.evaluate(() => document.documentElement.dataset.backdrop)).toBeUndefined();
-  expect(await page.evaluate(() => getComputedStyle(document.getElementById('backdrop')).display)).toBe('none');
-  // The layout is not a matter of contrast: the cards stay spread out.
-  await expect(page.locator('#grid')).toHaveClass(/\bspread\b/);
-});
+for (const [what, asked] of [['more contrast', { 'prefers-contrast': 'more' }], ['less transparency', { 'prefers-reduced-transparency': 'reduce' }]]) {
+  test(`backdrop: people who ask their system for ${what} keep the plain background`, async ({ ext }) => {
+    await ext.openWindow(VISITED);
+    const page = await openWithBackdrop(ext, { backdrop: 'wallpaper', spread: true });
+    expect(await page.evaluate(() => document.documentElement.dataset.backdrop)).toBe('wallpaper');
+    await prefer(page, asked);
+    expect(await page.evaluate(() => document.documentElement.dataset.backdrop)).toBeUndefined();
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('backdrop')).display)).toBe('none');
+    // The layout is not a matter of contrast: the cards stay spread out.
+    await expect(page.locator('#grid')).toHaveClass(/\bspread\b/);
+  });
+}
 
 test('settings page: light or dark, the backdrop and the spread-out switch save at once and apply to the next window', async ({ ext, context }) => {
   await ext.openWindow(VISITED);
@@ -462,7 +496,7 @@ test('settings page: light or dark, the backdrop and the spread-out switch save 
     .toEqual({ appearance: 'light', backdrop: 'wallpaper', spread: true });
   await options.close();
 
-  const page = await openWith(ext, {});
+  const page = await openWithBackdrop(ext, {});
   expect(await page.evaluate(() => ({ ...document.documentElement.dataset }))).toEqual({ appearance: 'light', backdrop: 'wallpaper', layout: 'spread', spread: '' });
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('light');
 });

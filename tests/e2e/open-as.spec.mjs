@@ -295,11 +295,20 @@ test.describe('on the page in front', () => {
     // What the worker asked Chrome for, and what came of it (fixtures.mjs, recordCaptures).
     const asked = () => swConsole.filter((line) => line.includes(' asked')).length;
     const answered = () => swConsole.filter((line) => / came back| failed/.test(line)).length;
+    // The page's own picture first (half a second after it came in front),
+    // and its turn over: a press within 550 ms of another picture waits its
+    // turn, and that picture is not taken once the overview shows (covers.js,
+    // CAPTURE_GAP_MS). The next one the page takes by itself is 2.5 s away.
+    await expect.poll(pictured, { timeout: 10_000 }).toBeGreaterThan(0);
+    await page.waitForTimeout(600);
     const askedBefore = asked();
 
     await ext.pressDefaultShortcut(page);
     await expect.poll(() => Boolean(frameOn(page))).toBe(true);
     const frame = frameOn(page);
+    // Its cards first: until main.js has them, the grid is not marked as
+    // entering either, and the frame has not been let in yet.
+    await frame.locator('#grid .tile').first().waitFor();
     await frame.locator('#grid:not(.entering)').waitFor();
     expect(await host(ext)).toMatchObject({ kind: 'page', tabId: tabIds.gamma, claimed: true });
     // The press asked for a picture, before the layer was put on.
