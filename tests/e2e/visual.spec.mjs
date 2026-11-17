@@ -21,6 +21,9 @@ async function settle(page, alphaId) {
 const TABS = ['alpha', 'tube1', 'code1', 'notes1', 'doc1', 'tube2', 'code2', 'notes2', 'beta', 'gamma', 'tube3',
   ...Array.from({ length: 13 }, (_, i) => `beta?n=${i}`)];
 
+// Twelve tabs, the page in front last.
+const SPREAD_TABS = ['alpha', 'tube1', 'code1', 'notes1', 'doc1', 'tube2', 'code2', 'notes2', 'beta', 'tube3', 'red', 'gamma'];
+
 for (const scale of [1, 1.25, 1.5]) {
   test.describe(`at ${scale * 100}% scaling`, () => {
     test.use({
@@ -41,6 +44,11 @@ for (const scale of [1, 1.25, 1.5]) {
         overview: (await chrome.windows.getAll({ windowTypes: ['popup'] })).map(({ left, top, width, height }) => ({ left, top, width, height })),
         shortcut: (await chrome.commands.getAll()).find((c) => c.name === 'open-overview')?.shortcut,
       }));
+      // What this machine asks for, of what Tab Mission follows and
+      // Playwright does not set (the backdrop is not for people who ask for
+      // less transparency, look.js).
+      info.asks = await page.evaluate(() => Object.fromEntries(['(prefers-reduced-transparency: reduce)', '(prefers-contrast: more)', '(forced-colors: active)']
+        .map((query) => [query, matchMedia(query).matches])));
       writeFileSync(`${OUT}/${process.platform}-${scale * 100}-info.json`, JSON.stringify(info, null, 2));
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
@@ -65,6 +73,26 @@ for (const scale of [1, 1.25, 1.5]) {
         await shown.emulateMedia({ colorScheme: 'dark' });
         await shown.screenshot({ path: name(`${what}-dark`), fullPage: true });
       }
+    });
+
+    // What a new user has (version 2): the cards spread out, on the page in
+    // front. The fixture sets the grid in its own window for the other
+    // specs; this test takes that back.
+    test(`spread out on the page in front at ${scale * 100}%`, async ({ ext, context }) => {
+      mkdirSync(OUT, { recursive: true });
+      const { tabIds } = await ext.openWindow(SPREAD_TABS);
+      await ext.sw.evaluate(() => chrome.storage.local.remove(['spread', 'openAs']));
+      const page = context.pages().find((opened) => new URL(opened.url()).pathname === '/gamma.html');
+      await ext.press();
+      await expect.poll(() => page.frames().some((frame) => frame.url().includes('/overlay.html'))).toBe(true);
+      const frame = page.frames().find((candidate) => candidate.url().includes('/overlay.html'));
+      await frame.locator('#grid .tile').first().waitFor();
+      await settle(frame, tabIds.alpha);
+      // The layer shows (src/host.js lets it, once the cards are drawn).
+      await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement.lastElementChild).opacity)).toBe('1');
+      await expect(frame.locator('#grid .tile')).toHaveCount(SPREAD_TABS.length);
+      expect(await frame.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await page.screenshot({ path: `${OUT}/${process.platform}-${scale * 100}-spread.png` });
     });
   });
 }

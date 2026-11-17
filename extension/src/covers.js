@@ -1,5 +1,6 @@
 // covers.js
-import { isCapturableUrl } from './utils.js';
+import { isPicturableUrl } from './utils.js';
+import { overlaidSince } from './host.js';
 
 // Covers: a picture of a web page, taken while it was in front of you, shown
 // on its card. The service worker takes one with chrome.tabs.captureVisibleTab
@@ -42,7 +43,7 @@ const MAX_BYTES = 6 * 1024 * 1024; // of local storage's 10 MB
 // A card is under 300 px wide in the default window, about 360 px at most.
 const COVER_WIDTH = 640;
 
-const coverKey = (tabId) => `${COVER_PREFIX}${tabId}`;
+export const coverKey = (tabId) => `${COVER_PREFIX}${tabId}`;
 
 let shrink = shrinkImage;
 let nextSlot = 0; // the earliest time (performance.now) the next capture may start
@@ -50,6 +51,19 @@ let writes = Promise.resolve(); // storage updates, one at a time
 const timers = new Map(); // tab id to its pending capture
 const budgets = new Map(); // tab id to { left, at }: captures left at that time (performance.now)
 let closing = null; // ids of tabs closed since the last storage update
+// Local files are pictured too once you turn on "Allow access to file URLs"
+// for Tab Mission on Chrome's extensions page (off unless you do; Chrome
+// refuses to capture them otherwise). Asked once per start of the worker.
+let files = false;
+let asked = null;
+function fileAccess() {
+  asked ??= (async () => {
+    try {
+      files = (await chrome.extension?.isAllowedFileSchemeAccess?.()) === true;
+    } catch {}
+  })();
+  return asked;
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -66,6 +80,7 @@ function within(ms, promise) {
 // pass their own shrink, since images cannot be decoded outside a browser.
 export function startCovers(options = {}) {
   shrink = options.shrink ?? shrinkImage;
+  fileAccess();
   chrome.tabs.onActivated.addListener(({ tabId }) => schedule(tabId));
   chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
     if (tab.active && (change.status === 'complete' || change.url)) scheduleChange(tabId);
@@ -147,11 +162,16 @@ function capturesLeft(tabId, now) {
 // The tab in front of you when you press the shortcut or click the toolbar
 // button: the one you are leaving, and so the likeliest one to come back to.
 // Captured at once, before Tab Mission's window can cover it or take focus.
-export async function coverFrontTab() {
+// taken: called once the picture has been taken (it is shrunk and stored a
+// moment later), once it has to wait its turn, or once it is clear that
+// none will be.
+export async function coverFrontTab(taken) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true, windowType: 'normal' });
-    if (tab) await capture(tab.id, { front: true });
-  } catch {}
+    if (tab) await capture(tab.id, { front: true, taken });
+  } catch {} finally {
+    taken?.();
+  }
 }
 
 // A page that has not finished loading may not have painted yet, so the
@@ -160,15 +180,17 @@ export async function coverFrontTab() {
 // stored (shrinkImage).
 function canCover(tab, loading = false) {
   const ready = tab?.status === 'complete' || (loading && tab?.status === 'loading');
-  return Boolean(tab?.active && ready && !tab.incognito && isCapturableUrl(tab.url));
+  return Boolean(tab?.active && ready && !tab.incognito && isPicturableUrl(tab.url, files));
 }
 
-// Resolves true when a picture was stored, and 'loading', 'blank' or
-// 'failed' when the page in front was not captured, or its picture not
-// kept, only because it has not finished loading or painting or Chrome
-// refused the capture or did not answer in time (the follow-ups try again;
-// an answer that comes later is dropped).
-async function capture(tabId, { front = false, loading = false } = {}) {
+// Resolves true when a picture was stored, and 'loading', 'blank',
+// 'failed' or 'covered' when the page in front was not captured, or its
+// picture not kept, only because it has not finished loading or painting,
+// Chrome refused the capture or did not answer in time, or the overview
+// lies over the page (the follow-ups try again; an answer that comes later
+// is dropped).
+async function capture(tabId, { front = false, loading = false, taken = null } = {}) {
+  await fileAccess();
   const tab = await chrome.tabs.get(tabId);
   if (!canCover(tab, loading)) return canCover(tab, true) ? 'loading' : false;
   // The same page, still in front in the same window.
@@ -182,9 +204,16 @@ async function capture(tabId, { front = false, loading = false } = {}) {
   const start = Math.max(now, nextSlot);
   nextSlot = start + CAPTURE_GAP_MS;
   if (start > now) {
+    // The overview is not kept waiting for this one (it shows on the page
+    // once the picture is taken, src/host.js): the page was pictured a
+    // moment ago, and once the overview shows, this picture is not taken.
+    taken?.();
     await sleep(start - now);
     if (!unchanged(await chrome.tabs.get(tabId))) return false;
   }
+  // The overview on this page (src/host.js) would be in the picture.
+  const asked = Date.now();
+  if (await overlaidSince(tabId, asked)) return 'covered';
   // Every capture takes from the budget, even if its picture is dropped below.
   const at = performance.now();
   budgets.set(tabId, { left: Math.max(0, capturesLeft(tabId, at) - 1), at });
@@ -195,9 +224,13 @@ async function capture(tabId, { front = false, loading = false } = {}) {
     console.warn('Tab Mission: could not picture the tab:', error?.message ?? error);
     return 'failed';
   }
+  // From here on the overview may show on the page: it is not in this picture.
+  const got = Date.now();
+  taken?.();
   // Switched away, moved to another window or on to another page meanwhile:
   // the picture may show something else.
   if (!unchanged(await chrome.tabs.get(tabId))) return false;
+  if (await overlaidSince(tabId, asked, got)) return 'covered';
   const img = await shrink(raw);
   if (!img) return 'blank';
   return update((index) => {
@@ -311,6 +344,22 @@ async function shrinkImage(dataUrl) {
 // The overview's side: the picture for a tab, if one was taken of the page
 // the tab shows now: its own, or one kept from before a restart (tidyCovers).
 let pictured = null; // the index, read once per page
+
+// The pictures these tabs have of their own, read in one go for the first
+// draw (thumbnail.js preloadCovers): a Map of tab id -> picture. A tab
+// without one is asked for on its own (readCover).
+export async function readCovers(tabs) {
+  const own = new Map();
+  try {
+    const wanted = tabs.filter((tab) => !tab.incognito);
+    const stored = wanted.length ? await chrome.storage.local.get(wanted.map((tab) => coverKey(tab.id))) : {};
+    for (const tab of wanted) {
+      const entry = stored[coverKey(tab.id)];
+      if (typeof entry?.img === 'string' && entry.url === tab.url) own.set(tab.id, entry.img);
+    }
+  } catch {}
+  return own;
+}
 
 export async function readCover(tab) {
   if (tab.incognito) return null;

@@ -71,6 +71,18 @@ export function isCapturableUrl(url) {
   }
 }
 
+// Pages a picture can be taken of (covers.js): web pages, and local files
+// when `files` says Chrome lets Tab Mission read file addresses.
+export function isPicturableUrl(url, files = false) {
+  if (isCapturableUrl(url)) return true;
+  if (!files || !url) return false;
+  try {
+    return new URL(url).protocol === 'file:';
+  } catch {
+    return false;
+  }
+}
+
 // Whether a host names this computer or the local network: the names kept
 // for local use (localhost, local, internal and home.arpa, and any name
 // under them) and IP addresses in the "this network" (0/8),

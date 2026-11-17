@@ -238,8 +238,76 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "最近用过的 5 个标签页排在最前；接着，有两个或更多标签页的网站各占一个面板；其余的排在最后。切换标签页时，面板待在原处。",
+    "message": "用于网格，也就是没有把卡片散开时。最近用过的 5 个标签页排在最前；接着，有两个或更多标签页的网站各占一个面板；其余的排在最后。切换标签页时，面板待在原处。",
     "description": "Settings page: one line under the group-by-site switch."
+  },
+  "optionLookHeading": {
+    "message": "外观",
+    "description": "Settings page: heading of the appearance section."
+  },
+  "optionAppearance": {
+    "message": "浅色或深色",
+    "description": "Settings page: label of the light or dark choice."
+  },
+  "optionAppearanceNote": {
+    "message": "用于 Tab Mission 窗口。默认跟随系统，也可以在这里固定一种。",
+    "description": "Settings page: one line under the light or dark choice."
+  },
+  "optionAppearanceSystem": {
+    "message": "跟随系统",
+    "description": "Settings page: choice that follows the system appearance."
+  },
+  "optionAppearanceLight": {
+    "message": "浅色",
+    "description": "Settings page: choice for the light appearance."
+  },
+  "optionAppearanceDark": {
+    "message": "深色",
+    "description": "Settings page: choice for the dark appearance."
+  },
+  "optionBackdrop": {
+    "message": "背景",
+    "description": "Label of a setting on the settings page: what is shown behind the cards in the Tab Mission window."
+  },
+  "optionBackdropNote": {
+    "message": "卡片后面的背景。网格里它会很淡，这样标题才看得清；卡片散开时最明显。",
+    "description": "Explanation under the backdrop setting."
+  },
+  "optionBackdropPlain": {
+    "message": "纯色",
+    "description": "Backdrop choice: a plain background, as before."
+  },
+  "optionBackdropPage": {
+    "message": "刚才所在的页面（虚化）",
+    "description": "Backdrop choice: a blurred picture of the page the user was on. Plain when there is no picture of it."
+  },
+  "optionBackdropWallpaper": {
+    "message": "壁纸色",
+    "description": "Backdrop choice: a soft gradient of colors that come with Tab Mission."
+  },
+  "optionSpread": {
+    "message": "把卡片散开",
+    "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
+  },
+  "optionSpreadNote": {
+    "message": "越近用过的标签页越大；放得下时，所有标签页一眼看全。放不下时，向下滚动看其余的。关掉它就是网格。",
+    "description": "Explanation under the spread-out switch."
+  },
+  "optionOpenAs": {
+    "message": "打开方式",
+    "description": "Label of a choice on the settings page: how much Tab Mission covers when the cards are spread out."
+  },
+  "optionOpenAsNote": {
+    "message": "卡片散开时生效。“只盖住网页”在普通网页上直接铺在网页上；在其他页面上，或网页没有响应时，改为打开一个只盖住网页的窗口。",
+    "description": "Explanation under the open-as choice."
+  },
+  "optionOpenAsWindow": {
+    "message": "占满整个浏览器窗口",
+    "description": "Open-as choice: a window of its own that covers the whole browser window."
+  },
+  "optionOpenAsPage": {
+    "message": "只盖住网页，露出标签栏",
+    "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
   },
   "optionHelpHeading": {
     "message": "帮助",
@@ -316,6 +384,10 @@
         "example": "youtube.com"
       }
     }
+  },
+  "lookNotice": {
+    "message": "新外观：标签页现在散开显示。原来的网格还在，可以在设置里换回。",
+    "description": "Tab Mission window: shown once after the update from version 1 to version 2, pointing at the settings button. \"The grid\" is the layout of version 1."
   },
   "tipBack": {
     "message": "再按 $shortcut$ 回到这里",

@@ -1,7 +1,7 @@
 // thumbnail.js
 import { state } from './state.js';
-import { getHostname, isCapturableUrl, isLocalHost, isSleeping, faviconUrl, dominantColor } from './utils.js';
-import { readCover } from './covers.js';
+import { getHostname, isCapturableUrl, isPicturableUrl, isLocalHost, isSleeping, faviconUrl, dominantColor } from './utils.js';
+import { readCover, readCovers, coverKey } from './covers.js';
 
 // Preview image URLs are cached in chrome.storage.session (kept in memory and
 // cleared when the browser quits), so reopening the overview shows previews
@@ -97,26 +97,97 @@ function shared(map, key, start) {
   return map.get(key);
 }
 
+// The first draw (main.js): the pictures of these tiles' pages (covers.js),
+// read in one go and decoded before the cards show, so each is on its card
+// from the first frame instead of fading in after it. A tile whose tab has
+// no picture of its own goes the usual way (loadThumbnail). Resolves once
+// the pictures can be drawn.
+export async function preloadCovers(tiles) {
+  const wanted = [];
+  for (const tile of tiles) {
+    const tabId = parseInt(tile.getAttribute('data-tab-id'), 10);
+    const tab = state.allTabs.find((t) => t.id === tabId);
+    const img = tile.querySelector('.thumbnail');
+    if (!tab || !img || tile.dataset.thumb !== 'pending' || !isPicturableUrl(tab.url, true)) continue;
+    // This tile is seen to here: the observer leaves it alone.
+    tile.dataset.thumb = 'done';
+    thumbnailObserver?.unobserve(tile);
+    wanted.push({ tab, tile, img });
+  }
+  const covers = await readCovers(wanted.map(({ tab }) => tab));
+  await Promise.all(wanted.map(({ tab, tile, img }) => {
+    const cover = covers.get(tab.id);
+    if (!cover) return loadThumbnail(tab, tile);
+    showCover(img, tab, tile, cover, true);
+    return img.decode().catch(() => {});
+  }));
+}
+
+// A picture of the page on its card. ready: there before the card shows, so
+// without the fade.
+function showCover(img, tab, tile, cover, ready = false) {
+  img.classList.add('cover');
+  img.onload = ready ? null : () => requestAnimationFrame(() => img.classList.add('loaded'));
+  img.onerror = () => {
+    img.classList.remove('loaded', 'ready');
+    img.style.display = 'none';
+    tintIcon(tab, tile.querySelector('.preview')); // the icon card shows after all
+  };
+  if (ready) img.classList.add('loaded', 'ready');
+  img.src = cover;
+}
+
+// The page you were on is pictured as the overview opens (covers.js), and
+// that picture is stored a moment after the cards show: its cards take it
+// then, without a fade, whatever they showed.
+export function followCurrentCover() {
+  chrome.storage.onChanged.addListener(async (changes, area) => {
+    const tab = state.allTabs.find((t) => t.id === state.currentTabId);
+    const entry = area === 'local' && tab ? changes[coverKey(tab.id)]?.newValue : null;
+    if (typeof entry?.img !== 'string' || entry.url !== tab.url || tab.incognito) return;
+    const fresh = new Image();
+    fresh.src = entry.img;
+    try {
+      await fresh.decode();
+    } catch {
+      return;
+    }
+    for (const tile of document.querySelectorAll(`.tile[data-tab-id="${tab.id}"]`)) {
+      let img = tile.querySelector('.thumbnail');
+      if (!img) continue;
+      // A card with no picture of the page yet (pressed before the first
+      // one was stored) shows its icon or the image the page names, which
+      // may still be on its way: the picture goes on an element of its
+      // own, so nothing on its way lands on it.
+      if (!img.classList.contains('cover')) {
+        const own = img.cloneNode(false);
+        own.className = 'thumbnail';
+        for (const name of ['src', 'style', 'data-from']) own.removeAttribute(name);
+        img.replaceWith(own);
+        img = own;
+        tile.dataset.thumb = 'done';
+      }
+      showCover(img, tab, tile, entry.img, true);
+    }
+  });
+}
+
 async function loadThumbnail(tab, tile) {
   tile.dataset.thumb = 'done';
   const img = tile.querySelector('.thumbnail');
   // Pages we cannot read keep their icon card (a letter on a color).
-  if (!img || !isCapturableUrl(tab.url)) return;
+  if (!img || !isPicturableUrl(tab.url, true)) return;
 
   // A picture of the page as you last saw it (covers.js) says more than the
   // image the page declares for itself, and needs nothing from the tab, so
   // it also serves sleeping tabs.
   const cover = await shared(coverReads, tab.id, () => readCover(tab));
   if (cover) {
-    img.classList.add('cover');
-    img.onload = () => requestAnimationFrame(() => img.classList.add('loaded'));
-    img.onerror = () => {
-      img.style.display = 'none';
-      tintIcon(tab, tile.querySelector('.preview')); // the icon card shows after all
-    };
-    img.src = cover;
+    showCover(img, tab, tile, cover);
     return;
   }
+  // A local file has only the picture taken of it, if any (covers.js).
+  if (!isCapturableUrl(tab.url)) return;
   tintIcon(tab, tile.querySelector('.preview'));
   // An incognito tab's page is never read and its images never loaded from
   // here (this window belongs to the normal profile, with its cache and

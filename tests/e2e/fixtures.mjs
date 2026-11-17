@@ -263,7 +263,12 @@ export const test = base.extend({
     // of tabs, so each recent tab would have a second tile. Most tests are
     // about the plain grid; group-by-site.spec, a test in cards.spec and the
     // tests of many tabs (layout, smooth, visual) turn it back on.
-    await sw.evaluate(() => chrome.storage.local.set({ groupBySite: false }));
+    // The same goes for the cards spread out on the page in front, the
+    // default since 2.0: most tests are about the grid in its own window, as
+    // a user has it with "Spread the cards out" off. spread.spec turns the
+    // setting on (in a window), open-as.spec chooses where it opens, and
+    // defaults.spec gives a new user's settings back.
+    await sw.evaluate(() => chrome.storage.local.set({ groupBySite: false, spread: false, openAs: 'window' }));
     const url = (id, query = '') => `http://${HOSTS[id] ?? 'localhost'}:${site.port}/${id}.html${query}`;
 
     const ext = {
@@ -363,12 +368,15 @@ export const test = base.extend({
           windowsVirtualKeyCode: keyCode,
           nativeVirtualKeyCode: process.platform === 'darwin' ? macKeyCode : keyCode,
         };
+        const pressedAt = Date.now();
         await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...event });
         // The key can close the page it was pressed in (the shortcut in the
         // overview switches tabs), which ends the session too, so the rest is
         // best effort; callers check what the key did.
         await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...event }).catch(() => {});
         await cdp.detach().catch(() => {});
+        // When the key went down, by this machine's clock (timing.spec.mjs).
+        return pressedAt;
       },
 
       // The default overview shortcut of this OS: Command+E on Mac,
@@ -382,7 +390,7 @@ export const test = base.extend({
           await expect.poll(() => page.evaluate(() => chrome.windows.getCurrent().then((w) => w.focused))).toBe(true);
         }
         const mac = process.platform === 'darwin';
-        await ext.pressKeys(page, { key: 'e', code: 'KeyE', keyCode: 69, macKeyCode: 14, modifiers: mac ? 4 : 2 | 8 });
+        return ext.pressKeys(page, { key: 'e', code: 'KeyE', keyCode: 69, macKeyCode: 14, modifiers: mac ? 4 : 2 | 8 });
       },
 
       // A click on Tab Mission's toolbar button. The button is browser UI,

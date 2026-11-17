@@ -3,6 +3,7 @@ import {
   getHostname,
   addressLabel,
   isCapturableUrl,
+  isPicturableUrl,
   isLocalHost,
   isSleeping,
   hueColor,
@@ -71,6 +72,17 @@ describe('addressLabel', () => {
     expect(addressLabel('vbscript:msgbox(1)', names)).toBe('');
     expect(addressLabel('not a url', names)).toBe('');
     expect(addressLabel(undefined, names)).toBe('');
+  });
+});
+
+describe('isPicturableUrl', () => {
+  it('takes web pages, and local files only when told they are allowed', () => {
+    expect(isPicturableUrl('https://example.com/a')).toBe(true);
+    expect(isPicturableUrl('file:///Users/me/a.html')).toBe(false);
+    expect(isPicturableUrl('file:///Users/me/a.html', true)).toBe(true);
+    for (const url of ['chrome://extensions', 'chrome-extension://id/options.html', 'about:blank', 'view-source:https://a.test', '', undefined, 'not a url']) {
+      expect(isPicturableUrl(url, true)).toBe(false);
+    }
   });
 });
 
