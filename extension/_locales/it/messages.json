@@ -238,7 +238,7 @@
     "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
   },
   "optionGroupBySiteNote": {
-    "message": "Nella griglia, quando le schede non sono sparpagliate. Prima le cinque schede più recenti, poi un pannello per ogni sito con almeno due schede, poi le altre. Quando cambi scheda, i pannelli restano dove sono.",
+    "message": "Nella griglia, quando i riquadri non sono sparpagliati. Prima le cinque schede più recenti, poi un pannello per ogni sito con almeno due schede, poi le altre. Quando cambi scheda, i pannelli restano dove sono.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionLookHeading": {
@@ -270,7 +270,7 @@
     "description": "Label of a setting on the settings page: what is shown behind the cards in the Tab Mission window."
   },
   "optionBackdropNote": {
-    "message": "Dietro le schede. Nella griglia resta tenue, così i titoli si leggono; con le schede sparse si vede bene.",
+    "message": "Dietro i riquadri. Nella griglia resta tenue, così i titoli si leggono; con i riquadri sparpagliati si vede bene.",
     "description": "Explanation under the backdrop setting."
   },
   "optionBackdropPlain": {
@@ -286,7 +286,7 @@
     "description": "Backdrop choice: a soft gradient of colors that come with Tab Mission."
   },
   "optionSpread": {
-    "message": "Sparpaglia le schede",
+    "message": "Sparpaglia i riquadri",
     "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
   },
   "optionSpreadNote": {
@@ -298,7 +298,7 @@
     "description": "Label of a choice on the settings page: how much Tab Mission covers when the cards are spread out."
   },
   "optionOpenAsNote": {
-    "message": "Con le schede sparpagliate. «Solo la pagina» appare sulla pagina web stessa; sulle altre pagine, e quando una pagina non risponde, si apre invece una finestra sopra la pagina.",
+    "message": "Con i riquadri sparpagliati. «Solo la pagina» appare sulla pagina web stessa; sulle altre pagine, e quando una pagina non risponde, si apre invece una finestra sopra la pagina.",
     "description": "Explanation under the open-as choice."
   },
   "optionOpenAsWindow": {

@@ -366,7 +366,10 @@ async function openOverview(scope, source, pictured) {
 		if (front && typeof front.id === 'number') {
 			under = front;
 			// Only web pages and files take a layer: no time is lost on the rest.
-			if (/^(https?|file):/.test(front.url || '')) {
+			// Nor on an incognito tab: nothing is put into its page, as no
+			// picture is taken of it (covers.js), and whether Chrome lets the
+			// layer's frame load there has not been tried.
+			if (!front.incognito && /^(https?|file):/.test(front.url || '')) {
 				// The layer goes on at once, unseen, and shows once the picture
 				// has been taken (src/host.js).
 				const clear = Promise.race([pictured ?? Promise.resolve(), new Promise((resolve) => setTimeout(resolve, PICTURE_WAIT_MS))]);

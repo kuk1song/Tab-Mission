@@ -724,6 +724,15 @@ describe('background.js', () => {
       expect(host()).toBeFalsy();
     });
 
+    it('on an incognito tab nothing is put into the page: the window over the page opens at once', async () => {
+      chrome.storage.local.data.openAs = 'page';
+      sized();
+      front.incognito = true;
+      expect(await windowOpened()).toEqual({ left: 100, top: 145, width: 1300, height: 735 });
+      expect(chrome.scripting.executeScript).not.toHaveBeenCalled();
+      expect(host()).toBeFalsy();
+    });
+
     it('the window over the page leaves out the unseen edges of a Windows window, and ends with the work area', async () => {
       chrome.storage.local.data.openAs = 'page';
       front.url = 'chrome://settings/';
