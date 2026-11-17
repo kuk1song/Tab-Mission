@@ -87,8 +87,10 @@ async function worstContrast(page, selectors) {
     }
     return found;
   }, selectors);
-  await page.addStyleTag({ content: '*, *::placeholder { color: transparent !important; caret-color: transparent !important; transition: none !important; }' });
+  const hidden = await page.addStyleTag({ content: '*, *::placeholder { color: transparent !important; caret-color: transparent !important; transition: none !important; }' });
   const shot = (await page.screenshot()).toString('base64');
+  // The texts show again: the next measure reads their colors.
+  await hidden.evaluate((tag) => tag.remove());
   return page.evaluate(async ({ shot, items }) => {
     const image = new Image();
     image.src = `data:image/png;base64,${shot}`;
@@ -413,6 +415,14 @@ for (const appearance of ['light', 'dark']) {
     // In the grid, titles and addresses stand on the backdrop itself.
     const texts = { title: '.tile .title', address: '.tile .url', group: '.group-name', count: '.group-count', toggle: '.ctrl span', hint: '#shortcut-hint kbd', placeholder: '#search' };
     const grid = await worstContrast(page, texts);
+    // A kind with none in view is measured where it is: on Windows the
+    // toolbar takes two rows in this window, and the first site group's
+    // heading, with its count, starts below the fold.
+    for (const [kind, selector] of Object.entries(texts)) {
+      if (kind in grid) continue;
+      await page.locator(selector).first().scrollIntoViewIfNeeded();
+      Object.assign(grid, await worstContrast(page, { [kind]: selector }));
+    }
     expect(Object.keys(grid).sort()).toEqual(Object.keys(texts).sort());
     for (const [kind, ratio] of Object.entries(grid)) expect(ratio, `grid, ${kind}`).toBeGreaterThanOrEqual(4.5);
     await ext.pressToClose(page, 'Escape');
