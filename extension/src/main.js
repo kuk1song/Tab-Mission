@@ -122,8 +122,11 @@ async function firstFrame(gridEl) {
   release();
 }
 
+// The mark is for timelines only (DevTools' Performance panel shows it, and
+// tests/e2e/timing.spec.mjs reads it): it stays in the page.
 function release() {
   delete document.documentElement.dataset.wait;
+  performance.mark('entrance');
 }
 
 async function claimFrame(params) {

@@ -363,12 +363,15 @@ export const test = base.extend({
           windowsVirtualKeyCode: keyCode,
           nativeVirtualKeyCode: process.platform === 'darwin' ? macKeyCode : keyCode,
         };
+        const pressedAt = Date.now();
         await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...event });
         // The key can close the page it was pressed in (the shortcut in the
         // overview switches tabs), which ends the session too, so the rest is
         // best effort; callers check what the key did.
         await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...event }).catch(() => {});
         await cdp.detach().catch(() => {});
+        // When the key went down, by this machine's clock (timing.spec.mjs).
+        return pressedAt;
       },
 
       // The default overview shortcut of this OS: Command+E on Mac,
@@ -382,7 +385,7 @@ export const test = base.extend({
           await expect.poll(() => page.evaluate(() => chrome.windows.getCurrent().then((w) => w.focused))).toBe(true);
         }
         const mac = process.platform === 'darwin';
-        await ext.pressKeys(page, { key: 'e', code: 'KeyE', keyCode: 69, macKeyCode: 14, modifiers: mac ? 4 : 2 | 8 });
+        return ext.pressKeys(page, { key: 'e', code: 'KeyE', keyCode: 69, macKeyCode: 14, modifiers: mac ? 4 : 2 | 8 });
       },
 
       // A click on Tab Mission's toolbar button. The button is browser UI,
