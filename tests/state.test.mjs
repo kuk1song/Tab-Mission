@@ -562,7 +562,7 @@ describe('moveSelectionByRects', () => {
   });
 });
 
-// "Spread the cards out" (the setting; events.js passes the grid's size).
+// Art mode, the cards spread out (the setting; events.js passes the grid's size).
 describe('applyFilters: spread out', () => {
   const area = { width: 1280, height: 668 };
   const tabsOf = (count) => Array.from({ length: count }, (_, i) => makeTab(i + 1, { lastAccessed: 1000 - i, url: `https://site${i % 3}.example/${i}` }));

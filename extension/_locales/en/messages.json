@@ -235,10 +235,10 @@
   },
   "optionGroupBySite": {
     "message": "Group tabs by site",
-    "description": "Settings page: label of the switch that groups the tabs by site in Tab Mission."
+    "description": "Settings page, shown with Classic mode: label of the switch that groups the tabs by site."
   },
   "optionGroupBySiteNote": {
-    "message": "In the grid, when the cards are not spread out. Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest. The panels stay where they are as you switch tabs.",
+    "message": "Your five most recent tabs come first, then a panel for each site with two or more tabs, then the rest.",
     "description": "Settings page: one line under the group-by-site switch."
   },
   "optionLookHeading": {
@@ -250,7 +250,7 @@
     "description": "Settings page: label of the light or dark choice."
   },
   "optionAppearanceNote": {
-    "message": "For the Tab Mission window. It follows your system unless you choose one here.",
+    "message": "It follows your system unless you choose one here.",
     "description": "Settings page: one line under the light or dark choice."
   },
   "optionAppearanceSystem": {
@@ -267,47 +267,67 @@
   },
   "optionBackdrop": {
     "message": "Backdrop",
-    "description": "Label of a setting on the settings page: what is shown behind the cards in the Tab Mission window."
+    "description": "Label of a setting on the settings page: what is shown behind the cards."
   },
   "optionBackdropNote": {
-    "message": "Behind the cards. In the grid it stays faint, so titles remain readable; with the cards spread out it shows clearly.",
+    "message": "Behind the cards. Plain while there is no picture of the page yet, or when your system asks for less transparency.",
     "description": "Explanation under the backdrop setting."
   },
   "optionBackdropPlain": {
     "message": "Plain",
-    "description": "Backdrop choice: a plain background, as before."
+    "description": "Backdrop choice: a plain background."
   },
   "optionBackdropPage": {
     "message": "The page you were on, blurred",
-    "description": "Backdrop choice: a blurred picture of the page the user was on. Plain when there is no picture of it."
+    "description": "Backdrop choice, the default: a blurred picture of the page the user was on. Plain when there is no picture of it."
   },
   "optionBackdropWallpaper": {
     "message": "Wallpaper colors",
     "description": "Backdrop choice: a soft gradient of colors that come with Tab Mission."
   },
-  "optionSpread": {
-    "message": "Spread the cards out",
-    "description": "Label of a switch on the settings page: a layout that shows all cards at once at different sizes, like windows in Mission Control."
+  "optionModeHeading": {
+    "message": "Mode",
+    "description": "Settings page: heading of the section with the two modes, Art mode and Classic mode."
   },
-  "optionSpreadNote": {
-    "message": "The tabs you used last are larger, and every tab is in view at once while they fit. With more tabs, scroll down for the rest. Turn this off for the grid.",
-    "description": "Explanation under the spread-out switch."
+  "optionModeArt": {
+    "message": "Art mode",
+    "description": "Settings page: name of the default mode, on a card with a small picture of it. The cards are spread out at different sizes, like windows in Mission Control."
+  },
+  "optionModeArtNote": {
+    "message": "Recent tabs are larger, every tab in view at once",
+    "description": "Settings page: one line under the name \"Art mode\", on its card."
+  },
+  "optionModeClassic": {
+    "message": "Classic mode",
+    "description": "Settings page: name of the other mode, on a card with a small picture of it. It is the grid of version 1, in a window of its own."
+  },
+  "optionModeClassicNote": {
+    "message": "Even tiles, in a window of their own",
+    "description": "Settings page: one line under the name \"Classic mode\", on its card."
   },
   "optionOpenAs": {
-    "message": "Open as",
-    "description": "Label of a choice on the settings page: how much Tab Mission covers when the cards are spread out."
+    "message": "What it covers",
+    "description": "Settings page, shown with Art mode: heading of the choice of how much Tab Mission covers."
   },
   "optionOpenAsNote": {
-    "message": "With the cards spread out. \"The page only\" shows on the web page itself; on other pages, and when a page does not answer, a window over the page opens instead.",
-    "description": "Explanation under the open-as choice."
+    "message": "Where a page cannot be covered, or does not answer, \"The page only\" opens a window of the same size instead.",
+    "description": "Settings page: one line under the two choices of what Art mode covers. Keep the quoted name the same as the choice \"The page only\"."
+  },
+  "optionOpenAsPage": {
+    "message": "The page only",
+    "description": "Choice of what Art mode covers, on a card with a small picture: only the web page; the browser's tab strip and toolbar stay in view."
+  },
+  "optionOpenAsPageNote": {
+    "message": "The tab strip stays in view",
+    "description": "Settings page: one line under the choice \"The page only\", on its card."
   },
   "optionOpenAsWindow": {
     "message": "The whole browser window",
-    "description": "Open-as choice: a window of its own that covers the whole browser window."
+    "description": "Choice of what Art mode covers, on a card with a small picture: a window of its own that covers the whole browser window."
   },
-  "optionOpenAsPage": {
-    "message": "The page only, tab strip in view",
-    "description": "Open-as choice: only the web page is covered; the browser's tab strip and toolbar stay in view."
+  "optionOpenAsWindowNote": {
+    "message": "More room for the cards",
+    "description": "Settings page: one line under the choice \"The whole browser window\", on its card."
   },
   "optionPrivacyHeading": {
     "message": "Privacy",
@@ -398,8 +418,8 @@
     }
   },
   "lookNotice": {
-    "message": "New look: your tabs are now spread out. The grid is still here, in Settings.",
-    "description": "Tab Mission window: shown once after the update from version 1 to version 2, pointing at the settings button. \"The grid\" is the layout of version 1."
+    "message": "New look: Art mode. For the grid you had, choose Classic mode in Settings.",
+    "description": "Tab Mission window: shown once after the update from version 1 to version 2, pointing at the settings button. Use the names of the two modes as on the settings page (\"Art mode\", \"Classic mode\"); \"the grid\" is the layout of version 1."
   },
   "tipBack": {
     "message": "Press $shortcut$ again to come back here",

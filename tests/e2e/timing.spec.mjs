@@ -1,7 +1,9 @@
 // Opening times for review, not a speed limit. CI uploads screens/ for each
 // OS: <platform>-timing-<way>.json says, for each way of opening with the
 // cards spread out, how long after the real shortcut the overview's page
-// began to load, first painted, and let its entrance go.
+// began to load, first painted, and let its entrance go. The backdrop is a
+// new user's (the blurred page; the file says what the overview showed: a
+// machine that asks for less transparency keeps the plain one).
 // CI machines mostly draw without a graphics card (the file names the
 // renderer): compare a system with its own earlier runs, not with a user's
 // machine.
@@ -22,7 +24,10 @@ for (const openAs of ['window', 'page']) {
   test(`records how long opening takes, as "${openAs}"`, async ({ ext, context }) => {
     test.setTimeout(120_000);
     const { tabIds } = await ext.openWindow(TABS);
-    await ext.sw.evaluate((openAs) => chrome.storage.local.set({ spread: true, openAs }), openAs);
+    await ext.sw.evaluate(async (openAs) => {
+      await chrome.storage.local.remove('backdrop');
+      await chrome.storage.local.set({ spread: true, openAs });
+    }, openAs);
     for (const id of Object.values(tabIds)) {
       await ext.sw.evaluate((id) => chrome.tabs.update(id, { active: true }), id);
       await expect.poll(() => ext.sw.evaluate((key) => chrome.storage.local.get(key).then((stored) => key in stored), `cover:${id}`), { timeout: 15_000 }).toBe(true);
@@ -31,6 +36,7 @@ for (const openAs of ['window', 'page']) {
     const frameOn = () => front.frames().find((frame) => frame.url().includes('/overlay.html'));
 
     const rows = [];
+    let backdrop = null;
     for (let run = 0; run < RUNS; run++) {
       // Pictures are taken two a second at most (src/covers.js): each press
       // comes after the last one's turn has passed.
@@ -55,6 +61,7 @@ for (const openAs of ['window', 'page']) {
         entrance: Math.round(times.began + times.entrance - pressed),
       });
       await target.locator('#grid:not(.entering)').waitFor();
+      backdrop = await target.evaluate(() => document.documentElement.dataset.backdrop ?? 'plain');
       if (openAs === 'window') {
         await target.close();
         await ext.expectClosed();
@@ -73,7 +80,7 @@ for (const openAs of ['window', 'page']) {
     mkdirSync(OUT, { recursive: true });
     writeFileSync(`${OUT}/${process.platform}-timing-${openAs}.json`, JSON.stringify({
       what: 'milliseconds from the shortcut going down to: the overview page beginning to load, its first paint, its entrance let go',
-      openAs, tabs: TABS.length, runs: RUNS, renderer,
+      openAs, backdrop, tabs: TABS.length, runs: RUNS, renderer,
       load: summary(rows.map((row) => row.load)),
       painted: summary(rows.map((row) => row.painted).filter((value) => value !== null)),
       entrance: summary(rows.map((row) => row.entrance)),

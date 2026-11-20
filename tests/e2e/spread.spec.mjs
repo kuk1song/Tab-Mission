@@ -1,10 +1,11 @@
 import { test, expect, PAGES, selectedTitle, pointAt } from './fixtures.mjs';
 
-// "Spread the cards out" (on by default; these tests show it in a window of
-// its own, fixtures.mjs) and "Backdrop" (off by default), both on the
-// settings page (src/spread.js, src/backdrop.js): the tabs used more recently
-// larger, a label under each picture, every card in view while they fit;
-// behind them a wallpaper or a blurred picture of the page you were on.
+// "Art mode" (the default; these tests show it in a window of its own,
+// fixtures.mjs) and "Backdrop" (the blurred page by default; plain in these
+// tests unless one says otherwise, fixtures.mjs), both on the settings page
+// (src/spread.js, src/backdrop.js): the tabs used more recently larger, a
+// label under each picture, every card in view while they fit; behind them
+// a blurred picture of the page you were on, or a wallpaper.
 const VISITED = ['alpha', 'doc1', 'tube1', 'beta', 'tube2', 'gamma'];
 // By last use: the previous tab first, the current one beside it.
 const ORDER = ['tube2', 'gamma', 'beta', 'tube1', 'doc1', 'alpha'];
@@ -121,7 +122,7 @@ async function worstContrast(page, selectors) {
   }, { shot, items });
 }
 
-test('off by default: the grid, and no backdrop', async ({ ext }) => {
+test('with Classic mode and the plain backdrop chosen (as the fixture does): the grid, and no backdrop', async ({ ext }) => {
   await ext.openWindow(VISITED);
   const page = await openWith(ext, {});
   await expect(page.locator('#grid')).not.toHaveClass(/spread/);
@@ -479,6 +480,20 @@ test('page backdrop: a blurred picture of the page you were on, tinted as much a
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('root')).backgroundColor)).toBe('rgb(22, 22, 24)');
 });
 
+test('with no backdrop chosen (a new user): the blurred page, behind the cards spread out and behind the grid', async ({ ext }) => {
+  const { tabIds } = await ext.openWindow(VISITED);
+  await expect.poll(() => ext.sw.evaluate((key) => chrome.storage.local.get(key).then((r) => Boolean(r[key])), `cover:${tabIds.gamma}`), { timeout: 10_000 }).toBe(true);
+  await ext.sw.evaluate(() => chrome.storage.local.remove('backdrop'));
+  for (const spread of [true, false]) {
+    const page = await openWithBackdrop(ext, { spread });
+    expect(new URL(page.url()).searchParams.get('backdrop')).toBe('page');
+    await expect(page.locator('#backdrop')).toHaveAttribute('data-picture', '');
+    expect(await page.evaluate(() => document.documentElement.dataset.backdrop)).toBe('page');
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('backdrop'), '::before').backgroundImage)).toMatch(/^url\("blob:/);
+    await ext.pressToClose(page, 'Escape');
+  }
+});
+
 for (const [what, asked] of [['more contrast', { 'prefers-contrast': 'more' }], ['less transparency', { 'prefers-reduced-transparency': 'reduce' }]]) {
   test(`backdrop: people who ask their system for ${what} keep the plain background`, async ({ ext }) => {
     await ext.openWindow(VISITED);
@@ -492,17 +507,19 @@ for (const [what, asked] of [['more contrast', { 'prefers-contrast': 'more' }], 
   });
 }
 
-test('settings page: light or dark, the backdrop and the spread-out switch save at once and apply to the next window', async ({ ext, context }) => {
+test('settings page: light or dark, the backdrop and the mode save at once and apply to the next window', async ({ ext, context }) => {
   await ext.openWindow(VISITED);
   const options = await context.newPage();
   await options.goto(`chrome-extension://${new URL(ext.sw.url()).host}/options.html`);
   await expect(options.locator('#appearance')).toHaveValue('system');
   await expect(options.locator('#backdrop')).toHaveValue('plain');
-  await expect(options.locator('#spread')).not.toBeChecked();
+  await expect(options.locator('#mode-classic')).toBeChecked();
+  await expect(options.locator('#mode-art')).not.toBeChecked();
   await options.locator('#appearance').selectOption('light');
   await options.locator('#backdrop').selectOption('wallpaper');
-  await options.locator('label[for="spread"]').click();
-  await expect(options.locator('#spread')).toBeChecked();
+  await options.locator('label.card:has(#mode-art)').click();
+  await expect(options.locator('#mode-art')).toBeChecked();
+  await expect(options.locator('#mode-classic')).not.toBeChecked();
   await expect.poll(() => ext.sw.evaluate(() => chrome.storage.local.get(['appearance', 'backdrop', 'spread'])))
     .toEqual({ appearance: 'light', backdrop: 'wallpaper', spread: true });
   await options.close();
