@@ -316,6 +316,10 @@ test('the opening fade does not change how many tiles a row holds', async ({ ext
 });
 
 test('a site icon Chrome does not hand over leaves no broken image', async ({ ext }) => {
+  // Without page pictures: a card with a picture shows no icon (overview.css),
+  // and the first tab gets one when the pages take long to load, as it is in
+  // front meanwhile (covers.js, SETTLE_MS).
+  await ext.sw.evaluate(() => chrome.storage.local.set({ pagePictures: false }));
   await ext.openWindow(['tube1', 'tube2', 'alpha']);
   const page = await ext.open();
   const tile = page.locator('#grid .tile-group:not(.recent) .tile', { hasText: PAGES.tube1.title });
