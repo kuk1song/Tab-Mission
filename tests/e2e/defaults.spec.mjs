@@ -1,15 +1,16 @@
 import { test, expect } from './fixtures.mjs';
 
-// What a user has with nothing chosen (version 2): the cards spread out, on
-// the page in front, the tab strip in view. And what the update from version
-// 1 says, once. The fixture sets the grid in its own window for the other
-// specs; these tests take that back.
+// What a user has with nothing chosen (version 2): Art mode, the cards
+// spread out on the page in front, the tab strip in view, the blurred page
+// behind them. And what the update from version 1 says, once. The fixture
+// sets Classic mode, the grid in its own window on a plain background, for
+// the other specs; these tests take that back.
 const VISITED = ['alpha', 'doc1', 'tube1', 'beta', 'tube2', 'gamma'];
 const SIZE = { width: 1000, height: 700 };
 
 async function asInstalled(ext, more = {}) {
   await ext.sw.evaluate(async ({ more, size }) => {
-    await chrome.storage.local.remove(['spread', 'openAs']);
+    await chrome.storage.local.remove(['spread', 'openAs', 'backdrop']);
     await chrome.storage.local.set(more);
     const browser = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
     await chrome.windows.update(browser.id, { left: 0, top: 0, ...size });
@@ -45,18 +46,48 @@ test('with nothing chosen, the real shortcut spreads the cards out on the page i
   expect(widths[0]).toBeGreaterThan(Math.max(...widths.slice(2)));
 });
 
-test('the settings page shows those defaults, has no card sizes choice, and the grid is one switch away', async ({ ext, context }) => {
+test('the settings page shows those defaults and only the choices of the mode in use, has no card sizes choice, and Classic mode is one click or key away', async ({ ext, context }) => {
   await asInstalled(ext);
   const options = await context.newPage();
   await options.goto(`chrome-extension://${new URL(ext.sw.url()).host}/options.html`);
   await expect(options.locator('html')).not.toHaveClass(/loading/);
-  await expect(options.locator('#spread')).toBeChecked();
-  await expect(options.locator('#open-as')).toHaveValue('page');
-  expect(await options.locator('#open-as option').evaluateAll((all) => all.map((option) => option.value))).toEqual(['page', 'window']);
+  await expect(options.locator('#mode-art')).toBeChecked();
+  await expect(options.locator('#mode-classic')).not.toBeChecked();
+  expect(await options.locator('input[name="mode"]').evaluateAll((all) => all.map((radio) => radio.value))).toEqual(['art', 'classic']);
+  await expect(options.locator('label.card:has(#mode-art) .title')).toHaveText(await message(options, 'optionModeArt'));
+  await expect(options.locator('label.card:has(#mode-classic) .title')).toHaveText(await message(options, 'optionModeClassic'));
+  await expect(options.locator('#open-as-page')).toBeChecked();
+  expect(await options.locator('input[name="open-as"]').evaluateAll((all) => all.map((radio) => radio.value))).toEqual(['page', 'window']);
   await expect(options.locator('#card-sizes')).toHaveCount(0);
-  await expect(options.locator('label[for="open-as"]')).toHaveText(await message(options, 'optionOpenAs'));
-  await options.locator('#spread').click();
+  await expect(options.locator('#open-as-heading')).toHaveText(await message(options, 'optionOpenAs'));
+  // The backdrop of a new user is the blurred page, the first of the three.
+  await expect(options.locator('#backdrop')).toHaveValue('page');
+  expect(await options.locator('#backdrop option').evaluateAll((all) => all.map((option) => option.value))).toEqual(['page', 'wallpaper', 'plain']);
+  // Art mode shows what it covers, not the grid's grouping.
+  await expect(options.locator('#art-choices')).toBeVisible();
+  await expect(options.locator('#group-by-site')).toBeHidden();
+  // What it covers saves at once.
+  await options.locator('label.card:has(#open-as-window)').click();
+  await expect.poll(() => stored(ext, 'openAs')).toBe('window');
+  await options.locator('label.card:has(#open-as-page)').click();
+  await expect.poll(() => stored(ext, 'openAs')).toBe('page');
+  // The keyboard: the two modes are one group, the arrow keys go between them.
+  await options.locator('#mode-art').focus();
+  await options.keyboard.press('ArrowRight');
+  await expect(options.locator('#mode-classic')).toBeChecked();
   await expect.poll(() => stored(ext, 'spread')).toBe(false);
+  await expect(options.locator('#art-choices')).toBeHidden();
+  await expect(options.locator('#group-by-site')).toBeVisible();
+  await options.keyboard.press('ArrowLeft');
+  await expect(options.locator('#mode-art')).toBeChecked();
+  await expect.poll(() => stored(ext, 'spread')).toBe(true);
+  await expect(options.locator('#art-choices')).toBeVisible();
+  // And a click on Classic mode's card.
+  await options.locator('label.card:has(#mode-classic)').click();
+  await expect(options.locator('#mode-classic')).toBeChecked();
+  await expect.poll(() => stored(ext, 'spread')).toBe(false);
+  await expect(options.locator('#art-choices')).toBeHidden();
+  await expect(options.locator('#group-by-site')).toBeVisible();
   // With it off, the next press opens the grid in a window of its own.
   await ext.openWindow(VISITED);
   const overview = await ext.open();

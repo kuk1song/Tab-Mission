@@ -324,7 +324,9 @@ function loaded(tabId) {
 // Opened with a click (the toolbar button or the welcome page's button), the
 // window may teach the shortcut (tips.js).
 // The look chosen on the settings page rides in the address, so the window
-// has it before its first paint (src/look.js); the defaults add nothing.
+// has it before its first paint (src/look.js). Following the system and the
+// plain backdrop add nothing; the backdrop of a new user, the blurred page,
+// is named like any other.
 // extra: what an overview on a page has to know, and page: the name the
 // page has in a frame there (src/host.js).
 function overviewPath(scope, source, look = {}, extra = {}, page = 'overview.html') {
@@ -349,8 +351,9 @@ function pictureFront() {
 	});
 }
 
-// Open the overview. With the cards spread out and the setting "Open as" at
-// "the page only" (both the defaults): on the page in front (src/host.js); a
+// Open the overview. In Art mode (the cards spread out) with "What it
+// covers" at "The page only" (both the defaults): on the page in front
+// (src/host.js); a
 // page that cannot take it gets a window over the page only, so the tab strip
 // stays in view there too. Else in a window of its own: over the whole
 // browser window with the cards spread out, at its own size and spot with

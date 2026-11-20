@@ -109,7 +109,7 @@ async function restartWorker() {
 beforeEach(async () => {
   vi.resetModules();
   chrome = fakeChrome();
-  // The grid in its own window, as with "Spread the cards out" off, and a
+  // The grid in its own window, as in Classic mode, and a
   // window when they are spread out: what most tests here are about. A new
   // user's settings have tests of their own (below, "with nothing chosen").
   Object.assign(chrome.storage.local.data, { ...CLASSIC });
@@ -127,7 +127,7 @@ describe('background.js', () => {
     await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeGreaterThanOrEqual(100));
     await new Promise((r) => setImmediate(r));
     expect(chrome.windows.create).toHaveBeenCalledTimes(1);
-    expect(chrome.windows.create.mock.calls[0][0]).toMatchObject({ type: 'popup', url: 'chrome-extension://test/overview.html' });
+    expect(chrome.windows.create.mock.calls[0][0]).toMatchObject({ type: 'popup', url: 'chrome-extension://test/overview.html?backdrop=page' });
     expect(chrome.tabs.sendMessage).not.toHaveBeenCalled();
   });
 
@@ -329,15 +329,15 @@ describe('background.js', () => {
     const url = (i) => chrome.windows.create.mock.calls[i][0].url;
     chrome.listeners.onClicked();
     await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
-    expect(url(0)).toBe('chrome-extension://test/overview.html?via=click');
+    expect(url(0)).toBe('chrome-extension://test/overview.html?via=click&backdrop=page');
     chrome.listeners.onRemoved(chrome.storage.session.data.overviewWindowId);
     await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeNull());
     chrome.listeners.onMessage({ action: 'openOverview' }, {}, () => {});
     await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(2));
-    expect(url(1)).toBe('chrome-extension://test/overview.html?via=click');
+    expect(url(1)).toBe('chrome-extension://test/overview.html?via=click&backdrop=page');
   });
 
-  it('hands the look chosen on the settings page to the window in its address, and nothing by default', async () => {
+  it('hands the look chosen on the settings page to the window in its address; following the system and the plain backdrop add nothing', async () => {
     const url = (i) => chrome.windows.create.mock.calls[i][0].url;
     Object.assign(chrome.storage.local.data, { appearance: 'light', backdrop: 'wallpaper' });
     chrome.listeners.onCommand('open-overview');
@@ -345,7 +345,8 @@ describe('background.js', () => {
     expect(url(0)).toBe('chrome-extension://test/overview.html?look=light&backdrop=wallpaper');
     chrome.listeners.onRemoved(chrome.storage.session.data.overviewWindowId);
     await vi.waitFor(() => expect(chrome.storage.session.data.overviewWindowId).toBeNull());
-    // The defaults, and values it does not know, add nothing.
+    // Following the system and the plain backdrop add nothing, nor do values
+    // it does not know (the backdrop is the blurred page unless chosen).
     Object.assign(chrome.storage.local.data, { appearance: 'system', backdrop: 'plain' });
     chrome.listeners.onCommand('open-overview');
     await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(2));
@@ -377,7 +378,7 @@ describe('background.js', () => {
       chrome.listeners.onCommand('open-overview-site');
       await vi.waitFor(() => expect(chrome.storage.local.data.tryItOpen).toBe(true));
       await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
-      expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?scope=site');
+      expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?scope=site&backdrop=page');
     });
   });
 
@@ -520,7 +521,7 @@ describe('background.js', () => {
       it('opens right over the browser window, as large as it, whatever size was saved, and says so in its address', async () => {
         chrome._focused = { left: 100, top: 60, width: 1300, height: 820, state: 'normal' };
         expect(await opened()).toEqual({ left: 100, top: 60, width: 1300, height: 820 });
-        expect(chrome.windows.create.mock.calls.at(-1)[0].url).toBe('chrome-extension://test/overview.html?layout=spread');
+        expect(chrome.windows.create.mock.calls.at(-1)[0].url).toBe('chrome-extension://test/overview.html?backdrop=page&layout=spread');
       });
 
       it('stays inside the work area when the browser window reaches past it', async () => {
@@ -546,7 +547,7 @@ describe('background.js', () => {
     });
   });
 
-  // A trial (settings page, "Open as", src/host.js).
+  // A trial (settings page, "What it covers", src/host.js).
   describe('opened on the page in front, with the cards spread out', () => {
     let front; // the tab in front in the browser window
     const press = (source = 'shortcut') => {
@@ -588,7 +589,7 @@ describe('background.js', () => {
       delete chrome.storage.local.data.spread;
       delete chrome.storage.local.data.openAs;
       const { token } = await open();
-      expect(chrome.scripting.executeScript.mock.calls[0][0].args).toEqual([`overlay.html?host=page&token=${token}&layout=spread`, token]);
+      expect(chrome.scripting.executeScript.mock.calls[0][0].args).toEqual([`overlay.html?host=page&token=${token}&backdrop=page&layout=spread`, token]);
       expect(chrome.windows.create).not.toHaveBeenCalled();
     });
 
@@ -605,7 +606,7 @@ describe('background.js', () => {
       const [call] = chrome.scripting.executeScript.mock.calls;
       expect(call[0]).toMatchObject({ target: { tabId: 11 }, injectImmediately: true });
       expect(token).toMatch(/^[0-9a-f-]{36}$/);
-      expect(call[0].args).toEqual([`overlay.html?host=page&token=${token}&layout=spread`, token]);
+      expect(call[0].args).toEqual([`overlay.html?host=page&token=${token}&backdrop=page&layout=spread`, token]);
       expect(host()).toMatchObject({ kind: 'page', tabId: 11, windowId: 1 });
       expect(chrome.windows.create).not.toHaveBeenCalled();
       expect(chrome.tabs.create).not.toHaveBeenCalled();
@@ -723,7 +724,7 @@ describe('background.js', () => {
       sized();
       chrome.scripting.executeScript.mockRejectedValue(new Error('Cannot access contents of the page'));
       expect(await windowOpened()).toEqual({ left: 100, top: 145, width: 1300, height: 735 });
-      expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?layout=spread');
+      expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?backdrop=page&layout=spread');
       expect(chrome.windows.create.mock.calls[0][0].type).toBe('popup');
       expect(host()).toBeNull();
     });
@@ -904,7 +905,7 @@ describe('background.js', () => {
       await vi.waitFor(() => expect(chrome.windows.create).toHaveBeenCalledTimes(1));
       expect(chrome.scripting.executeScript).not.toHaveBeenCalled();
       expect(chrome.tabs.create).not.toHaveBeenCalled();
-      expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html');
+      expect(chrome.windows.create.mock.calls[0][0].url).toBe('chrome-extension://test/overview.html?backdrop=page');
     });
   });
 });

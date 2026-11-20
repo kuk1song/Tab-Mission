@@ -135,6 +135,31 @@ button.external::after {
 .switch:checked { background: var(--accent); }
 .switch:checked::before { transform: translateX(18px); }
 
+/* A choice between two, each with a small picture of what it gives (the
+   mode, and what Art mode covers): radio buttons drawn as cards. The radio
+   itself is out of sight; its card shows the choice and the keyboard focus. */
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px 16px; }
+.card { position: relative; display: block; border: 2px solid var(--line); border-radius: 12px; padding: 10px 10px 9px; cursor: pointer; }
+.card input { position: absolute; opacity: 0; pointer-events: none; }
+.card:hover { border-color: var(--track); }
+.card:has(input:checked) { border-color: var(--accent); }
+.card:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card .desc { display: block; margin: 0; }
+/* The pictures: a page in soft colors, the cards on it; for Classic mode a
+   window of its own, apart from the page. */
+.picture { display: block; width: 100%; border-radius: 7px; margin-bottom: 8px; background: linear-gradient(135deg, #4a5a8c, #7a5a86); }
+.picture.apart { background: #9aa0b4; }
+.cards-drawn { fill: #eef0f7; }
+.window-drawn { fill: #1d1e22; }
+.strip-drawn { fill: #26272c; }
+.tab-drawn { fill: #44464d; }
+/* What belongs to the mode in use, under the two modes. */
+.more { border-top: 1px solid var(--line); }
+.more[hidden] { display: none; }
+.lead { margin: 0; padding: 12px 16px 0; font-weight: 600; }
+.lead + .cards { padding-top: 8px; }
+.foot { margin: 0; padding: 0 16px 12px; color: var(--muted); font-size: 0.8125rem; }
+
 /* Version and links: information, not settings, so a quiet line at the end. */
 .about { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 36px 4px 0; color: var(--muted); font-size: 0.8125rem; }
 .about a { color: var(--accent); text-decoration: none; }
@@ -151,8 +176,9 @@ button.external::after {
   white-space: nowrap;
 }
 
-/* Narrow windows: the keys and button move under the label. */
+/* Narrow windows: the keys and button move under the label, and the cards under each other. */
 @media (max-width: 480px) {
+  .cards { grid-template-columns: 1fr; }
   .row:has(.control) { flex-wrap: wrap; }
   .control { width: 100%; justify-content: flex-end; }
 }
@@ -170,6 +196,8 @@ button.external::after {
 
 /* Windows high contrast: the switch keeps a visible track and knob. */
 @media (forced-colors: active) {
+  .card:has(input:checked) { border-color: Highlight; }
+  .picture { forced-color-adjust: none; }
   .switch { border: 1px solid CanvasText; background: Canvas; }
   .switch::before { background: CanvasText; box-shadow: none; }
   .switch:checked { background: Highlight; }

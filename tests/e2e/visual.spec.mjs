@@ -81,7 +81,7 @@ for (const scale of [1, 1.25, 1.5]) {
     test(`spread out on the page in front at ${scale * 100}%`, async ({ ext, context }) => {
       mkdirSync(OUT, { recursive: true });
       const { tabIds } = await ext.openWindow(SPREAD_TABS);
-      await ext.sw.evaluate(() => chrome.storage.local.remove(['spread', 'openAs']));
+      await ext.sw.evaluate(() => chrome.storage.local.remove(['spread', 'openAs', 'backdrop']));
       const page = context.pages().find((opened) => new URL(opened.url()).pathname === '/gamma.html');
       await ext.press();
       await expect.poll(() => page.frames().some((frame) => frame.url().includes('/overlay.html'))).toBe(true);
@@ -92,6 +92,14 @@ for (const scale of [1, 1.25, 1.5]) {
       await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement.lastElementChild).opacity)).toBe('1');
       await expect(frame.locator('#grid .tile')).toHaveCount(SPREAD_TABS.length);
       expect(await frame.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      // The blurred page behind the cards has come in, or this machine keeps
+      // the plain background (it asks for less transparency, or no picture
+      // of the page was there yet): either way nothing is still changing.
+      await expect.poll(() => frame.evaluate(() => {
+        const el = document.getElementById('backdrop');
+        if (document.documentElement.dataset.backdrop !== 'page') return true;
+        return 'picture' in el.dataset && getComputedStyle(el, '::before').opacity === '1';
+      })).toBe(true);
       await page.screenshot({ path: `${OUT}/${process.platform}-${scale * 100}-spread.png` });
     });
   });

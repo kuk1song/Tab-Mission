@@ -265,10 +265,11 @@ export const test = base.extend({
     // tests of many tabs (layout, smooth, visual) turn it back on.
     // The same goes for the cards spread out on the page in front, the
     // default since 2.0: most tests are about the grid in its own window, as
-    // a user has it with "Spread the cards out" off. spread.spec turns the
-    // setting on (in a window), open-as.spec chooses where it opens, and
-    // defaults.spec gives a new user's settings back.
-    await sw.evaluate(() => chrome.storage.local.set({ groupBySite: false, spread: false, openAs: 'window' }));
+    // a user has it in Classic mode. spread.spec turns Art mode on (in a
+    // window), open-as.spec chooses where it opens, and defaults.spec gives
+    // a new user's settings back. The backdrop too: plain here, the blurred
+    // page for a new user (spread.spec and defaults.spec show that one).
+    await sw.evaluate(() => chrome.storage.local.set({ groupBySite: false, spread: false, openAs: 'window', backdrop: 'plain' }));
     const url = (id, query = '') => `http://${HOSTS[id] ?? 'localhost'}:${site.port}/${id}.html${query}`;
 
     const ext = {

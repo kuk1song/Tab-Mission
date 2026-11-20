@@ -16,23 +16,24 @@ export const DEFAULTS = {
   // install, until learned and at most a few times (tips.js). On (settings
   // page): every time.
   showTips: false,
-  // On by default (off on the settings page): while browsing, the five most
-  // recent tabs, then the tabs grouped by site in tab-strip order (state.js),
-  // at any window size and number of tabs. Not "artMode":
-  // updates delete that old key (background.js).
+  // On by default (off on the settings page, under Classic mode: only the
+  // grid groups): while browsing, the five most recent tabs, then the tabs
+  // grouped by site in tab-strip order (state.js), at any window size and
+  // number of tabs. Not "artMode": updates delete that old key
+  // (background.js).
   groupBySite: true,
   // 'system' follows the system's light or dark appearance; 'light' or
   // 'dark' fixes it for the Tab Mission window (settings page).
   appearance: 'system',
-  // What is behind the cards (backdrop.js): 'plain'; 'page', a blurred
-  // picture of the page you were on; or 'wallpaper', colors of Tab Mission's
-  // own.
-  backdrop: 'plain',
-  // On by default (2.0): the cards spread out, the tabs used more recently
-  // larger, every one in view while they fit (spread.js). Off (settings
-  // page): the grid.
+  // What is behind the cards (backdrop.js): 'page' (the default since 2.0),
+  // a blurred picture of the page you were on; 'wallpaper', colors of Tab
+  // Mission's own; or 'plain'.
+  backdrop: 'page',
+  // On by default (2.0), "Art mode" on the settings page: the cards spread
+  // out, the tabs used more recently larger, every one in view while they
+  // fit (spread.js). Off, "Classic mode": the grid.
   spread: true,
-  // Spread out: how much the overview covers. 'page', the page only, the tab
+  // In Art mode: how much the overview covers. 'page', the page only, the tab
   // strip in view: a layer over the page in front, or where a page takes
   // none, a window over the page (background.js, src/host.js); 'window', the
   // whole browser window (a window of its own over it).
