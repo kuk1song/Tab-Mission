@@ -249,7 +249,9 @@ function mountOverlay(path, token) {
     opacity: '0.001', 'pointer-events': 'none',
   });
   const frame = document.createElement('iframe');
-  frame.title = 'Tab Mission';
+  // Named for screen readers with aria-label, not title: a title shows as a
+  // hover text over the whole layer once the pointer rests.
+  frame.setAttribute('aria-label', 'Tab Mission');
   frame.setAttribute('allow', '');
   style(frame, { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0', margin: '0', display: 'block' });
   frame.src = chrome.runtime.getURL(path);

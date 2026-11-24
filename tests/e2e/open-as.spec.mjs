@@ -81,6 +81,17 @@ test.describe('on the page in front', () => {
     });
     expect(layer).toMatchObject({ last: true, root: null, frames: 0 });
     expect(layer.box).toEqual(layer.view);
+    // The frame has a name for screen readers and no title, which would show
+    // as a hover text over the whole layer (the debugger sees into the
+    // closed shadow root).
+    const cdp = await page.context().newCDPSession(page);
+    const { root } = await cdp.send('DOM.getDocument', { depth: -1, pierce: true });
+    await cdp.detach();
+    const all = (n) => [n, ...[...(n.children || []), ...(n.shadowRoots || [])].flatMap(all)];
+    const frames = all(root).filter((n) => n.nodeName === 'IFRAME').map((n) => Object.fromEntries(n.attributes.flatMap((a, i, list) => (i % 2 ? [] : [[a, list[i + 1]]]))));
+    expect(frames).toHaveLength(1);
+    expect(frames[0]).toMatchObject({ 'aria-label': 'Tab Mission' });
+    expect(frames[0]).not.toHaveProperty('title');
 
     await expect(frame.locator('#grid .tile')).toHaveCount(VISITED.length);
     await expect(frame.locator(`#tile-${tabIds.gamma}`)).toBeVisible();
