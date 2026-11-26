@@ -1,6 +1,6 @@
 import { test, expect, PAGES } from './fixtures.mjs';
 
-// "What it covers" (settings page, under Art mode; src/host.js): the
+// "Display area" (settings page, under Art mode; src/host.js): the
 // overview as a layer over the page in front, the tab strip in view (the
 // default), or a window of its own over the whole browser.
 const VISITED = ['alpha', 'doc1', 'tube1', 'beta', 'tube2', 'gamma'];

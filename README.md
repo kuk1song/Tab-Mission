@@ -17,11 +17,11 @@
 
 ---
 
-One shortcut spreads the tabs in your window out as cards, like windows in Mission Control: most recent first and largest, with pictures of the pages you've seen. Press it again to go back to your last tab, or point at a card or type a few letters and press it again to go there.
+Tab Mission brings Mission Control from macOS to your Chrome tabs: one shortcut spreads the tabs in your window out as cards, right on the page, most recent first and largest, with pictures of the pages you've seen. It works the same on Windows, Linux and ChromeOS. Press the shortcut again to go back to your last tab, or point at a card or type a few letters and press it again to go there.
 
 ## ✨ Features
 
-- **Spread Out, on the Page:** Tab Mission opens right on the page you are on, the tab strip still in view, and spreads the cards out: the tabs you used last are larger, and every tab is in view at once while they fit. Behind them is a blurred picture of the page you were on. This is Art mode; in the settings, it can cover the whole browser window instead, and Classic mode brings back the grid in a window of its own. Browser pages, the new tab page and the Chrome Web Store take no layer, so there a window over the page opens.
+- **Spread Out, on the Page:** Tab Mission opens right on the page you are on, the tab strip still in view, and spreads the cards out: the tabs you used last are larger, and every tab is in view at once while they fit. Behind them is a blurred picture of the page you were on. This is Art mode; in the settings, it can cover the whole browser window instead, and Classic mode brings back the grid in a window of its own. Browser pages, the new tab page and the Chrome Web Store cannot be covered, so there Tab Mission opens in a window of the same size instead.
 - **Back and Forth:** The tab you were on before takes the first card and is already selected, so pressing the shortcut again takes you back; twice more, and you are where you started. Your current tab sits second, then your other recent tabs.
 - **Point and Tap:** Keep holding `Cmd` (or `Ctrl + Shift`) after the shortcut, point at a card and tap `E`. Or let go, point, and press the whole shortcut again.
 - **Type to Search:** The search box is ready as soon as Tab Mission opens. Every word you type must match the title or URL, the best match is selected, and pressing the shortcut again takes you there. A search covers all windows and sleeping tabs; without one, the cards follow the two toggles above them.
@@ -67,6 +67,8 @@ Tab Mission is free and open source (MIT). It processes tab information and page
 Permissions: `tabs` to list, switch and close tabs; `favicon` for site icons from Chrome's own store; `scripting` and access to all sites for the page pictures, the preview images and showing Tab Mission on the page; `system.display` to place the window on your screen; `storage` for settings, page pictures and the other data the Privacy Policy lists.
 
 The MIT license covers the code. It does not grant rights to the Tab Mission name or logo as a trademark, so please give forks and derived extensions a different name and icon.
+
+Mission Control and macOS are trademarks of Apple Inc., registered in the U.S. and other countries and regions. Tab Mission is an independent project, not affiliated with Apple.
 
 ---
 

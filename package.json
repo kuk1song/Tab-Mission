@@ -1,7 +1,7 @@
 {
   "name": "tab-mission",
-  "version": "2.0.0",
-  "description": "Mission control for your browser tabs: a searchable visual grid of your open tabs.",
+  "version": "2.0.1",
+  "description": "Bring Mission Control from macOS to your Chrome. See every tab as a card, jump straight to the one you want, search as you type.",
   "private": true,
   "license": "MIT",
   "author": "Haokun Song <shk741612898@gmail.com>",

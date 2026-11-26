@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Mission Control for your Chrome tabs. Instantly switch between and search visual tab previews.",
+    "message": "Bring Mission Control from macOS to your Chrome. See every tab as a card, jump straight to the one you want, search as you type.",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {
@@ -278,11 +278,11 @@
     "description": "Backdrop choice: a plain background."
   },
   "optionBackdropPage": {
-    "message": "The page you were on, blurred",
+    "message": "Blurred page",
     "description": "Backdrop choice, the default: a blurred picture of the page the user was on. Plain when there is no picture of it."
   },
   "optionBackdropWallpaper": {
-    "message": "Wallpaper colors",
+    "message": "Blue gradient",
     "description": "Backdrop choice: a soft gradient of colors that come with Tab Mission."
   },
   "optionModeHeading": {
@@ -306,11 +306,11 @@
     "description": "Settings page: one line under the name \"Classic mode\", on its card."
   },
   "optionOpenAs": {
-    "message": "What it covers",
+    "message": "Display area",
     "description": "Settings page, shown with Art mode: heading of the choice of how much Tab Mission covers."
   },
   "optionOpenAsNote": {
-    "message": "Where a page cannot be covered, or does not answer, \"The page only\" opens a window of the same size instead.",
+    "message": "Where a page cannot be covered, or does not respond, \"The page only\" opens a window of the same size instead.",
     "description": "Settings page: one line under the two choices of what Art mode covers. Keep the quoted name the same as the choice \"The page only\"."
   },
   "optionOpenAsPage": {
