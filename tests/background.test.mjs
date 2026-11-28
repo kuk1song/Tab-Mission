@@ -547,7 +547,7 @@ describe('background.js', () => {
     });
   });
 
-  // A trial (settings page, "What it covers", src/host.js).
+  // A trial (settings page, "Display area", src/host.js).
   describe('opened on the page in front, with the cards spread out', () => {
     let front; // the tab in front in the browser window
     const press = (source = 'shortcut') => {

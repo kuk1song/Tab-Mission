@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "Il tuo centro di comando per le schede. Panoramica istantanea, cambio fulmineo, ricerca immediata.",
+    "message": "Porta Mission Control di macOS nel tuo Chrome. Vedi ogni scheda a colpo d'occhio, vai dritto a quella giusta, cerchi mentre scrivi.",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {
@@ -278,11 +278,11 @@
     "description": "Backdrop choice: a plain background."
   },
   "optionBackdropPage": {
-    "message": "La pagina in cui eri, sfocata",
+    "message": "Pagina sfocata",
     "description": "Backdrop choice, the default: a blurred picture of the page the user was on. Plain when there is no picture of it."
   },
   "optionBackdropWallpaper": {
-    "message": "Colori di sfondo",
+    "message": "Sfumatura blu",
     "description": "Backdrop choice: a soft gradient of colors that come with Tab Mission."
   },
   "optionModeHeading": {
@@ -306,7 +306,7 @@
     "description": "Settings page: one line under the name \"Classic mode\", on its card."
   },
   "optionOpenAs": {
-    "message": "Cosa copre",
+    "message": "Area di visualizzazione",
     "description": "Settings page, shown with Art mode: heading of the choice of how much Tab Mission covers."
   },
   "optionOpenAsNote": {

@@ -19,8 +19,8 @@
         <div id="shortcuts" class="group"></div>
       </section>
 
-      <!-- The two modes are the "spread" setting (Art mode: true), and "What it
-           covers" the "openAs" one. The small pictures are drawn here, so
+      <!-- The two modes are the "spread" setting (Art mode: true), and "Display
+           area" the "openAs" one. The small pictures are drawn here, so
            the package carries no image for them. Only the choices of the
            mode in use show (options.js). -->
       <section aria-labelledby="mode-heading">
@@ -41,7 +41,7 @@
             </label>
           </div>
           <div id="art-choices" class="more">
-            <p id="open-as-heading" class="lead" data-i18n="optionOpenAs">What it covers</p>
+            <p id="open-as-heading" class="lead" data-i18n="optionOpenAs">Display area</p>
             <div class="cards" role="radiogroup" aria-labelledby="open-as-heading" aria-describedby="open-as-note">
               <label class="card">
                 <input id="open-as-page" type="radio" name="open-as" value="page" aria-describedby="open-as-page-note" />
@@ -56,7 +56,7 @@
                 <span id="open-as-window-note" class="desc" data-i18n="optionOpenAsWindowNote">More room for the cards</span>
               </label>
             </div>
-            <p id="open-as-note" class="foot" data-i18n="optionOpenAsNote">Where a page cannot be covered, or does not answer, "The page only" opens a window of the same size instead.</p>
+            <p id="open-as-note" class="foot" data-i18n="optionOpenAsNote">Where a page cannot be covered, or does not respond, "The page only" opens a window of the same size instead.</p>
           </div>
           <div id="classic-choices" class="more">
             <div class="row">
@@ -103,8 +103,8 @@
               <p id="backdrop-note" class="desc" data-i18n="optionBackdropNote">Behind the cards. Plain while there is no picture of the page yet, or when your system asks for less transparency.</p>
             </div>
             <select id="backdrop" class="select" aria-describedby="backdrop-note">
-              <option value="page" data-i18n="optionBackdropPage">The page you were on, blurred</option>
-              <option value="wallpaper" data-i18n="optionBackdropWallpaper">Wallpaper colors</option>
+              <option value="page" data-i18n="optionBackdropPage">Blurred page</option>
+              <option value="wallpaper" data-i18n="optionBackdropWallpaper">Blue gradient</option>
               <option value="plain" data-i18n="optionBackdropPlain">Plain</option>
             </select>
           </div>

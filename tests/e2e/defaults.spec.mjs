@@ -66,7 +66,7 @@ test('the settings page shows those defaults and only the choices of the mode in
   // Art mode shows what it covers, not the grid's grouping.
   await expect(options.locator('#art-choices')).toBeVisible();
   await expect(options.locator('#group-by-site')).toBeHidden();
-  // What it covers saves at once.
+  // Display area saves at once.
   await options.locator('label.card:has(#open-as-window)').click();
   await expect.poll(() => stored(ext, 'openAs')).toBe('window');
   await options.locator('label.card:has(#open-as-page)').click();

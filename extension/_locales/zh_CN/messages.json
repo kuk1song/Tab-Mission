@@ -8,7 +8,7 @@
     "description": "BCP 47 language tag of this translation, set as the pages' lang attribute."
   },
   "appDescription": {
-    "message": "你的标签页指挥中心。卡片一览，精准切换，即时搜索。",
+    "message": "把 macOS 的调度中心带到你的 Chrome。卡片一览，精准切换，即时搜索。",
     "description": "Store summary and manifest description (max 132 characters)."
   },
   "actionTitle": {
@@ -270,7 +270,7 @@
     "description": "Label of a setting on the settings page: what is shown behind the cards."
   },
   "optionBackdropNote": {
-    "message": "卡片后面。还没有网页截图时，或系统设置了“减少透明度”时，是纯色。",
+    "message": "卡片后面。“虚化”用的是刚才所在网页的截图；还没有截图时，或系统设置了“减少透明度”时，是纯色。",
     "description": "Explanation under the backdrop setting."
   },
   "optionBackdropPlain": {
@@ -278,11 +278,11 @@
     "description": "Backdrop choice: a plain background."
   },
   "optionBackdropPage": {
-    "message": "刚才所在的网页（虚化）",
+    "message": "虚化",
     "description": "Backdrop choice, the default: a blurred picture of the page the user was on. Plain when there is no picture of it."
   },
   "optionBackdropWallpaper": {
-    "message": "壁纸色",
+    "message": "蓝色渐变",
     "description": "Backdrop choice: a soft gradient of colors that come with Tab Mission."
   },
   "optionModeHeading": {
@@ -306,15 +306,15 @@
     "description": "Settings page: one line under the name \"Classic mode\", on its card."
   },
   "optionOpenAs": {
-    "message": "盖住哪里",
+    "message": "显示范围",
     "description": "Settings page, shown with Art mode: heading of the choice of how much Tab Mission covers."
   },
   "optionOpenAsNote": {
-    "message": "在不能铺的页面上，或网页没有响应时，“只盖住网页”会改用一个同样大小的窗口。",
+    "message": "在不能覆盖的页面上，或网页没有响应时，“网页”会改用一个同样大小的窗口。",
     "description": "Settings page: one line under the two choices of what Art mode covers. Keep the quoted name the same as the choice \"The page only\"."
   },
   "optionOpenAsPage": {
-    "message": "只盖住网页",
+    "message": "网页",
     "description": "Choice of what Art mode covers, on a card with a small picture: only the web page; the browser's tab strip and toolbar stay in view."
   },
   "optionOpenAsPageNote": {
